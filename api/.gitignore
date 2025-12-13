@@ -18,7 +18,7 @@ temp_*.csv
 # Environment
 .env
 .env.local
-
+.env.example
 # IDE
 .vscode/
 .idea/
