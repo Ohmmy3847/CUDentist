@@ -203,7 +203,7 @@ export default function SymptomsForm({ data, onChange, onValidationChange }: Sym
                   name="pain_medication"
                   value={option}
                   checked={data.pain_medication_effective === option}
-                  onChange={(e) => onChange({ pain_medication_effective: e.target.value as any })}
+                  onChange={(e) => onChange({ pain_medication_effective: e.target.value as typeof data.pain_medication_effective })}
                   className="w-4 h-4 text-blue-600"
                 />
                 <span className="ml-2 text-gray-700">{option}</span>
@@ -226,7 +226,7 @@ export default function SymptomsForm({ data, onChange, onValidationChange }: Sym
                 name="swelling"
                 value={option}
                 checked={data.swelling_status === option}
-                onChange={(e) => onChange({ swelling_status: e.target.value as any })}
+                onChange={(e) => onChange({ swelling_status: e.target.value as typeof data.swelling_status })}
                 className="w-4 h-4 text-blue-600"
               />
               <span className="ml-2 text-gray-700">{option}</span>
@@ -307,7 +307,7 @@ export default function SymptomsForm({ data, onChange, onValidationChange }: Sym
                 name="bleeding"
                 value={option}
                 checked={data.bleeding_status === option}
-                onChange={(e) => onChange({ bleeding_status: e.target.value as any })}
+                onChange={(e) => onChange({ bleeding_status: e.target.value as typeof data.bleeding_status })}
                 className="w-4 h-4 text-blue-600"
               />
               <span className="ml-2 text-gray-700">{option}</span>
@@ -388,7 +388,7 @@ export default function SymptomsForm({ data, onChange, onValidationChange }: Sym
                 name="numbness"
                 value={option}
                 checked={data.numbness_status === option}
-                onChange={(e) => onChange({ numbness_status: e.target.value as any })}
+                onChange={(e) => onChange({ numbness_status: e.target.value as typeof data.numbness_status })}
                 className="w-4 h-4 text-blue-600"
               />
               <span className="ml-2 text-gray-700">{option}</span>
@@ -424,7 +424,7 @@ export default function SymptomsForm({ data, onChange, onValidationChange }: Sym
                 name="phlebitis"
                 value={option}
                 checked={data.phlebitis === option}
-                onChange={(e) => onChange({ phlebitis: e.target.value as any })}
+                onChange={(e) => onChange({ phlebitis: e.target.value as typeof data.phlebitis })}
                 className="w-4 h-4 text-blue-600"
               />
               <span className="ml-2 text-gray-700">{option}</span>
@@ -460,7 +460,7 @@ export default function SymptomsForm({ data, onChange, onValidationChange }: Sym
                 name="suture"
                 value={option}
                 checked={data.suture_status === option}
-                onChange={(e) => onChange({ suture_status: e.target.value as any })}
+                onChange={(e) => onChange({ suture_status: e.target.value as typeof data.suture_status })}
                 className="w-4 h-4 text-blue-600"
               />
               <span className="ml-2 text-gray-700">{option}</span>
@@ -504,9 +504,9 @@ export default function SymptomsForm({ data, onChange, onValidationChange }: Sym
             <label className="flex items-start cursor-pointer">
               <input
                 type="checkbox"
-                checked={data.other_symptoms?.some(s => !OTHER_SYMPTOMS_OPTIONS.includes(s as any)) || false}
+                checked={data.other_symptoms?.some(s => !OTHER_SYMPTOMS_OPTIONS.includes(s as typeof OTHER_SYMPTOMS_OPTIONS[number])) || false}
                 onChange={(e) => {
-                  const standardSymptoms = data.other_symptoms?.filter(s => OTHER_SYMPTOMS_OPTIONS.includes(s as any)) || [];
+                  const standardSymptoms = data.other_symptoms?.filter(s => OTHER_SYMPTOMS_OPTIONS.includes(s as typeof OTHER_SYMPTOMS_OPTIONS[number])) || [];
                   if (e.target.checked) {
                     onChange({ other_symptoms: [...standardSymptoms, ''] });
                   } else {
@@ -519,16 +519,16 @@ export default function SymptomsForm({ data, onChange, onValidationChange }: Sym
             </label>
             <input
               type="text"
-              value={data.other_symptoms?.find(s => !OTHER_SYMPTOMS_OPTIONS.includes(s as any)) || ''}
+              value={data.other_symptoms?.find(s => !OTHER_SYMPTOMS_OPTIONS.includes(s as typeof OTHER_SYMPTOMS_OPTIONS[number])) || ''}
               onChange={(e) => {
-                const standardSymptoms = data.other_symptoms?.filter(s => OTHER_SYMPTOMS_OPTIONS.includes(s as any)) || [];
+                const standardSymptoms = data.other_symptoms?.filter(s => OTHER_SYMPTOMS_OPTIONS.includes(s as typeof OTHER_SYMPTOMS_OPTIONS[number])) || [];
                 onChange({
                   other_symptoms: e.target.value ? [...standardSymptoms, e.target.value] : standardSymptoms
                 });
               }}
               onFocus={() => {
-                if (!data.other_symptoms?.some(s => !OTHER_SYMPTOMS_OPTIONS.includes(s as any))) {
-                  const standardSymptoms = data.other_symptoms?.filter(s => OTHER_SYMPTOMS_OPTIONS.includes(s as any)) || [];
+                if (!data.other_symptoms?.some(s => !OTHER_SYMPTOMS_OPTIONS.includes(s as typeof OTHER_SYMPTOMS_OPTIONS[number]))) {
+                  const standardSymptoms = data.other_symptoms?.filter(s => OTHER_SYMPTOMS_OPTIONS.includes(s as typeof OTHER_SYMPTOMS_OPTIONS[number])) || [];
                   onChange({ other_symptoms: [...standardSymptoms, ''] });
                 }
               }}
@@ -552,7 +552,7 @@ export default function SymptomsForm({ data, onChange, onValidationChange }: Sym
                 name="antibiotic"
                 value={option}
                 checked={data.antibiotic_compliance === option}
-                onChange={(e) => onChange({ antibiotic_compliance: e.target.value as any })}
+                onChange={(e) => onChange({ antibiotic_compliance: e.target.value as typeof data.antibiotic_compliance })}
                 className="w-4 h-4 text-blue-600"
               />
               <span className="ml-2 text-gray-700">{option}</span>
@@ -592,7 +592,7 @@ export default function SymptomsForm({ data, onChange, onValidationChange }: Sym
                 name="compress"
                 value={option}
                 checked={data.compress_type === option}
-                onChange={(e) => onChange({ compress_type: e.target.value as any })}
+                onChange={(e) => onChange({ compress_type: e.target.value as typeof data.compress_type })}
                 className="w-4 h-4 text-blue-600"
               />
               <span className="ml-2 text-gray-700">{option}</span>
@@ -614,7 +614,7 @@ export default function SymptomsForm({ data, onChange, onValidationChange }: Sym
                 name="imf"
                 value={option}
                 checked={data.has_imf === option}
-                onChange={(e) => onChange({ has_imf: e.target.value as any })}
+                onChange={(e) => onChange({ has_imf: e.target.value as typeof data.has_imf })}
                 className="w-4 h-4 text-blue-600"
               />
               <span className="ml-2 text-gray-700">{option}</span>
@@ -637,7 +637,7 @@ export default function SymptomsForm({ data, onChange, onValidationChange }: Sym
                   name="imf_wire"
                   value={option}
                   checked={data.imf_wire_status === option}
-                  onChange={(e) => onChange({ imf_wire_status: e.target.value as any })}
+                  onChange={(e) => onChange({ imf_wire_status: e.target.value as typeof data.imf_wire_status })}
                   className="w-4 h-4 text-blue-600"
                 />
                 <span className="ml-2 text-gray-700">{option}</span>
@@ -672,7 +672,7 @@ export default function SymptomsForm({ data, onChange, onValidationChange }: Sym
                 name="walking"
                 value={option}
                 checked={data.walking_status === option}
-                onChange={(e) => onChange({ walking_status: e.target.value as any })}
+                onChange={(e) => onChange({ walking_status: e.target.value as typeof data.walking_status })}
                 className="w-4 h-4 text-blue-600"
               />
               <span className="ml-2 text-gray-700">{option}</span>

@@ -188,7 +188,7 @@ export default function DailyLifeForm({ data, onChange, onValidationChange }: Da
                 name="feeding_method"
                 value={option}
                 checked={data.feeding_method === option}
-                onChange={(e) => onChange({ feeding_method: e.target.value as any })}
+                onChange={(e) => onChange({ feeding_method: e.target.value as typeof data.feeding_method })}
                 className="w-4 h-4 text-blue-600"
               />
               <span className="ml-2 text-gray-700">{option}</span>
@@ -280,7 +280,7 @@ export default function DailyLifeForm({ data, onChange, onValidationChange }: Da
                 name="food_amount"
                 value={option}
                 checked={data.food_amount === option}
-                onChange={(e) => onChange({ food_amount: e.target.value as any })}
+                onChange={(e) => onChange({ food_amount: e.target.value as typeof data.food_amount })}
                 className="w-4 h-4 text-blue-600"
               />
               <span className="ml-2 text-gray-700">{option}</span>
@@ -330,7 +330,7 @@ export default function DailyLifeForm({ data, onChange, onValidationChange }: Da
                 name="ng_tube"
                 value={option}
                 checked={data.ng_tube_position === option}
-                onChange={(e) => onChange({ ng_tube_position: e.target.value as any })}
+                onChange={(e) => onChange({ ng_tube_position: e.target.value as typeof data.ng_tube_position })}
                 className="w-4 h-4 text-blue-600"
               />
               <span className="ml-2 text-gray-700">{option}</span>
@@ -362,7 +362,7 @@ export default function DailyLifeForm({ data, onChange, onValidationChange }: Da
           พร้อมส่งข้อมูลแล้ว
         </h3>
         <p className="text-blue-800 text-sm">
-          กรุณาตรวจสอบข้อมูลก่อนกดปุ่ม "ส่งและประเมินความเสี่ยง" ระบบจะทำการวิเคราะห์และให้คำแนะนำตามระดับความเสี่ยงที่ประเมินได้
+          กรุณาตรวจสอบข้อมูลก่อนกดปุ่ม &quot;ส่งและประเมินความเสี่ยง&quot; ระบบจะทำการวิเคราะห์และให้คำแนะนำตามระดับความเสี่ยงที่ประเมินได้
         </p>
       </div>
     </div>

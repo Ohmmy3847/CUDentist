@@ -69,7 +69,7 @@ export default function ResultPage() {
     document.body.removeChild(a);
   };
 
-  const formatFieldValue = (key: string, value: any): string => {
+  const formatFieldValue = (key: string, value: unknown): string => {
     if (value === undefined || value === null || value === '') return 'ไม่ได้ระบุ';
     if (Array.isArray(value)) {
       return value.length > 0 ? value.join(', ') : 'ไม่ได้ระบุ';
@@ -185,8 +185,13 @@ export default function ResultPage() {
                   สรุปผลการประเมิน: {overallRisk.level}
                 </h2>
                 <p className="text-gray-700">
-                  ตรวจพบความเสี่ยงใน {overallRisk.count} ด้าน จากทั้งหมด {Object.keys(result).length} ด้าน
+                  ตรวจพบความเสี่ยงใน {overallRisk.count} ด้าน จากทั้งหมด {Object.keys(result).length} ด้านที่ประเมินได้
                 </p>
+                {Object.keys(result).length < 18 && (
+                  <p className="text-sm text-orange-600 mt-1">
+                    ⚠️ หมายเหตุ: ระบบประเมินได้เพียง {Object.keys(result).length} ด้าน จาก 18 ด้านทั้งหมด
+                  </p>
+                )}
               </div>
             </div>
           </div>
@@ -216,7 +221,7 @@ export default function ResultPage() {
               <div className="border-t border-gray-200 p-6">
                 <div className="grid md:grid-cols-2 gap-x-8 gap-y-4">
                   {Object.entries(patientData)
-                    .filter(([_, value]) => value !== undefined && value !== null && value !== '')
+                    .filter(([, value]) => value !== undefined && value !== null && value !== '')
                     .map(([key, value]) => (
                       <div key={key} className="flex flex-col">
                         <span className="text-sm font-medium text-gray-600 mb-1">

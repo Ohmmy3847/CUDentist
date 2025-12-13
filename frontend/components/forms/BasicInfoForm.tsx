@@ -88,7 +88,7 @@ export default function BasicInfoForm({ data, onChange, onValidationChange }: Ba
               <input
                 type="radio"
                 name="gender"
-                checked={!!(data.gender && !GENDER_OPTIONS.includes(data.gender as any))}
+                checked={!!(data.gender && !GENDER_OPTIONS.includes(data.gender as typeof GENDER_OPTIONS[number]))}
                 onChange={() => {
                   onChange({ gender: ' ' });
                 }}
@@ -98,10 +98,10 @@ export default function BasicInfoForm({ data, onChange, onValidationChange }: Ba
             </label>
             <input
               type="text"
-              value={data.gender && !GENDER_OPTIONS.includes(data.gender as any) ? data.gender.trim() : ''}
+              value={data.gender && !GENDER_OPTIONS.includes(data.gender as typeof GENDER_OPTIONS[number]) ? data.gender.trim() : ''}
               onChange={(e) => onChange({ gender: e.target.value || ' ' })}
               onFocus={() => {
-                if (!data.gender || GENDER_OPTIONS.includes(data.gender as any)) {
+                if (!data.gender || GENDER_OPTIONS.includes(data.gender as typeof GENDER_OPTIONS[number])) {
                   onChange({ gender: ' ' });
                 }
               }}
@@ -147,9 +147,9 @@ export default function BasicInfoForm({ data, onChange, onValidationChange }: Ba
             <label className="flex items-start cursor-pointer">
               <input
                 type="checkbox"
-                checked={data.procedures?.some(p => !PROCEDURE_OPTIONS.includes(p as any)) || false}
+                checked={data.procedures?.some(p => !PROCEDURE_OPTIONS.includes(p as typeof PROCEDURE_OPTIONS[number])) || false}
                 onChange={(e) => {
-                  const standardProcedures = data.procedures?.filter(p => PROCEDURE_OPTIONS.includes(p as any)) || [];
+                  const standardProcedures = data.procedures?.filter(p => PROCEDURE_OPTIONS.includes(p as typeof PROCEDURE_OPTIONS[number])) || [];
                   if (e.target.checked) {
                     onChange({ procedures: [...standardProcedures, ''] });
                   } else {
@@ -162,16 +162,16 @@ export default function BasicInfoForm({ data, onChange, onValidationChange }: Ba
             </label>
             <input
               type="text"
-              value={data.procedures?.find(p => !PROCEDURE_OPTIONS.includes(p as any)) || ''}
+              value={data.procedures?.find(p => !PROCEDURE_OPTIONS.includes(p as typeof PROCEDURE_OPTIONS[number])) || ''}
               onChange={(e) => {
-                const standardProcedures = data.procedures?.filter(p => PROCEDURE_OPTIONS.includes(p as any)) || [];
+                const standardProcedures = data.procedures?.filter(p => PROCEDURE_OPTIONS.includes(p as typeof PROCEDURE_OPTIONS[number])) || [];
                 onChange({
                   procedures: e.target.value ? [...standardProcedures, e.target.value] : standardProcedures
                 });
               }}
               onFocus={() => {
-                if (!data.procedures?.some(p => !PROCEDURE_OPTIONS.includes(p as any))) {
-                  const standardProcedures = data.procedures?.filter(p => PROCEDURE_OPTIONS.includes(p as any)) || [];
+                if (!data.procedures?.some(p => !PROCEDURE_OPTIONS.includes(p as typeof PROCEDURE_OPTIONS[number]))) {
+                  const standardProcedures = data.procedures?.filter(p => PROCEDURE_OPTIONS.includes(p as typeof PROCEDURE_OPTIONS[number])) || [];
                   onChange({ procedures: [...standardProcedures, ''] });
                 }
               }}

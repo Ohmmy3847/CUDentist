@@ -66,7 +66,7 @@ export const api = {
       try {
         const text = await file.text();
         estimatedRows = text.split('\n').length - 1; // -1 for header
-      } catch (e) {
+      } catch {
         // Fallback to file size estimate
         estimatedRows = Math.floor(file.size / 500); // rough estimate
       }
@@ -138,7 +138,7 @@ export const api = {
     try {
       await apiClient.get('/');
       return true;
-    } catch (error) {
+    } catch {
       return false;
     }
   },

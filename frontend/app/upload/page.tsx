@@ -303,7 +303,7 @@ export default function UploadPage() {
             </li>
             <li className="flex items-start">
               <span className="font-bold text-blue-600 mr-2">4.</span>
-              <span>กดปุ่ม "อัปโหลดและประเมินความเสี่ยง"</span>
+              <span>กดปุ่ม &quot;อัปโหลดและประเมินความเสี่ยง&quot;</span>
             </li>
             <li className="flex items-start">
               <span className="font-bold text-blue-600 mr-2">5.</span>

@@ -209,7 +209,7 @@ def save_debug_output(text: str, filename: str = "temp.txt"):
 # ------------------------------------------------------------
 def build_llm(api_key: str):
     return ChatGoogleGenerativeAI(
-        model="gemini-2.0-flash",
+        model="gemma-3-12b",
         google_api_key=api_key
     )
 
