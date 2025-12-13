@@ -358,26 +358,4 @@ def csv_to_risk_classification(csv_file: str, api_key: str, output_file: str = "
     asyncio.run(_process_all_rows(df, llm, output_file, max_concurrent))
 
 
-if __name__ == "__main__":
-    df = pd.read_csv("data/66.csv")
-    input_data = df.iloc[5].to_dict()
-    
 
-    
-    api_key = "AIzaSyA2AffQ9M_21x0GwOrJyMiYk6f5Xo5j4ZI"
-    
-    # สร้าง LLM instance ครั้งเดียว
-    llm = build_llm(api_key)
-
-    all_risk = {}
-    for i in FLOWS.keys():
-        all_risk[i] = classify_risk(
-            input_data=input_data,
-            flow=FLOWS[i],
-            llm=llm  # ส่ง LLM ที่สร้างไว้แล้ว
-        )
-    
-    df = pd.DataFrame(all_risk)
-    
-    
-    df.to_csv("risk_classification.csv", index=False)
