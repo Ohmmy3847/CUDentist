@@ -143,13 +143,6 @@ export default function SymptomsForm({ data, onChange, onValidationChange }: Sym
     }
   }, [data, onValidationChange]);
 
-  // Set default pain_score to 0 if undefined
-  React.useEffect(() => {
-    if (data.pain_score === undefined) {
-      onChange({ pain_score: 0 });
-    }
-  }, []);
-
   const handleOtherSymptomsChange = (symptom: string, checked: boolean) => {
     const current = data.other_symptoms || [];
     const updated = checked
