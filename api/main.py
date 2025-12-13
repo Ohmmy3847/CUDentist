@@ -21,9 +21,14 @@ logger = logging.getLogger(__name__)
 app = FastAPI(title="Risk Classification API")
 
 # Add CORS middleware
+FRONTEND_URL = os.getenv("FRONTEND_URL", "")
+allowed_origins = ["http://localhost:3000", "http://localhost:3001"]
+if FRONTEND_URL:
+    allowed_origins.append(FRONTEND_URL)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:3001"],
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
