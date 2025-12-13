@@ -14,11 +14,23 @@ ENV/
 !data/*.csv
 results/
 temp_*.csv
+doc/
+api/data/
+
 
 # Environment
 .env
 .env.local
 .env.example
+api/.env
+api/.env.local
+api/.env.local
+api/.env.example
+frontend/.env
+frontend/.env.local
+frontend/.env.example
+
+
 # IDE
 .vscode/
 .idea/
