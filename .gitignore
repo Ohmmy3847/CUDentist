@@ -21,14 +21,15 @@ api/data/
 # Environment
 .env
 .env.local
-.env.example
 api/.env
 api/.env.local
-api/.env.local
-api/.env.example
 frontend/.env
 frontend/.env.local
-frontend/.env.example
+
+# Keep .env.example files (they are templates without secrets)
+!.env.example
+!api/.env.example
+!frontend/.env.example
 
 
 # IDE
