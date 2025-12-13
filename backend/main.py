@@ -21,6 +21,7 @@ logger = logging.getLogger(__name__)
 app = FastAPI(title="Risk Classification API")
 
 # Add CORS middleware
+MODEL_NAME = os.getenv("MODEL_NAME", "gemini-2.0-flash-lite")
 FRONTEND_URL = os.getenv("FRONTEND_URL", "")
 allowed_origins = [
     "http://localhost:3000", 
@@ -46,7 +47,7 @@ API_KEY = os.getenv("GOOGLE_API_KEY")
 if not API_KEY:
     raise ValueError("GOOGLE_API_KEY environment variable is not set")
 os.environ["GOOGLE_API_KEY"] = API_KEY
-llm = build_llm(API_KEY)
+llm = build_llm(API_KEY, MODEL_NAME)
 
 # Request/Response Models
 class PatientData(BaseModel):
