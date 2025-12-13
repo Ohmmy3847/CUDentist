@@ -173,13 +173,19 @@ export default function SymptomsForm({ data, onChange, onValidationChange }: Sym
             type="range"
             min="0"
             max="10"
-            value={data.pain_score || 0}
+            value={data.pain_score ?? 0}
             onChange={(e) => onChange({ pain_score: parseInt(e.target.value) })}
             className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
           />
           <div className="text-center">
-            <span className="text-3xl font-bold text-blue-600">{data.pain_score || 0}</span>
-            <span className="text-gray-600"> / 10</span>
+            {data.pain_score !== undefined ? (
+              <>
+                <span className="text-3xl font-bold text-blue-600">{data.pain_score}</span>
+                <span className="text-gray-600"> / 10</span>
+              </>
+            ) : (
+              <span className="text-gray-400">กรุณาเลือกระดับความปวด</span>
+            )}
           </div>
           <div className="flex justify-between text-xs text-gray-500">
             {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(num => (
