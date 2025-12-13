@@ -292,20 +292,35 @@ def classify_risk(input_data: dict, api_key: str = None, flow: str = None, llm=N
 # Async version for concurrent processing
 async def classify_risk_async(input_data: dict, llm, flow: str, flow_name: str, semaphore):
     async with semaphore:
-        result_text = dict_as_text(input_data)
-        chain = build_risk_chain(llm, flow)
+        try:
+            result_text = dict_as_text(input_data)
+            chain = build_risk_chain(llm, flow)
 
-        # Run prediction in thread pool to avoid blocking
-        loop = asyncio.get_event_loop()
-        result = await loop.run_in_executor(
-            None,
-            lambda: chain.invoke({
-                "syntom_flow": flow,
-                "result_text": result_text
-            })
-        )
-        
-        return flow_name, result
+            # Run prediction in thread pool to avoid blocking
+            loop = asyncio.get_event_loop()
+            result = await loop.run_in_executor(
+                None,
+                lambda: chain.invoke({
+                    "syntom_flow": flow,
+                    "result_text": result_text
+                })
+            )
+            
+            # Validate result is not None
+            if result is None:
+                raise ValueError(f"LLM returned None for flow: {flow_name}")
+            
+            return flow_name, result
+            
+        except Exception as e:
+            # Return default safe response when parsing fails
+            print(f"Error in flow {flow_name}: {str(e)}")
+            default_response = OutputRiskClassification(
+                risk_level="ไม่สามารถประเมินได้",
+                recommendation="กรุณาติดต่อทีมแพทย์เพื่อประเมินเพิ่มเติม",
+                reason=f"ไม่สามารถประเมินความเสี่ยงได้: {str(e)[:100]}"
+            )
+            return flow_name, default_response
 
 async def _process_all_rows(df: pd.DataFrame, llm, output_file: str, max_concurrent: int):
     """Process all rows with concurrent API calls"""

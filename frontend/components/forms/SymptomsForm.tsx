@@ -78,9 +78,9 @@ export default function SymptomsForm({ data, onChange, onValidationChange }: Sym
     
     const updates: Partial<PatientFormData> = {};
     
-    // ถ้า pain_score = 0 ให้ล้าง pain_medication_effective
-    if (!hasPain && data.pain_medication_effective) {
-      updates.pain_medication_effective = undefined;
+    // ถ้า pain_score = 0 ให้ set pain_medication_effective เป็นค่าเริ่มต้น
+    if (!hasPain && data.pain_medication_effective !== 'ไม่ได้ทานยาแก้ปวด') {
+      updates.pain_medication_effective = 'ไม่ได้ทานยาแก้ปวด';
     }
     
     // ถ้าไม่มีการมัดฟัน ให้ล้าง imf_wire_status และ description
