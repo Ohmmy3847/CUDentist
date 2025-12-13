@@ -78,9 +78,9 @@ export default function SymptomsForm({ data, onChange, onValidationChange }: Sym
     
     const updates: Partial<PatientFormData> = {};
     
-    // ถ้า pain_score = 0 ให้ set pain_medication_effective เป็นค่าเริ่มต้น
-    if (!hasPain && data.pain_medication_effective !== 'ไม่ได้ทานยาแก้ปวด') {
-      updates.pain_medication_effective = 'ไม่ได้ทานยาแก้ปวด';
+    // ถ้า pain_score = 0 ให้ล้าง pain_medication_effective
+    if (!hasPain && data.pain_medication_effective) {
+      updates.pain_medication_effective = undefined;
     }
     
     // ถ้าไม่มีการมัดฟัน ให้ล้าง imf_wire_status และ description
@@ -164,20 +164,30 @@ export default function SymptomsForm({ data, onChange, onValidationChange }: Sym
         <label className="block text-gray-700 font-medium mb-3">
           {++qNum}. ระดับความปวด ณ ปัจจุบัน (Pain score) <span className="text-red-500">*</span>
         </label>
-        <div className="space-y-2">
+        <div className="space-y-3">
           <div className="flex items-center justify-between text-sm text-gray-600 mb-2">
             <span>ไม่ปวดเลย</span>
             <span>ปวดมากที่สุดในชีวิต</span>
           </div>
-          <input
-            type="range"
-            min="0"
-            max="10"
-            value={data.pain_score ?? 0}
-            onChange={(e) => onChange({ pain_score: parseInt(e.target.value) })}
-            className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-          />
-          <div className="text-center">
+          <div className="grid grid-cols-11 gap-2">
+            {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(score => (
+              <button
+                key={score}
+                type="button"
+                onClick={() => onChange({ pain_score: score })}
+                className={`
+                  py-3 px-2 rounded-lg font-semibold transition-all
+                  ${data.pain_score === score
+                    ? 'bg-blue-600 text-white shadow-lg scale-110'
+                    : 'bg-gray-100 text-gray-700 hover:bg-blue-100 hover:text-blue-600'
+                  }
+                `}
+              >
+                {score}
+              </button>
+            ))}
+          </div>
+          <div className="text-center mt-3">
             {data.pain_score !== undefined ? (
               <>
                 <span className="text-3xl font-bold text-blue-600">{data.pain_score}</span>
@@ -186,11 +196,6 @@ export default function SymptomsForm({ data, onChange, onValidationChange }: Sym
             ) : (
               <span className="text-gray-400">กรุณาเลือกระดับความปวด</span>
             )}
-          </div>
-          <div className="flex justify-between text-xs text-gray-500">
-            {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(num => (
-              <span key={num}>{num}</span>
-            ))}
           </div>
         </div>
       </div>
