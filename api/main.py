@@ -22,13 +22,19 @@ app = FastAPI(title="Risk Classification API")
 
 # Add CORS middleware
 FRONTEND_URL = os.getenv("FRONTEND_URL", "")
-allowed_origins = ["http://localhost:3000", "http://localhost:3001"]
-if FRONTEND_URL:
+allowed_origins = [
+    "http://localhost:3000", 
+    "http://localhost:3001",
+    "https://cudent-e3utbty62-ohmmy3847s-projects.vercel.app",  # Production
+    "https://cudent.vercel.app",  # Custom domain (if any)
+]
+if FRONTEND_URL and FRONTEND_URL not in allowed_origins:
     allowed_origins.append(FRONTEND_URL)
 
+# Allow all Vercel preview deployments
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=allowed_origins,
+    allow_origin_regex=r"https://.*\.vercel\.app",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
