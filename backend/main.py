@@ -61,6 +61,7 @@ class RiskResponse(BaseModel):
 
 @app.get("/")
 async def root():
+    print(MODEL_NAME)
     return {
         "message": "Risk Classification API",
         "endpoints": {

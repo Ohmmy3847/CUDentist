@@ -118,7 +118,7 @@ export default function BasicInfoForm({ data, onChange, onValidationChange }: Ba
           {++qNum}. HN (กรอกเลขคนไข้) <span className="text-red-500">*</span>
         </label>
         <input
-          type="text"
+          type="number"
           value={data.hn || ''}
           onChange={(e) => onChange({ hn: e.target.value })}
           className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"

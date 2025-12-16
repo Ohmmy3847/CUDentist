@@ -222,7 +222,7 @@ def build_llm_local():
 # ------------------------------------------------------------
 # 4) Create the Prompt + Chain
 # ------------------------------------------------------------
-def build_risk_chain(llm, flow_criteria: str):
+def build_risk_chain(llm):
     parser = PydanticOutputParser(pydantic_object=OutputRiskClassification)
 
     prompt = PromptTemplate(
@@ -279,7 +279,7 @@ def classify_risk(input_data: dict, api_key: str = None, flow: str = None, llm=N
 
     # Prepare model + data
     result_text = dict_as_text(input_data)
-    chain = build_risk_chain(llm, flow)
+    chain = build_risk_chain(llm)
 
     # Run prediction
     result = chain.invoke({
@@ -309,7 +309,7 @@ async def classify_risk_async(input_data: dict, llm, flow: str, flow_name: str, 
             result_text = dict_as_text(input_data)
             
             # Build the risk classification chain
-            chain = build_risk_chain(llm, flow)
+            chain = build_risk_chain(llm)
             
             # Run the prediction in a thread pool to avoid blocking
             loop = asyncio.get_event_loop()
@@ -397,6 +397,12 @@ def csv_to_risk_classification(csv_file: str, api_key: str, output_file: str = "
     
     # Run async processing
     asyncio.run(_process_all_rows(df, llm, output_file, max_concurrent))
+
+if __name__ == "__main__":
+    # Example usage
+    csv_file = "patient_data.csv"
+    api_key = os.getenv("GOOGLE_API_KEY")
+    csv_to_risk_classification(csv_file, api_key)
 
 
 
