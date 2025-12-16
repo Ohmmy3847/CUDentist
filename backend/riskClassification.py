@@ -222,7 +222,7 @@ def build_llm_local():
 # ------------------------------------------------------------
 # 4) Create the Prompt + Chain
 # ------------------------------------------------------------
-def build_risk_chain(llm, pain_flow: str):
+def build_risk_chain(llm, flow_criteria: str):
     parser = PydanticOutputParser(pydantic_object=OutputRiskClassification)
 
     prompt = PromptTemplate(
@@ -230,7 +230,7 @@ def build_risk_chain(llm, pain_flow: str):
             "คุณเป็นพยาบาลที่ให้คำปรึกษาผู้ป่วยหลังผ่าตัด\n\n"
             "**สำคัญ: ประเมินเฉพาะตามเกณฑ์การประเมินที่กำหนดให้เท่านั้น อย่าวิเคราะห์อาการอื่นๆ**\n\n"
             
-            "เกณฑ์การประเมิน (ให้ประเมินเฉพาะเกณฑ์นี้):\n{syntom_flow}\n\n"
+            "เกณฑ์การประเมิน (ให้ประเมินเฉพาะเกณฑ์นี้):\n{flow_criteria}\n\n"
             "ข้อมูลผู้ป่วย:\n{result_text}\n\n"
             
             "วิธีการประเมิน:\n"
@@ -251,7 +251,7 @@ def build_risk_chain(llm, pain_flow: str):
             
             "{format_instructions}\n"
         ),
-        input_variables=["syntom_flow", "result_text"],
+        input_variables=["flow_criteria", "result_text"],
         partial_variables={"format_instructions": parser.get_format_instructions()}
     )
 
@@ -283,7 +283,7 @@ def classify_risk(input_data: dict, api_key: str = None, flow: str = None, llm=N
 
     # Run prediction
     result = chain.invoke({
-        "syntom_flow": flow,
+        "flow_criteria": flow,
         "result_text": result_text
     })
 
@@ -291,17 +291,32 @@ def classify_risk(input_data: dict, api_key: str = None, flow: str = None, llm=N
 
 # Async version for concurrent processing
 async def classify_risk_async(input_data: dict, llm, flow: str, flow_name: str, semaphore):
+    """
+    Classify risk with concurrency and error handling
+    
+    This function takes patient data, an LLM instance, a risk flow criteria, 
+    and a semaphore to control the number of concurrent requests. It 
+    returns a tuple of (flow_name, result) where result is the parsed 
+    output of the LLM.
+    
+    If the LLM returns None, it raises a ValueError. If any other 
+    exception occurs during the classification, it prints an error message and 
+    returns a default safe response.
+    """
     async with semaphore:
         try:
+            # Convert input data to text for LLM
             result_text = dict_as_text(input_data)
+            
+            # Build the risk classification chain
             chain = build_risk_chain(llm, flow)
-
-            # Run prediction in thread pool to avoid blocking
+            
+            # Run the prediction in a thread pool to avoid blocking
             loop = asyncio.get_event_loop()
             result = await loop.run_in_executor(
                 None,
                 lambda: chain.invoke({
-                    "syntom_flow": flow,
+                    "flow_criteria": flow,
                     "result_text": result_text
                 })
             )
@@ -323,11 +338,21 @@ async def classify_risk_async(input_data: dict, llm, flow: str, flow_name: str, 
             return flow_name, default_response
 
 async def _process_all_rows(df: pd.DataFrame, llm, output_file: str, max_concurrent: int):
-    """Process all rows with concurrent API calls"""
+    """
+    Process all rows with concurrent API calls
+    
+    This function takes a Pandas DataFrame, an LLM instance, an output file path, 
+    and a maximum number of concurrent API calls. It processes each row of the 
+    DataFrame by creating a task for each risk flow criteria to classify the risk 
+    level, reason, and recommendation. It then runs all these tasks concurrently 
+    using asyncio.gather and updates the DataFrame with the results. Finally, it 
+    saves the updated DataFrame to the output file path.
+    """
     semaphore = asyncio.Semaphore(max_concurrent)
     
     # Process each row
     for idx, row in tqdm(df.iterrows(), total=len(df), desc="Processing rows"):
+        # Convert row to dictionary for LLM input
         input_data = row.to_dict()
         
         # Create tasks for all flows for this row
@@ -341,6 +366,7 @@ async def _process_all_rows(df: pd.DataFrame, llm, output_file: str, max_concurr
         
         # Update dataframe with results
         for flow_name, output in results:
+            # Update dataframe with risk level, reason, and recommendation
             df.at[idx, f"{flow_name}_risk_level"] = output.risk_level
             df.at[idx, f"{flow_name}_risk_reason"] = output.reason
             df.at[idx, f"{flow_name}_recommendation"] = output.recommendation
