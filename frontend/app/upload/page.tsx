@@ -2,8 +2,9 @@
 
 import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { ArrowLeft, Upload, FileText, Download, Loader2, CheckCircle, XCircle } from 'lucide-react';
-import { api } from '@/lib/api';
+import { api } from '@/lib';
 
 export default function UploadPage() {
   const router = useRouter();
@@ -96,17 +97,13 @@ export default function UploadPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-emerald-50 py-8">
+    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-purple-50 py-8">
       <div className="container mx-auto px-4 max-w-4xl">
-        {/* Header */}
         <div className="mb-8">
-          <button
-            onClick={() => router.push('/')}
-            className="flex items-center text-gray-600 hover:text-gray-800 mb-4"
-          >
+          <Link href="/" className="flex items-center text-gray-600 hover:text-gray-800 mb-4">
             <ArrowLeft className="w-4 h-4 mr-2" />
             กลับหน้าหลัก
-          </button>
+          </Link>
           <h1 className="text-3xl font-bold text-gray-800">
             อัปโหลดไฟล์ CSV เพื่อประเมินความเสี่ยง
           </h1>
@@ -115,15 +112,14 @@ export default function UploadPage() {
           </p>
         </div>
 
-        {/* Upload Area */}
-        <div className="bg-white rounded-lg shadow-md p-8 mb-6">
+        <div className="bg-white rounded-lg shadow-lg p-8">
           <div
             onDrop={handleDrop}
             onDragOver={handleDragOver}
             className={`border-2 border-dashed rounded-lg p-12 text-center transition-colors ${
               file
-                ? 'border-green-400 bg-green-50'
-                : 'border-gray-300 hover:border-green-400 hover:bg-green-50'
+                ? 'border-cu-pink-400 bg-pink-50'
+                : 'border-gray-300 hover:border-cu-pink-400 hover:bg-pink-50'
             }`}
           >
             <input
@@ -147,7 +143,7 @@ export default function UploadPage() {
               </label>
             ) : (
               <div className="flex flex-col items-center">
-                <FileText className="w-16 h-16 text-green-600 mb-4" />
+                <FileText className="w-16 h-16 text-cu-pink-600 mb-4" />
                 <p className="text-lg font-medium text-gray-800 mb-1">
                   {file.name}
                 </p>
@@ -183,7 +179,7 @@ export default function UploadPage() {
                 onChange={(e) => setMaxConcurrent(parseInt(e.target.value))}
                 className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
               />
-              <span className="text-2xl font-bold text-green-600 w-16 text-center">
+              <span className="text-2xl font-bold text-cu-pink-600 w-16 text-center">
                 {maxConcurrent}
               </span>
             </div>
@@ -201,13 +197,13 @@ export default function UploadPage() {
                   <span className="text-sm font-medium text-gray-700">
                     {uploadProgress < 100 ? 'กำลังอัปโหลด...' : 'อัปโหลดเสร็จสิ้น'}
                   </span>
-                  <span className="text-sm font-medium text-green-600">
+                  <span className="text-sm font-medium text-cu-pink-600">
                     {uploadProgress}%
                   </span>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-2">
                   <div
-                    className="bg-green-600 h-2 rounded-full transition-all duration-300"
+                    className="bg-cu-pink-600 h-2 rounded-full transition-all duration-300"
                     style={{ width: `${uploadProgress}%` }}
                   />
                 </div>
@@ -266,7 +262,7 @@ export default function UploadPage() {
           <button
             onClick={handleUpload}
             disabled={!file || isUploading}
-            className="w-full mt-6 flex items-center justify-center px-6 py-4 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
+            className="w-full mt-6 flex items-center justify-center px-6 py-4 bg-cu-pink-600 text-white rounded-lg font-medium hover:bg-cu-pink-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
           >
             {isUploading ? (
               <>
@@ -283,30 +279,30 @@ export default function UploadPage() {
         </div>
 
         {/* Instructions */}
-        <div className="bg-white rounded-lg shadow-md p-6">
+        <div className="bg-white rounded-lg shadow-md p-6 mt-8">
           <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center">
-            <Download className="w-5 h-5 mr-2 text-blue-600" />
+            <Download className="w-5 h-5 mr-2 text-cu-pink-600" />
             วิธีใช้งาน
           </h3>
           <ol className="space-y-3 text-gray-700">
             <li className="flex items-start">
-              <span className="font-bold text-blue-600 mr-2">1.</span>
+              <span className="font-bold text-cu-pink-600 mr-2">1.</span>
               <span>เตรียมไฟล์ CSV ที่มีคอลัมน์ตามคำถาม 27 ข้อ (ดูตัวอย่างจาก data/66.csv)</span>
             </li>
             <li className="flex items-start">
-              <span className="font-bold text-blue-600 mr-2">2.</span>
+              <span className="font-bold text-cu-pink-600 mr-2">2.</span>
               <span>อัปโหลดไฟล์ CSV โดยคลิกหรือลากไฟล์มาวาง</span>
             </li>
             <li className="flex items-start">
-              <span className="font-bold text-blue-600 mr-2">3.</span>
+              <span className="font-bold text-cu-pink-600 mr-2">3.</span>
               <span>ปรับจำนวน Concurrent Requests ตามต้องการ (เริ่มต้นแนะนำ 10)</span>
             </li>
             <li className="flex items-start">
-              <span className="font-bold text-blue-600 mr-2">4.</span>
+              <span className="font-bold text-cu-pink-600 mr-2">4.</span>
               <span>กดปุ่ม &quot;อัปโหลดและประเมินความเสี่ยง&quot;</span>
             </li>
             <li className="flex items-start">
-              <span className="font-bold text-blue-600 mr-2">5.</span>
+              <span className="font-bold text-cu-pink-600 mr-2">5.</span>
               <span>รอการประมวลผลเสร็จ ไฟล์ผลลัพธ์จะถูกดาวน์โหลดอัตโนมัติ</span>
             </li>
           </ol>

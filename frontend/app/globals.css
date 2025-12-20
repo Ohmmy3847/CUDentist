@@ -3,17 +3,79 @@
 @tailwind utilities;
 
 :root {
-  --foreground-rgb: 0, 0, 0;
-  --background-start-rgb: 214, 219, 220;
-  --background-end-rgb: 255, 255, 255;
+  --cu-pink: #E5007D;
+  --cu-gold: #FFD700;
+  --cu-gray: #F5F5F5;
+  --cu-blue: #0099CC;
+  --cu-dark: #222;
 }
 
 body {
-  color: rgb(var(--foreground-rgb));
-  background: linear-gradient(
-      to bottom,
-      transparent,
-      rgb(var(--background-end-rgb))
-    )
-    rgb(var(--background-start-rgb));
+  color: #222;
+  font-family: 'Kanit', 'Sarabun', 'Prompt', 'sans-serif';
+  background: linear-gradient(135deg, #fef5f9 0%, #fff 100%);
+  min-height: 100vh;
+}
+
+.cu-header {
+  background: linear-gradient(90deg, var(--cu-pink) 60%, var(--cu-gold) 100%);
+  color: white;
+  font-weight: bold;
+  text-align: center;
+  padding: 2rem 0 1rem 0;
+  font-size: 2.2rem;
+  letter-spacing: 1px;
+  border-bottom: 4px solid var(--cu-gold);
+  box-shadow: 0 2px 8px rgba(229,0,125,0.08);
+}
+
+.cu-container {
+  background: white;
+  border-radius: 1.5rem;
+  box-shadow: 0 4px 24px rgba(229,0,125,0.08);
+  padding: 2rem;
+  margin: 1rem auto;
+  max-width: 700px;
+}
+
+.cu-btn {
+  background: var(--cu-pink);
+  color: white;
+  font-weight: 600;
+  border-radius: 0.75rem;
+  padding: 0.75rem 2rem;
+  box-shadow: 0 2px 8px rgba(229,0,125,0.08);
+  transition: all 0.2s;
+}
+
+.cu-btn:hover:not(:disabled) {
+  background: var(--cu-blue);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0,153,204,0.2);
+}
+
+.cu-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.cu-label {
+  color: var(--cu-pink);
+  font-weight: 500;
+  font-size: 1.1rem;
+}
+
+.cu-section {
+  margin-bottom: 2rem;
+}
+
+@media (max-width: 600px) {
+  .cu-header {
+    font-size: 1.3rem;
+    padding: 1.2rem 0 0.7rem 0;
+  }
+  .cu-container {
+    padding: 1rem;
+    max-width: 98vw;
+  }
 }

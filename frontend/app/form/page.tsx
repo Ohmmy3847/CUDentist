@@ -3,8 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, ArrowRight, CheckCircle, Loader2, Trash2 } from 'lucide-react';
-import type { PatientFormData, AllFlowsResult } from '@/lib/types';
-import { api } from '@/lib/api';
+import type { PatientFormData } from '@/lib';
+import { logApi } from '@/lib';
 
 // Import form part components
 import BasicInfoForm from '@/components/forms/BasicInfoForm';
@@ -29,14 +29,7 @@ export default function PatientFormPage() {
   const [isCurrentStepValid, setIsCurrentStepValid] = useState(false);
   const [hasSavedData, setHasSavedData] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
-  const [processingProgress, setProcessingProgress] = useState({ current: 0, total: 0, flowName: '' });
 
-  // Debug validation state
-  useEffect(() => {
-    console.log('Validation state changed:', isCurrentStepValid);
-  }, [isCurrentStepValid]);
-
-  // Load saved data from localStorage on mount
   useEffect(() => {
     if (typeof window === 'undefined') return;
     
@@ -46,7 +39,6 @@ export default function PatientFormPage() {
     if (savedData) {
       try {
         const parsed = JSON.parse(savedData);
-        console.log('Loaded saved data:', parsed);
         setFormData(parsed);
         setHasSavedData(true);
       } catch (e) {
@@ -57,7 +49,6 @@ export default function PatientFormPage() {
     if (savedStep) {
       try {
         const step = parseInt(savedStep, 10);
-        console.log('Loaded saved step:', step);
         setCurrentStep(step);
       } catch (e) {
         console.error('Failed to load saved step:', e);
@@ -67,20 +58,16 @@ export default function PatientFormPage() {
     setIsLoaded(true);
   }, []);
 
-  // Save formData to localStorage whenever it changes (after initial load)
   useEffect(() => {
     if (typeof window === 'undefined') return;
     if (isLoaded && Object.keys(formData).length > 0) {
-      console.log('Saving form data:', formData);
       localStorage.setItem(FORM_STORAGE_KEY, JSON.stringify(formData));
     }
   }, [formData, isLoaded]);
 
-  // Save current step to localStorage whenever it changes (after initial load)
   useEffect(() => {
     if (typeof window === 'undefined') return;
     if (isLoaded) {
-      console.log('Saving step:', currentStep);
       localStorage.setItem(STEP_STORAGE_KEY, currentStep.toString());
     }
   }, [currentStep, isLoaded]);
@@ -106,29 +93,28 @@ export default function PatientFormPage() {
   const handleSubmit = async () => {
     setIsSubmitting(true);
     setError(null);
-    setProcessingProgress({ current: 0, total: 0, flowName: '' });
 
     try {
-      const result: AllFlowsResult = await api.classifyPatient(
-        formData,
-        (current, total, flowName) => {
-          setProcessingProgress({ current, total, flowName });
-        }
-      );
+      // บันทึก raw input ลง Google Sheet ก่อน
+      try {
+        await logApi.saveRawInput(formData);
+        console.log('Successfully saved raw input to Google Sheets');
+      } catch (logError) {
+        console.error('Failed to save raw input:', logError);
+        // Continue anyway - don't block navigation
+      }
       
-      // Store result in sessionStorage and navigate to result page
-      sessionStorage.setItem('riskAssessmentResult', JSON.stringify(result));
+      // บันทึกข้อมูลลง sessionStorage เพื่อส่งไปหน้า result
       sessionStorage.setItem('patientData', JSON.stringify(formData));
+      sessionStorage.setItem('isProcessing', 'true');
       
-      // Clear saved draft after successful submission
       localStorage.removeItem(FORM_STORAGE_KEY);
       localStorage.removeItem(STEP_STORAGE_KEY);
       
       router.push('/result');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'เกิดข้อผิดพลาดในการประเมินความเสี่ยง');
+      setError(err instanceof Error ? err.message : 'เกิดข้อผิดพลาดในการบันทึกข้อมูล');
       setIsSubmitting(false);
-      setProcessingProgress({ current: 0, total: 0, flowName: '' });
     }
   };
 
@@ -175,167 +161,91 @@ export default function PatientFormPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 py-8">
-      <div className="container mx-auto px-4 max-w-4xl">
-        {/* Header */}
-        <div className="mb-8">
+    <div className="w-full flex flex-col items-center justify-center py-6 px-2">
+      <div className="cu-container w-full max-w-2xl">
+        <div className="mb-6 flex flex-col md:flex-row items-center justify-between gap-2">
           <button
             onClick={() => router.push('/')}
-            className="flex items-center text-gray-600 hover:text-gray-800 mb-4"
+            className="cu-btn bg-cu-gray text-cu-pink border border-cu-pink flex items-center"
           >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            กลับหน้าหลัก
+            <ArrowLeft className="w-4 h-4 mr-2" /> กลับหน้าหลัก
           </button>
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-800">
-                แบบฟอร์มประเมินความเสี่ยงผู้ป่วยหลังผ่าตัด
-              </h1>
-              <p className="text-gray-600 mt-2">
-                ติดตามอาการผู้ป่วยหลังกลับบ้านเป็นเวลา 3 วัน
-              </p>
-            </div>
-            {hasSavedData && (
-              <button
-                onClick={handleClearDraft}
-                className="flex items-center px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors border border-red-200"
-                title="ล้างข้อมูลที่บันทึกไว้"
-              >
-                <Trash2 className="w-4 h-4 mr-2" />
-                ล้างข้อมูล
-              </button>
-            )}
-          </div>
+          <h1 className="text-xl md:text-2xl font-bold text-cu-pink text-center">กรอกข้อมูลคนไข้</h1>
           {hasSavedData && (
-            <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-              <p className="text-sm text-blue-800">
-                ✓ พบข้อมูลที่บันทึกไว้ ระบบจะบันทึกข้อมูลอัตโนมัติทุกครั้งที่คุณกรอก
-              </p>
-            </div>
+            <button
+              onClick={handleClearDraft}
+              className="cu-btn bg-red-100 text-red-700 border border-red-300 flex items-center"
+            >
+              <Trash2 className="w-4 h-4 mr-2" /> ล้างข้อมูล
+            </button>
           )}
         </div>
 
-        {/* Progress Steps */}
-        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-          <div className="flex items-center justify-between mb-4">
-            {STEPS.map((step, index) => (
-              <div key={step.id} className="flex items-center flex-1">
-                <div className="flex flex-col items-center flex-1">
-                  <div
-                    className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${
-                      currentStep > step.id
-                        ? 'bg-green-500 text-white'
-                        : currentStep === step.id
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-gray-200 text-gray-500'
-                    }`}
-                  >
-                    {currentStep > step.id ? (
-                      <CheckCircle className="w-6 h-6" />
-                    ) : (
-                      step.id
-                    )}
-                  </div>
-                  <div className="mt-2 text-center">
-                    <div
-                      className={`font-medium ${
-                        currentStep >= step.id ? 'text-gray-800' : 'text-gray-400'
-                      }`}
-                    >
-                      {step.title}
-                    </div>
-                    <div className="text-xs text-gray-500">{step.description}</div>
-                  </div>
+        <div className="mb-6 flex items-center justify-center gap-2 md:gap-4">
+          {STEPS.map((step, index) => (
+            <div key={step.id} className="flex items-center">
+              <div className={`flex flex-col items-center ${currentStep === step.id ? 'text-cu-pink font-bold' : 'text-gray-500'}`}>
+                <div className={`w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full border-2 ${currentStep === step.id ? 'border-cu-pink bg-cu-pink text-white' : currentStep > step.id ? 'border-green-500 bg-green-500 text-white' : 'border-gray-300 bg-white'}`}>
+                  {currentStep > step.id ? <CheckCircle className="w-4 h-4 md:w-5 md:h-5" /> : step.id}
                 </div>
-                {index < STEPS.length - 1 && (
-                  <div
-                    className={`flex-1 h-1 mx-4 ${
-                      currentStep > step.id ? 'bg-green-500' : 'bg-gray-200'
-                    }`}
-                  />
-                )}
+                <span className="mt-1 md:mt-2 text-xs md:text-sm text-center max-w-[120px]">{step.title}</span>
               </div>
-            ))}
-          </div>
+              {index < STEPS.length - 1 && (
+                <div className={`h-0.5 w-4 md:w-8 mx-1 md:mx-2 ${currentStep > step.id ? 'bg-green-500' : 'bg-gray-300'}`} />
+              )}
+            </div>
+          ))}
         </div>
 
-        {/* Form Content */}
-        <div className="bg-white rounded-lg shadow-md p-8 mb-6">
-          {renderStepContent()}
-        </div>
-
-        {/* Error Message */}
-        {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
-            <p className="font-medium">เกิดข้อผิดพลาด:</p>
-            <p>{error}</p>
-          </div>
-        )}
-
-        {/* Processing Progress */}
-        {isSubmitting && processingProgress.total > 0 && (
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-gray-700">
-                กำลังประมวลผล: {processingProgress.flowName}
-              </span>
-              <span className="text-sm font-medium text-blue-600">
-                {processingProgress.current} / {processingProgress.total}
-              </span>
-            </div>
-            <div className="w-full bg-gray-200 rounded-full h-2.5">
-              <div
-                className="bg-blue-600 h-2.5 rounded-full transition-all duration-300"
-                style={{ 
-                  width: `${(processingProgress.current / processingProgress.total) * 100}%` 
-                }}
-              />
-            </div>
-            <p className="text-xs text-gray-600 mt-2">
-              กำลังวิเคราะห์ความเสี่ยงด้วย AI... กรุณารอสักครู่
+        {hasSavedData && (
+          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <p className="text-xs md:text-sm text-blue-800 text-center">
+              ✓ พบข้อมูลที่บันทึกไว้ ระบบจะบันทึกอัตโนมัติทุกครั้งที่คุณกรอก
             </p>
           </div>
         )}
 
-        {/* Navigation Buttons */}
-        <div className="flex justify-between items-center bg-white rounded-lg shadow-md p-6">
+        <div className="cu-section bg-white rounded-lg p-4 md:p-6 shadow-cu">
+          {renderStepContent()}
+        </div>
+
+        {error && (
+          <div className="mt-6 bg-red-50 border border-red-200 rounded-lg p-4 text-red-700 text-center text-sm">
+            {error}
+          </div>
+        )}
+
+        <div className="flex flex-col md:flex-row gap-3 md:gap-4 justify-between mt-6 md:mt-8">
           <button
             onClick={handlePrevious}
+            className="cu-btn bg-cu-gray text-cu-pink border border-cu-pink flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
             disabled={currentStep === 1}
-            className={`flex items-center px-6 py-3 rounded-lg font-medium transition-colors ${
-              currentStep === 1
-                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-            }`}
           >
-            <ArrowLeft className="w-5 h-5 mr-2" />
-            ย้อนกลับ
+            <ArrowLeft className="w-4 h-4 mr-2" /> ย้อนกลับ
           </button>
-
           {currentStep < STEPS.length ? (
             <button
               onClick={handleNext}
+              className="cu-btn flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
               disabled={!isCurrentStepValid}
-              className="flex items-center px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
             >
-              ถัดไป
-              <ArrowRight className="w-5 h-5 ml-2" />
+              ถัดไป <ArrowRight className="w-4 h-4 ml-2" />
             </button>
           ) : (
             <button
               onClick={handleSubmit}
-              disabled={isSubmitting || !isCurrentStepValid}
-              className="flex items-center px-6 py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+              className="cu-btn flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={!isCurrentStepValid || isSubmitting}
             >
               {isSubmitting ? (
                 <>
-                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                  กำลังประเมิน...
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  กำลังบันทึก...
                 </>
               ) : (
                 <>
-                  <CheckCircle className="w-5 h-5 mr-2" />
-                  ส่งและประเมินความเสี่ยง
+                  <CheckCircle className="w-4 h-4 mr-2" />
+                  ส่งข้อมูลเพื่อประเมิน
                 </>
               )}
             </button>

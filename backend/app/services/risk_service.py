@@ -8,7 +8,7 @@ import aiohttp
 from typing import List
 from tqdm import tqdm
 
-from flow import FLOWS
+from app.core.flows import FLOWS
 import pandas as pd
 import os
 
@@ -51,6 +51,7 @@ FIELD_LABELS = {
     'additional_questions': 'ผู้ป่วยมีคำถามที่จะสอบถามพยาบาลเพิ่มเติม',
     'ng_tube_position': 'ตำแหน่งสายยางให้อาหาร',
 }
+FORM_COLUMNS = list(FIELD_LABELS.values())
 
 # Mapping ระหว่าง main field กับ description field
 FIELD_WITH_DESCRIPTION = {
@@ -100,22 +101,6 @@ class OutputRiskClassification(BaseModel):
     reason: str = Field(description="เหตุผลที่ประเมินระดับความเสี่ยงนี้ เขียนเป็นภาษาไทย")
 
 
-# ------------------------------------------------------------
-# 2) Utility: Load CSV and convert first row to text
-# ------------------------------------------------------------
-def load_first_row_as_text(csv_path: str) -> str:
-  
-    df = pd.read_csv(csv_path)
-    row = df.iloc[0]
-
-    text_parts = []
-    for col in df.columns:
-        value = row[col]
-        if pd.isna(value) or value == "":
-            value = "ไม่ได้ระบุ"
-        text_parts.append(f"{col}\n{value}")
-
-    return "\n".join(text_parts)
 
 
 # ------------------------------------------------------------
@@ -147,7 +132,6 @@ def convert_value_to_string(value) -> str:
             return "ไม่ได้ระบุ"
     except (TypeError, ValueError):
         pass
-    
     return str(value)
 
 
@@ -262,14 +246,15 @@ def build_risk_chain(llm):
 # ------------------------------------------------------------
 # 5) Main Risk Classification Function
 # ------------------------------------------------------------
-def classify_risk(input_data: dict, api_key: str = None, flow: str = None, llm=None):
+def classify_risk(input_data: dict, api_key: str = None, flow: str = None, llm=None, max_retries: int = 3):
     """
-    Classify risk with option to reuse LLM instance
+    Classify risk with option to reuse LLM instance and retry mechanism
     Args:
         input_data: Patient data dictionary
         api_key: Google API key (not needed if llm is provided)
         flow: Risk flow criteria
         llm: Pre-built LLM instance (optional, will create new if not provided)
+        max_retries: Maximum number of retries if LLM returns None (default: 3)
     """
     if llm is None:
         if api_key is None:
@@ -281,61 +266,88 @@ def classify_risk(input_data: dict, api_key: str = None, flow: str = None, llm=N
     result_text = dict_as_text(input_data)
     chain = build_risk_chain(llm)
 
-    # Run prediction
-    result = chain.invoke({
-        "flow_criteria": flow,
-        "result_text": result_text
-    })
-
-    return result
-
-# Async version for concurrent processing
-async def classify_risk_async(input_data: dict, llm, flow: str, flow_name: str, semaphore):
-    """
-    Classify risk with concurrency and error handling
-    
-    This function takes patient data, an LLM instance, a risk flow criteria, 
-    and a semaphore to control the number of concurrent requests. It 
-    returns a tuple of (flow_name, result) where result is the parsed 
-    output of the LLM.
-    
-    If the LLM returns None, it raises a ValueError. If any other 
-    exception occurs during the classification, it prints an error message and 
-    returns a default safe response.
-    """
-    async with semaphore:
+    # Retry mechanism
+    last_error = None
+    for attempt in range(max_retries):
         try:
-            # Convert input data to text for LLM
-            result_text = dict_as_text(input_data)
+            # Run prediction
+            result = chain.invoke({
+                "flow_criteria": flow,
+                "result_text": result_text
+            })
             
-            # Build the risk classification chain
-            chain = build_risk_chain(llm)
-            
-            # Run the prediction in a thread pool to avoid blocking
-            loop = asyncio.get_event_loop()
-            result = await loop.run_in_executor(
-                None,
-                lambda: chain.invoke({
-                    "flow_criteria": flow,
-                    "result_text": result_text
-                })
-            )
-            
-            # Validate result is not None
+            # Check if result is None
             if result is None:
-                raise ValueError(f"LLM returned None for flow: {flow_name}")
+                raise ValueError(f"LLM returned None (attempt {attempt + 1}/{max_retries})")
             
-            return flow_name, result
+            return result
             
         except Exception as e:
-            # Return default safe response when parsing fails
-            print(f"Error in flow {flow_name}: {str(e)}")
-            default_response = OutputRiskClassification(
-                risk_level="ไม่สามารถประเมินได้",
-                recommendation="กรุณาติดต่อทีมแพทย์เพื่อประเมินเพิ่มเติม",
-                reason=f"ไม่สามารถประเมินความเสี่ยงได้: {str(e)[:100]}"
-            )
-            return flow_name, default_response
+            last_error = e
+            print(f"Error on attempt {attempt + 1}/{max_retries}: {str(e)}")
+            
+            # Wait before retry (exponential backoff)
+            if attempt < max_retries - 1:
+                import time
+                wait_time = 2 ** attempt  # 1s, 2s, 4s
+                print(f"Waiting {wait_time}s before retry...")
+                time.sleep(wait_time)
+    
+    # If all retries failed, return default safe response
+    print(f"All {max_retries} attempts failed. Returning default response.")
+    return OutputRiskClassification(
+        risk_level="ไม่สามารถประเมินได้",
+        recommendation="กรุณาติดต่อทีมแพทย์เพื่อประเมินเพิ่มเติม เนื่องจากระบบไม่สามารถประเมินความเสี่ยงได้ในขณะนี้",
+        reason=f"ระบบประมวลผลล้มเหลว: {str(last_error)[:100]}"
+    )
+
+# Async version for concurrent processing
+async def classify_risk_async(input_data: dict, llm, flow: str, flow_name: str, semaphore, max_retries: int = 3):
+    """
+    Classify risk with concurrency, error handling, and retry mechanism
+    """
+    async with semaphore:
+        last_error = None
+        for attempt in range(max_retries):
+            try:
+                # Convert input data to text for LLM
+                result_text = dict_as_text(input_data)
+                
+                # Build the risk classification chain
+                chain = build_risk_chain(llm)
+                
+                # Run the prediction in a thread pool to avoid blocking
+                loop = asyncio.get_event_loop()
+                result = await loop.run_in_executor(
+                    None,
+                    lambda: chain.invoke({
+                        "flow_criteria": flow,
+                        "result_text": result_text
+                    })
+                )
+                
+                # Validate result is not None
+                if result is None:
+                    raise ValueError(f"LLM returned None for flow: {flow_name} (attempt {attempt + 1}/{max_retries})")
+                
+                return flow_name, result
+                
+            except Exception as e:
+                last_error = e
+                print(f"Error in flow {flow_name} (attempt {attempt + 1}/{max_retries}): {str(e)}")
+                
+                # Wait before retry
+                if attempt < max_retries - 1:
+                    await asyncio.sleep(2 ** attempt)
+        
+        # All retries failed - return default safe response
+        print(f"All {max_retries} attempts failed for flow {flow_name}. Returning default response.")
+        default_response = OutputRiskClassification(
+            risk_level="ไม่สามารถประเมินได้",
+            recommendation="กรุณาติดต่อทีมแพทย์เพื่อประเมินเพิ่มเติม",
+            reason=f"ไม่สามารถประเมินความเสี่ยงได้: {str(last_error)[:100]}"
+        )
+        return flow_name, default_response
 
 async def _process_all_rows(df: pd.DataFrame, llm, output_file: str, max_concurrent: int):
     """

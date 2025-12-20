@@ -11,7 +11,6 @@ ENV/
 
 # Data files
 *.csv
-!data/*.csv
 results/
 temp_*.csv
 doc/
@@ -32,6 +31,7 @@ frontend/.env.local
 !frontend/.env.example
 
 
+
 # IDE
 .vscode/
 .idea/
@@ -41,4 +41,3 @@ frontend/.env.local
 # OS
 .DS_Store
 Thumbs.db
-.vercel

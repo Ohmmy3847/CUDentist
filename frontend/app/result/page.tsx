@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Download, Share2, CheckCircle, AlertTriangle, XCircle, ChevronDown, ChevronUp, FileText } from 'lucide-react';
-import type { AllFlowsResult, PatientFormData } from '@/lib/types';
+import type { AllFlowsResult, PatientFormData } from '@/lib';
 import RiskResult from '@/components/RiskResult';
 
 export default function ResultPage() {
@@ -12,23 +12,78 @@ export default function ResultPage() {
   const [result, setResult] = useState<AllFlowsResult | null>(null);
   const [patientData, setPatientData] = useState<PatientFormData | null>(null);
   const [showDataPreview, setShowDataPreview] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [processingProgress, setProcessingProgress] = useState({ current: 0, total: 0, flowName: '' });
+  const [error, setError] = useState<string | null>(null);
+  const hasSaved = useRef(false);
 
   useEffect(() => {
-    // Load result from sessionStorage
-    const storedResult = sessionStorage.getItem('riskAssessmentResult');
-    const storedPatient = sessionStorage.getItem('patientData');
+    const performClassification = async () => {
+      // Load patient data from sessionStorage
+      const storedPatient = sessionStorage.getItem('patientData');
+      const isProcessingFlag = sessionStorage.getItem('isProcessing');
+      const storedResult = sessionStorage.getItem('riskAssessmentResult');
 
-    if (storedResult) {
-      setResult(JSON.parse(storedResult));
-    }
-    if (storedPatient) {
-      setPatientData(JSON.parse(storedPatient));
-    }
+      if (!storedPatient) {
+        // No patient data, redirect to home
+        router.push('/');
+        return;
+      }
 
-    // If no result, redirect to home
-    if (!storedResult) {
-      router.push('/');
-    }
+      const patientFormData = JSON.parse(storedPatient);
+      setPatientData(patientFormData);
+
+      // If already has result, just display it
+      if (storedResult && isProcessingFlag !== 'true') {
+        setResult(JSON.parse(storedResult));
+        return;
+      }
+
+      // Prevent multiple classifications (React Strict Mode runs useEffect twice)
+      if (hasSaved.current) {
+        return;
+      }
+
+      // Need to perform classification
+      setIsProcessing(true);
+      hasSaved.current = true; // Set immediately to prevent duplicate runs
+      sessionStorage.removeItem('isProcessing');
+
+      try {
+        const sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        
+        // Import api dynamically to avoid circular dependencies
+        const { api, logApi } = await import('@/lib');
+        
+        // Classify patient data
+        const classificationResult: AllFlowsResult = await api.classifyPatient(
+          patientFormData,
+          (current, total, flowName) => {
+            setProcessingProgress({ current, total, flowName });
+          }
+        );
+        
+        // Save log with AI results
+        try {
+          await logApi.saveLog(patientFormData, classificationResult, sessionId);
+          console.log('Successfully saved log with results to backend');
+        } catch (logError) {
+          console.error('Failed to save log with results:', logError);
+          // Continue anyway - don't block showing results
+        }
+        
+        // Store result and update state
+        sessionStorage.setItem('riskAssessmentResult', JSON.stringify(classificationResult));
+        setResult(classificationResult);
+        setIsProcessing(false);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'เกิดข้อผิดพลาดในการประเมินความเสี่ยง');
+        console.error('Classification error:', err);
+        setIsProcessing(false);
+      }
+    };
+
+    performClassification();
   }, [router]);
 
   const getOverallRisk = () => {
@@ -125,10 +180,104 @@ export default function ResultPage() {
     return labels[key] || key;
   };
 
-  if (!result) {
+  // Loading state - show patient data while processing
+  if (isProcessing || !result) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-purple-50 py-8">
+        <div className="container mx-auto px-4 max-w-6xl">
+          <div className="mb-8">
+            <Link href="/" className="flex items-center text-gray-600 hover:text-gray-800 mb-4">
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              กลับหน้าหลัก
+            </Link>
+            <h1 className="text-3xl font-bold text-gray-800 mb-2">
+              กำลังประเมินความเสี่ยง
+            </h1>
+            {patientData?.hn && (
+              <p className="text-gray-600">
+                HN: {patientData.hn} | วันที่ประเมิน: {new Date().toLocaleDateString('th-TH')}
+              </p>
+            )}
+          </div>
+
+          {/* Processing Status */}
+          <div className="mb-8 bg-white rounded-xl shadow-lg p-8">
+            <div className="flex items-center mb-6">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cu-pink-600 mr-4"></div>
+              <div>
+                <h2 className="text-xl font-bold text-gray-800">กำลังประมวลผลข้อมูล...</h2>
+                {processingProgress.flowName && (
+                  <p className="text-gray-600 mt-1">
+                    กำลังประเมิน: {processingProgress.flowName} 
+                    ({processingProgress.current}/{processingProgress.total})
+                  </p>
+                )}
+              </div>
+            </div>
+            
+            {/* Progress bar */}
+            {processingProgress.total > 0 && (
+              <div className="w-full bg-gray-200 rounded-full h-2.5">
+                <div 
+                  className="bg-cu-pink-600 h-2.5 rounded-full transition-all duration-300"
+                  style={{ width: `${(processingProgress.current / processingProgress.total) * 100}%` }}
+                ></div>
+              </div>
+            )}
+            
+            <p className="text-sm text-gray-500 mt-4">
+              กรุณารอสักครู่ ระบบกำลังวิเคราะห์ข้อมูลและประเมินความเสี่ยงในแต่ละด้าน
+            </p>
+          </div>
+
+          {/* Show patient data while waiting */}
+          {patientData && (
+            <div className="bg-white rounded-lg shadow-md overflow-hidden">
+              <div className="p-6 bg-pink-50 border-b border-pink-100">
+                <div className="flex items-center">
+                  <FileText className="w-5 h-5 text-cu-pink-600 mr-3" />
+                  <h3 className="text-lg font-bold text-gray-800">
+                    ข้อมูลที่กรอก ({Object.keys(patientData).filter(k => patientData[k as keyof PatientFormData]).length} ข้อ)
+                  </h3>
+                </div>
+                <p className="text-sm text-gray-600 mt-2">
+                  ข้อมูลเหล่านี้จะถูกนำไปใช้ในการประเมินความเสี่ยง
+                </p>
+              </div>
+              
+              <div className="p-6">
+                <div className="grid md:grid-cols-2 gap-x-8 gap-y-4">
+                  {Object.entries(patientData)
+                    .filter(([, value]) => value !== undefined && value !== null && value !== '')
+                    .map(([key, value]) => (
+                      <div key={key} className="flex flex-col">
+                        <span className="text-sm font-medium text-gray-600 mb-1">
+                          {getFieldLabel(key)}
+                        </span>
+                        <span className="text-gray-800">
+                          {formatFieldValue(key, value)}
+                        </span>
+                      </div>
+                    ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Error display */}
+          {error && (
+            <div className="mt-6 bg-red-50 border border-red-200 rounded-lg p-4">
+              <p className="text-red-800 font-medium">เกิดข้อผิดพลาด</p>
+              <p className="text-red-700 text-sm mt-1">{error}</p>
+              <button
+                onClick={() => router.push('/form')}
+                className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+              >
+                กลับไปแก้ไขฟอร์ม
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     );
   }
@@ -136,7 +285,7 @@ export default function ResultPage() {
   const overallRisk = getOverallRisk();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 py-8">
+    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-purple-50 py-8">
       <div className="container mx-auto px-4 max-w-6xl">
         {/* Header */}
         <div className="mb-8">
@@ -157,7 +306,7 @@ export default function ResultPage() {
             </div>
             <button
               onClick={handleDownloadReport}
-              className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              className="flex items-center px-4 py-2 bg-cu-pink-600 text-white rounded-lg hover:bg-cu-pink-700 transition-colors"
             >
               <Download className="w-4 h-4 mr-2" />
               ดาวน์โหลดรายงาน
@@ -192,6 +341,10 @@ export default function ResultPage() {
                     ⚠️ หมายเหตุ: ระบบประเมินได้เพียง {Object.keys(result).length} ด้าน จาก 18 ด้านทั้งหมด
                   </p>
                 )}
+                <p className="text-sm text-green-600 mt-2 flex items-center">
+                  <CheckCircle className="w-4 h-4 mr-1" />
+                  บันทึกข้อมูลสำเร็จ - ผลการประเมินถูกบันทึกลงระบบแล้ว
+                </p>
               </div>
             </div>
           </div>
@@ -205,7 +358,7 @@ export default function ResultPage() {
               className="w-full flex items-center justify-between p-6 hover:bg-gray-50 transition-colors"
             >
               <div className="flex items-center">
-                <FileText className="w-5 h-5 text-blue-600 mr-3" />
+                <FileText className="w-5 h-5 text-cu-pink-600 mr-3" />
                 <h3 className="text-lg font-bold text-gray-800">
                   ข้อมูลที่กรอก ({Object.keys(patientData).filter(k => patientData[k as keyof PatientFormData]).length} ข้อ)
                 </h3>
@@ -288,7 +441,7 @@ export default function ResultPage() {
             <div className="flex gap-4 pt-4">
               <Link
                 href="/form"
-                className="flex-1 flex items-center justify-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                className="flex-1 flex items-center justify-center px-6 py-3 bg-cu-pink-600 text-white rounded-lg hover:bg-cu-pink-700 transition-colors"
               >
                 ประเมินใหม่อีกครั้ง
               </Link>

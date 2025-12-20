@@ -1,4 +1,7 @@
-// Form data types based on question.txt
+/**
+ * Form Data Types
+ * Patient form data structure based on 27 questions
+ */
 
 export interface PatientFormData {
   // 1. อายุ
@@ -16,6 +19,9 @@ export interface PatientFormData {
   // 5. วันที่ผ่าตัด
   surgery_date?: string;
   
+  // Note: หมายเหตุสำหรับหมอ (เหตุการณ์พิเศษ เช่น แพ้ยา เลือดออกมาก)
+  note?: string;
+  
   // 6. ระดับความปวด (0-10)
   pain_score?: number;
   
@@ -24,38 +30,38 @@ export interface PatientFormData {
   
   // 8. อาการบวม
   swelling_status?: 'ปัจจุบันหายบวมแล้ว' | 'บวมลดลง' | 'บวมเท่าเดิม' | 'บวมมากขึ้น' | 'บวมมากขึ้นมากๆจนกระทบการใช้ชีวิตประจำวัน' | string;
-  swelling_description?: string; // คำอธิบายเพิ่มเติม
+  swelling_description?: string;
   
   // 9. หายใจลำบาก หรือ กลืนลำบาก
   breathing_or_swallowing_difficulty?: 'ไม่มี' | 'มี' | string;
-  breathing_description?: string; // คำอธิบายเพิ่มเติม
+  breathing_description?: string;
   
   // 10. เลือดซึม/เลือดออก
   bleeding_status?: 'ไม่มีเลือดซึมหรือไหลแล้ว' | 'เลือดซึม แต่หยุดได้เอง' | 'เลือดสีแดงสดไหลไม่หยุดปริมาณมาก' | string;
-  bleeding_description?: string; // คำอธิบายเพิ่มเติม
+  bleeding_description?: string;
   
   // 11. ไข้
   fever_status?: 'ไม่มีไข้' | 'มีไข้ (มากกว่า 38 องศาเซลเซียส)' | string;
-  fever_description?: string; // คำอธิบายเพิ่มเติม
+  fever_description?: string;
   
   // 12. อาการชา
   numbness_status?: 'หายชาแล้วหลังทำหัตถการ' | 'ยังชาอยู่แต่ชาน้อยลงเรื่อยๆ' | 'ยังรู้สึกชาเท่ากับตอนหลังทำหัตถการทันที' | string;
-  numbness_description?: string; // คำอธิบายเพิ่มเติม
+  numbness_description?: string;
   
   // 13. Phlebitis (บริเวณรอยเข็ม)
   phlebitis?: 'ไม่มีอาการปวด/บวม/แดง รอบรอยเข็ม' | 'มีอาการปวด/บวม/แดง รอบรอยเข็ม' | string;
-  phlebitis_description?: string; // คำอธิบายเพิ่มเติม
+  phlebitis_description?: string;
   
   // 14. ไหมเย็บแผล
   suture_status?: 'ไหมแน่นดี / ไม่ได้สังเกต' | 'ไหมหลุดหายไปบางส่วน แต่ไม่มีเลือดไหล' | 'ไหมหลุดหายไปบางส่วน และมีอาการเลือดสีแดงสดไหล' | string;
-  suture_description?: string; // คำอธิบายเพิ่มเติม
+  suture_description?: string;
   
   // 15. อาการอื่นๆ (multiple choice)
   other_symptoms?: string[];
   
   // 16. รับประทานยาฆ่าเชื้อ
   antibiotic_compliance?: 'ครบตามแพทย์สั่ง' | 'ลืมทานบางครั้ง' | 'ไม่ได้ทานเลย' | string;
-  antibiotic_description?: string; // คำอธิบายเพิ่มเติม
+  antibiotic_description?: string;
   
   // 17. ประคบ
   compress_type?: 'ประคบเย็นอยู่' | 'ประคบอุ่นอยู่' | 'ไม่ได้ประคบอะไรเลย';
@@ -65,55 +71,42 @@ export interface PatientFormData {
   
   // 19. ลวด/ยางมัดฟัน
   imf_wire_status?: 'ลวด/ยางมัดฟันแน่นดี' | 'ลวด/ยางมัดฟันหลวม อ้าปากได้เล็กน้อย' | 'ยางมัดฟันขาดไปบางเส้น แต่ยังอ้าปากไม่ได้' | string;
-  imf_wire_description?: string; // คำอธิบายเพิ่มเติม
+  imf_wire_description?: string;
   
   // 20. การเดิน (iliac crest bone graft)
   walking_status?: 'ไม่ได้ทำหัตถการ การรักษาการแหว่งของสันเหงือกโดยการนำกระดูกสะโพกมาปลูก' | 'เดินได้ปกติ' | 'เดินไม่ถนัด' | string;
-  walking_description?: string; // คำอธิบายเพิ่มเติม
+  walking_description?: string;
   
   // 21. การแปรงฟัน
   brushing_teeth?: 'แปรงฟันได้' | 'แปรงฟันไม่ได้' | string;
-  brushing_description?: string; // คำอธิบายเพิ่มเติม
+  brushing_description?: string;
   
   // 22. การบ้วนปาก
   mouth_rinsing?: 'บ้วนปากได้' | 'บ้วนปากไม่ได้' | string;
-  rinsing_description?: string; // คำอธิบายเพิ่มเติม
+  rinsing_description?: string;
   
   // 23. วิธีการรับประทานอาหาร
   feeding_method?: 'รับประทานอาหารผ่านกระบอกฉีดยา (syringe)' | 'รับประทานอาหารผ่านสายยาง (nasogastric tube)' | 'รับประทานอาหารได้ปกติ' | string;
-  feeding_description?: string; // คำอธิบายเพิ่มเติม
+  feeding_description?: string;
   
   // 24. ประเภทอาหาร (multiple choice)
   food_types?: string[];
   
   // 25. ปริมาณอาหาร
   food_amount?: 'รับประทานอาหารปริมาณปกติ' | 'รับประทานอาหารได้น้อยลง' | string;
-  food_amount_description?: string; // คำอธิบายเพิ่มเติม
+  food_amount_description?: string;
   
   // 26. คำถามเพิ่มเติม
   additional_questions?: string;
   
   // 27. สายยางให้อาหาร (NG tube)
   ng_tube_position?: 'สายยางอยู่ในตำแหน่งเดิม,  เทปยึดจมูกกับสายแน่นดี ไม่เลื่อนหลุด' | 'สายยางเลื่อนตำแหน่ง, เทปยึดจมูกกับสายไม่แน่น, เลื่อนหลุด' | string;
-  ng_tube_description?: string; // คำอธิบายเพิ่มเติม
+  ng_tube_description?: string;
 }
 
-// API Response Types
-export interface RiskAssessmentResult {
-  risk_level: string;
-  recommendation: string;
-  reason: string;
-}
-
-export interface AllFlowsResult {
-  [flowName: string]: RiskAssessmentResult;
-}
-
-export interface ApiError {
-  detail: string;
-}
-
-// Options for form fields
+/**
+ * Form Options Constants
+ */
 export const GENDER_OPTIONS = ['ชาย', 'หญิง'] as const;
 
 export const PROCEDURE_OPTIONS = [

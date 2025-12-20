@@ -1,10 +1,10 @@
 import React from 'react';
-import type { PatientFormData } from '@/lib/types';
+import type { PatientFormData } from '@/lib';
 import {
   FEEDING_METHOD_OPTIONS,
   FOOD_AMOUNT_OPTIONS,
   NG_TUBE_OPTIONS,
-} from '@/lib/types';
+} from '@/lib';
 
 interface DailyLifeFormProps {
   data: PatientFormData;
@@ -13,14 +13,15 @@ interface DailyLifeFormProps {
 }
 
 export function validateDailyLife(data: PatientFormData): boolean {
-  return !!(
-    data.brushing_teeth &&
-    data.mouth_rinsing &&
-    data.feeding_method &&
-    data.food_types && data.food_types.length > 0 &&
-    data.food_amount &&
-    data.ng_tube_position
-  );
+  return true;
+  // return !!(
+  //   data.brushing_teeth &&
+  //   data.mouth_rinsing &&
+  //   data.feeding_method &&
+  //   data.food_types && data.food_types.length > 0 &&
+  //   data.food_amount &&
+  //   data.ng_tube_position
+  // );
 }
 
 export default function DailyLifeForm({ data, onChange, onValidationChange }: DailyLifeFormProps) {
@@ -169,7 +170,7 @@ export default function DailyLifeForm({ data, onChange, onValidationChange }: Da
               onChange={(e) => onChange({ rinsing_description: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               placeholder="เช่น บ้วนบ้างส่วน, บ้วนลำบาก"
-              rows={3}
+              rows={1}
             />
           </div>
         )}
@@ -205,7 +206,7 @@ export default function DailyLifeForm({ data, onChange, onValidationChange }: Da
               onChange={(e) => onChange({ feeding_description: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               placeholder="เช่น ทานเองบ้าง, ใช้หลอดบ้าง"
-              rows={3}
+              rows={1}
             />
           </div>
         )}
@@ -297,7 +298,7 @@ export default function DailyLifeForm({ data, onChange, onValidationChange }: Da
               onChange={(e) => onChange({ food_amount_description: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               placeholder="เช่น ทานน้อยลงประมาณเท่าไร, ทานวันละ 2-3 คำ"
-              rows={3}
+              rows={1}
             />
           </div>
         )}
@@ -347,7 +348,7 @@ export default function DailyLifeForm({ data, onChange, onValidationChange }: Da
               onChange={(e) => onChange({ ng_tube_description: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               placeholder="เช่น สายเลื่อนออกมาประมาณเท่าไร"
-              rows={3}
+              rows={1}
             />
           </div>
         )}

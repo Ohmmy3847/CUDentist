@@ -1,4 +1,4 @@
-import type { RiskAssessmentResult } from '@/lib/types';
+import type { RiskAssessmentResult } from '@/lib';
 import { AlertTriangle, CheckCircle, XCircle } from 'lucide-react';
 
 interface RiskResultProps {

@@ -1,5 +1,18 @@
+/**
+ * Risk Assessment API Client
+ * Handles all API calls related to risk classification
+ */
+
 import axios, { AxiosError } from 'axios';
-import type { PatientFormData, AllFlowsResult, ApiError } from './types';
+import type {
+  PatientFormData,
+  AllFlowsResult,
+  ApiError,
+} from '../types';
+import type {
+  ProgressCallback,
+  UploadProgressCallback,
+} from '../types/api.types';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
@@ -10,13 +23,16 @@ const apiClient = axios.create({
   },
 });
 
-export const api = {
+/**
+ * Risk Assessment API
+ */
+export const riskApi = {
   /**
    * Classify patient risk across all flows with progress tracking
    */
   classifyPatient: async (
     data: PatientFormData,
-    onProgress?: (current: number, total: number, flowName: string) => void
+    onProgress?: ProgressCallback
   ): Promise<AllFlowsResult> => {
     try {
       // Get list of flows first
@@ -24,16 +40,32 @@ export const api = {
       const flows = flowsResponse.data.flows;
       const totalFlows = flows.length;
 
-      // Start classification
-      const response = await apiClient.post<AllFlowsResult>('/classify-all-flows', {
-        data,
-      });
-
-      // Simulate progress if callback provided (since backend doesn't stream progress yet)
+      // Show progress before starting actual API call
       if (onProgress) {
-        for (let i = 0; i < totalFlows; i++) {
-          onProgress(i + 1, totalFlows, flows[i] || 'Processing...');
-          await new Promise(resolve => setTimeout(resolve, 50));
+        // Simulate progress during preparation phase
+        for (let i = 0; i < Math.min(3, totalFlows); i++) {
+          onProgress(i + 1, totalFlows, 'กำลังเตรียมข้อมูล...');
+          await new Promise(resolve => setTimeout(resolve, 200));
+        }
+      }
+
+      // Start classification - send data wrapped in { data: ... }
+      const startTime = Date.now();
+      const response = await apiClient.post<AllFlowsResult>('/classify-all-flows', {
+        data: data,
+      });
+      const elapsed = Date.now() - startTime;
+
+      // Simulate progress during/after processing to show user what's happening
+      if (onProgress) {
+        const minDisplayTime = 2000; // แสดง loading อย่างน้อย 2 วินาที
+        const remainingTime = Math.max(0, minDisplayTime - elapsed);
+        const steps = Math.max(1, Math.floor(remainingTime / 150));
+        const startProgress = Math.min(3, totalFlows);
+        
+        for (let i = startProgress; i < totalFlows; i++) {
+          onProgress(i + 1, totalFlows, flows[i] || 'กำลังวิเคราะห์...');
+          await new Promise(resolve => setTimeout(resolve, Math.floor(remainingTime / (totalFlows - startProgress))));
         }
       }
 
@@ -55,7 +87,7 @@ export const api = {
   uploadCSV: async (
     file: File,
     maxConcurrent: number = 10,
-    onProgress?: (uploadPercent: number, processedRows?: number, totalRows?: number) => void
+    onProgress?: UploadProgressCallback
   ): Promise<Blob> => {
     try {
       const formData = new FormData();
@@ -143,5 +175,3 @@ export const api = {
     }
   },
 };
-
-export default api;
