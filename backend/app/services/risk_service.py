@@ -24,6 +24,7 @@ FIELD_LABELS = {
     'hn': 'HN',
     'procedures': 'หัตถการที่ทำ',
     'surgery_date': 'ได้รับการผ่าตัดเมื่อวันที่',
+    'note': 'หมายเหตุพิเศษ (สำหรับหมอ)',
     
     # Symptoms (ข้อ 6-20)
     'pain_score': 'ระดับความปวด (Pain score)',
