@@ -112,6 +112,11 @@ def append_with_result(
         # Create reverse mapping: Thai label -> English field name
         label_to_field = {v: k for k, v in FIELD_LABELS.items()}
         
+        # Debug: Log incoming data
+        logger.info(f"Incoming data keys: {list(data.keys())[:10]}")
+        logger.info(f"Data has 'age': {('age' in data)}, value: {data.get('age')}")
+        logger.info(f"Data has 'gender': {('gender' in data)}, value: {data.get('gender')}")
+        
         # Debug: Log FORM_COLUMNS
         logger.info(f"FORM_COLUMNS has {len(FORM_COLUMNS)} columns")
         logger.info(f"First 5 FORM_COLUMNS: {FORM_COLUMNS[:5]}")

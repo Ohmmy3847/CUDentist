@@ -17,17 +17,20 @@ export default function ResultPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    console.log('🔵 [RESULT PAGE] useEffect triggered');
+    
     // Use only sessionStorage for persistence across unmount/remount
     const alreadyProcessing = sessionStorage.getItem('isCurrentlyProcessing');
+    console.log('🔵 [CHECK] isCurrentlyProcessing:', alreadyProcessing);
     
     if (alreadyProcessing === 'true') {
-      console.log('=== BLOCKED: Already processing ===');
+      console.log('🚫 [BLOCKED] Already processing - EXITING');
       return;
     }
     
     // Set flag immediately before any async operations
     sessionStorage.setItem('isCurrentlyProcessing', 'true');
-    console.log('=== STARTED: First run, processing flag set ===');
+    console.log('✅ [STARTED] Processing flag set to TRUE');
     
     const performClassification = async () => {
       // Load patient data from sessionStorage
@@ -35,9 +38,11 @@ export default function ResultPage() {
       const isProcessingFlag = sessionStorage.getItem('isProcessing');
       const storedResult = sessionStorage.getItem('riskAssessmentResult');
       const alreadySavedFlag = sessionStorage.getItem('resultSaved');
+      
+      console.log('🔵 [FLAGS] resultSaved:', alreadySavedFlag, '| hasResult:', !!storedResult);
 
       if (!storedPatient) {
-        // No patient data, redirect to home
+        console.log('⚠️ [NO DATA] Redirecting to home');
         router.push('/');
         return;
       }
@@ -47,13 +52,14 @@ export default function ResultPage() {
 
       // If already has result, just display it
       if (storedResult && isProcessingFlag !== 'true') {
+        console.log('✅ [CACHED] Using existing result - NO SAVE');
         setResult(JSON.parse(storedResult));
         return;
       }
 
       // Prevent duplicate saves - check flag BEFORE any async operations
       if (alreadySavedFlag === 'true') {
-        console.log('Already saved, skipping duplicate save');
+        console.log('🚫 [DUPLICATE] Already saved flag is TRUE - skipping save');
         // If result exists, just display it
         if (storedResult) {
           setResult(JSON.parse(storedResult));
@@ -65,7 +71,7 @@ export default function ResultPage() {
       
       // Mark as saved immediately to prevent race conditions
       sessionStorage.setItem('resultSaved', 'true');
-      console.log('First run - will save to backend');
+      console.log('✅ [FIRST RUN] resultSaved flag set - WILL SAVE to backend');
 
       // Need to perform classification
       setIsProcessing(true);
@@ -86,17 +92,18 @@ export default function ResultPage() {
         );
         
         // Save log with AI results (only if not already saved)
+        console.log('🔵 [SAVE CHECK] alreadySavedFlag:', alreadySavedFlag);
         if (alreadySavedFlag !== 'true') {
           try {
-            console.log('Calling saveLog API...');
+            console.log('📤 [API CALL] Calling saveLog API...');
             await logApi.saveLog(patientFormData, classificationResult, sessionId);
-            console.log('Successfully saved log with results to backend');
+            console.log('✅ [SUCCESS] Successfully saved log with results to backend');
           } catch (logError) {
-            console.error('Failed to save log with results:', logError);
+            console.error('❌ [ERROR] Failed to save log with results:', logError);
             // Continue anyway - don't block showing results
           }
         } else {
-          console.log('Skipped saveLog because already saved');
+          console.log('⏭️ [SKIP] Skipped saveLog because already saved');
         }
         
         // Store result and update state
