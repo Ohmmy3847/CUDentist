@@ -60,7 +60,7 @@ export const riskApi = {
       if (onProgress) {
         const minDisplayTime = 2000; // แสดง loading อย่างน้อย 2 วินาที
         const remainingTime = Math.max(0, minDisplayTime - elapsed);
-        const steps = Math.max(1, Math.floor(remainingTime / 150));
+        // const steps = Math.max(1, Math.floor(remainingTime / 150));
         const startProgress = Math.min(3, totalFlows);
         
         for (let i = startProgress; i < totalFlows; i++) {

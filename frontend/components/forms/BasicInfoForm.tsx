@@ -10,6 +10,7 @@ interface BasicInfoFormProps {
 }
 
 export function validateBasicInfo(data: PatientFormData): boolean {
+  console.log('validateBasicInfo', data);
   return true;
   // return !!(
   //   data.age &&

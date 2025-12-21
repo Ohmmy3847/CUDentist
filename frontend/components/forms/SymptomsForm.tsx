@@ -216,20 +216,20 @@ export default function SymptomsForm({ data, onChange, onValidationChange }: Sym
           {++qNum}. ระดับความปวด ณ ปัจจุบัน (Pain score) <span className="text-red-500">*</span>
         </label>
         <div className="space-y-3">
-          <div className="flex items-center justify-between text-sm text-gray-600 mb-2">
+          <div className="flex items-center justify-between text-xs sm:text-sm text-gray-600 mb-2">
             <span>ไม่ปวดเลย</span>
-            <span>ปวดมากที่สุดในชีวิต</span>
+            <span className="text-right">ปวดมากที่สุดในชีวิต</span>
           </div>
-          <div className="grid grid-cols-11 gap-2">
+          <div className="grid grid-cols-11 gap-1 sm:gap-2">
             {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(score => (
               <button
                 key={score}
                 type="button"
                 onClick={() => onChange({ pain_score: score })}
                 className={`
-                  py-3 px-2 rounded-lg font-semibold transition-all
+                  h-12 sm:h-14 md:h-16 flex items-center justify-center rounded-lg font-bold text-sm sm:text-base md:text-lg transition-all
                   ${data.pain_score === score
-                    ? 'bg-blue-600 text-white shadow-lg scale-110'
+                    ? 'bg-blue-600 text-white shadow-lg scale-105 sm:scale-110'
                     : 'bg-gray-100 text-gray-700 hover:bg-blue-100 hover:text-blue-600'
                   }
                 `}

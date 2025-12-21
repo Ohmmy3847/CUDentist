@@ -46,7 +46,8 @@ export default function Home() {
                 </div>
                 <h2 className="text-2xl font-bold text-gray-800">อัปโหลด CSV</h2>
                 <p className="text-gray-600">
-                  อัปโหลดไฟล์ CSV สำหรับประเมินผู้ป่วยหลายรายพร้อมกัน
+                  ไม่ใช้แล้ว
+                  
                 </p>
                 <div className="pt-4">
                   <span className="inline-block px-6 py-3 bg-yellow-500 text-white rounded-lg group-hover:bg-yellow-600 transition-colors duration-300">
@@ -73,10 +74,7 @@ export default function Home() {
               <span className="text-cu-pink-600 mr-2">✓</span>
               <span>ให้คำแนะนำการดูแลตนเองตามระดับความเสี่ยง</span>
             </li>
-            <li className="flex items-start">
-              <span className="text-cu-pink-600 mr-2">✓</span>
-              <span>รองรับการประมวลผลแบบ Batch ผ่าน CSV</span>
-            </li>
+
           </ul>
         </div>
       </div>

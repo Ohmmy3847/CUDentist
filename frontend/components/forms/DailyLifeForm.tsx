@@ -13,6 +13,7 @@ interface DailyLifeFormProps {
 }
 
 export function validateDailyLife(data: PatientFormData): boolean {
+  console.log('validateDailyLife', data);
   return true;
   // return !!(
   //   data.brushing_teeth &&
@@ -125,7 +126,7 @@ export default function DailyLifeForm({ data, onChange, onValidationChange }: Da
               onChange={(e) => onChange({ brushing_description: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               placeholder="เช่น แปรงบ้างส่วน, ปวดเมื่อแปรง"
-              rows={3}
+              rows={1}
             />
           </div>
         )}

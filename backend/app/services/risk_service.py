@@ -51,7 +51,9 @@ FIELD_LABELS = {
     'additional_questions': 'ผู้ป่วยมีคำถามที่จะสอบถามพยาบาลเพิ่มเติม',
     'ng_tube_position': 'ตำแหน่งสายยางให้อาหาร',
 }
-FORM_COLUMNS = list(FIELD_LABELS.values())
+
+# FORM_COLUMNS includes Timestamp as first column (matches Google Sheets structure)
+FORM_COLUMNS = ['Timestamp'] + list(FIELD_LABELS.values())
 
 # Mapping ระหว่าง main field กับ description field
 FIELD_WITH_DESCRIPTION = {

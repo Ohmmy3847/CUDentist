@@ -104,6 +104,11 @@ export default function PatientFormPage() {
         // Continue anyway - don't block navigation
       }
       
+      // Clear previous result flags to allow new submission
+      console.log('=== Form Submit: Clearing flags ===');
+      sessionStorage.removeItem('resultSaved');
+      sessionStorage.removeItem('riskAssessmentResult');
+      
       // บันทึกข้อมูลลง sessionStorage เพื่อส่งไปหน้า result
       sessionStorage.setItem('patientData', JSON.stringify(formData));
       sessionStorage.setItem('isProcessing', 'true');
@@ -163,22 +168,24 @@ export default function PatientFormPage() {
   return (
     <div className="w-full flex flex-col items-center justify-center py-6 px-2">
       <div className="cu-container w-full max-w-2xl">
-        <div className="mb-6 flex flex-col md:flex-row items-center justify-between gap-2">
-          <button
-            onClick={() => router.push('/')}
-            className="cu-btn bg-cu-gray text-cu-pink border border-cu-pink flex items-center"
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" /> กลับหน้าหลัก
-          </button>
-          <h1 className="text-xl md:text-2xl font-bold text-cu-pink text-center">กรอกข้อมูลคนไข้</h1>
-          {hasSavedData && (
+        <div className="mb-6">
+          <div className="grid grid-cols-2 gap-2 mb-3">
             <button
-              onClick={handleClearDraft}
-              className="cu-btn bg-red-100 text-red-700 border border-red-300 flex items-center"
+              onClick={() => router.push('/')}
+              className="cu-btn bg-cu-gray text-cu-pink border border-cu-pink flex items-center justify-center text-sm md:text-base"
             >
-              <Trash2 className="w-4 h-4 mr-2" /> ล้างข้อมูล
+              <ArrowLeft className="w-4 h-4 mr-1 md:mr-2" /> <span className="hidden sm:inline">กลับ</span>หน้าหลัก
             </button>
-          )}
+            {hasSavedData && (
+              <button
+                onClick={handleClearDraft}
+                className="cu-btn bg-red-100 text-red-700 border border-red-300 flex items-center justify-center text-sm md:text-base"
+              >
+                <Trash2 className="w-4 h-4 mr-1 md:mr-2" /> ล้างข้อมูล
+              </button>
+            )}
+          </div>
+          <h1 className="text-xl md:text-2xl font-bold text-cu-pink text-center">กรอกข้อมูลคนไข้</h1>
         </div>
 
         <div className="mb-6 flex items-center justify-center gap-2 md:gap-4">
@@ -215,13 +222,13 @@ export default function PatientFormPage() {
           </div>
         )}
 
-        <div className="flex flex-col md:flex-row gap-3 md:gap-4 justify-between mt-6 md:mt-8">
+        <div className="grid grid-cols-2 gap-3 md:gap-4 mt-6 md:mt-8">
           <button
             onClick={handlePrevious}
             className="cu-btn bg-cu-gray text-cu-pink border border-cu-pink flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
             disabled={currentStep === 1}
           >
-            <ArrowLeft className="w-4 h-4 mr-2" /> ย้อนกลับ
+            <ArrowLeft className="w-4 h-4 mr-1 md:mr-2" /> ย้อนกลับ
           </button>
           {currentStep < STEPS.length ? (
             <button
@@ -229,23 +236,23 @@ export default function PatientFormPage() {
               className="cu-btn flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
               disabled={!isCurrentStepValid}
             >
-              ถัดไป <ArrowRight className="w-4 h-4 ml-2" />
+              ถัดไป <ArrowRight className="w-4 h-4 ml-1 md:ml-2" />
             </button>
           ) : (
             <button
               onClick={handleSubmit}
-              className="cu-btn flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+              className="cu-btn flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed text-sm md:text-base"
               disabled={!isCurrentStepValid || isSubmitting}
             >
               {isSubmitting ? (
                 <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  กำลังบันทึก...
+                  <Loader2 className="w-4 h-4 mr-1 md:mr-2 animate-spin" />
+                  <span className="hidden sm:inline">กำลัง</span>บันทึก...
                 </>
               ) : (
                 <>
-                  <CheckCircle className="w-4 h-4 mr-2" />
-                  ส่งข้อมูลเพื่อประเมิน
+                  <CheckCircle className="w-4 h-4 mr-1 md:mr-2" />
+                  <span className="hidden sm:inline">ส่งข้อมูล</span>ประเมิน
                 </>
               )}
             </button>

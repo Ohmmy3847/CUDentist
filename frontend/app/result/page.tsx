@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Download, Share2, CheckCircle, AlertTriangle, XCircle, ChevronDown, ChevronUp, FileText } from 'lucide-react';
@@ -15,7 +15,6 @@ export default function ResultPage() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingProgress, setProcessingProgress] = useState({ current: 0, total: 0, flowName: '' });
   const [error, setError] = useState<string | null>(null);
-  const hasSaved = useRef(false);
 
   useEffect(() => {
     const performClassification = async () => {
@@ -23,6 +22,7 @@ export default function ResultPage() {
       const storedPatient = sessionStorage.getItem('patientData');
       const isProcessingFlag = sessionStorage.getItem('isProcessing');
       const storedResult = sessionStorage.getItem('riskAssessmentResult');
+      const alreadySavedFlag = sessionStorage.getItem('resultSaved');
 
       if (!storedPatient) {
         // No patient data, redirect to home
@@ -39,14 +39,24 @@ export default function ResultPage() {
         return;
       }
 
-      // Prevent multiple classifications (React Strict Mode runs useEffect twice)
-      if (hasSaved.current) {
+      // Prevent duplicate saves - check flag BEFORE any async operations
+      if (alreadySavedFlag === 'true') {
+        console.log('Already saved, skipping duplicate save');
+        // If result exists, just display it
+        if (storedResult) {
+          setResult(JSON.parse(storedResult));
+          return;
+        }
+        // If no result yet, continue to classification without saving again
         return;
       }
+      
+      // Mark as saved immediately to prevent race conditions
+      sessionStorage.setItem('resultSaved', 'true');
+      console.log('First run - will save to backend');
 
       // Need to perform classification
       setIsProcessing(true);
-      hasSaved.current = true; // Set immediately to prevent duplicate runs
       sessionStorage.removeItem('isProcessing');
 
       try {
@@ -63,13 +73,18 @@ export default function ResultPage() {
           }
         );
         
-        // Save log with AI results
-        try {
-          await logApi.saveLog(patientFormData, classificationResult, sessionId);
-          console.log('Successfully saved log with results to backend');
-        } catch (logError) {
-          console.error('Failed to save log with results:', logError);
-          // Continue anyway - don't block showing results
+        // Save log with AI results (only if not already saved)
+        if (alreadySavedFlag !== 'true') {
+          try {
+            console.log('Calling saveLog API...');
+            await logApi.saveLog(patientFormData, classificationResult, sessionId);
+            console.log('Successfully saved log with results to backend');
+          } catch (logError) {
+            console.error('Failed to save log with results:', logError);
+            // Continue anyway - don't block showing results
+          }
+        } else {
+          console.log('Skipped saveLog because already saved');
         }
         
         // Store result and update state
