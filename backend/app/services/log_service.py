@@ -112,11 +112,17 @@ def append_with_result(
         # Create reverse mapping: Thai label -> English field name
         label_to_field = {v: k for k, v in FIELD_LABELS.items()}
         
+        # Debug: Log FORM_COLUMNS
+        logger.info(f"FORM_COLUMNS has {len(FORM_COLUMNS)} columns")
+        logger.info(f"First 5 FORM_COLUMNS: {FORM_COLUMNS[:5]}")
+        
         # Build base row with form data
         row = []
         for col in FORM_COLUMNS:
             if col == "Timestamp":
-                row.append(datetime.now().isoformat())
+                timestamp_value = datetime.now().isoformat()
+                row.append(timestamp_value)
+                logger.info(f"Added Timestamp: {timestamp_value}")
             else:
                 # Map Thai column name to English field name
                 field_name = label_to_field.get(col)
@@ -137,6 +143,9 @@ def append_with_result(
                 result.get("reason", "N/A"),
                 result.get("recommendation", "N/A")
             ])
+        
+        logger.info(f"Total row length: {len(row)} (should match sheet columns)")
+        logger.info(f"First 5 values in row: {row[:5]}")
         
         # Add metadata
         row.extend([

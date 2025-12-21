@@ -33,6 +33,9 @@ export default function PatientFormPage() {
   useEffect(() => {
     if (typeof window === 'undefined') return;
     
+    // Clear result page flags when starting new form
+    sessionStorage.removeItem('resultSaved');
+    
     const savedData = localStorage.getItem(FORM_STORAGE_KEY);
     const savedStep = localStorage.getItem(STEP_STORAGE_KEY);
     
@@ -108,6 +111,7 @@ export default function PatientFormPage() {
       console.log('=== Form Submit: Clearing flags ===');
       sessionStorage.removeItem('resultSaved');
       sessionStorage.removeItem('riskAssessmentResult');
+      sessionStorage.removeItem('isCurrentlyProcessing'); // Also clear processing flag
       
       // บันทึกข้อมูลลง sessionStorage เพื่อส่งไปหน้า result
       sessionStorage.setItem('patientData', JSON.stringify(formData));

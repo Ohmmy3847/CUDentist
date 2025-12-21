@@ -17,6 +17,18 @@ export default function ResultPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    // Use only sessionStorage for persistence across unmount/remount
+    const alreadyProcessing = sessionStorage.getItem('isCurrentlyProcessing');
+    
+    if (alreadyProcessing === 'true') {
+      console.log('=== BLOCKED: Already processing ===');
+      return;
+    }
+    
+    // Set flag immediately before any async operations
+    sessionStorage.setItem('isCurrentlyProcessing', 'true');
+    console.log('=== STARTED: First run, processing flag set ===');
+    
     const performClassification = async () => {
       // Load patient data from sessionStorage
       const storedPatient = sessionStorage.getItem('patientData');
@@ -89,9 +101,11 @@ export default function ResultPage() {
         
         // Store result and update state
         sessionStorage.setItem('riskAssessmentResult', JSON.stringify(classificationResult));
+        sessionStorage.removeItem('isCurrentlyProcessing'); // Clear processing flag when done
         setResult(classificationResult);
         setIsProcessing(false);
       } catch (err) {
+        sessionStorage.removeItem('isCurrentlyProcessing'); // Clear processing flag on error
         setError(err instanceof Error ? err.message : 'เกิดข้อผิดพลาดในการประเมินความเสี่ยง');
         console.error('Classification error:', err);
         setIsProcessing(false);
