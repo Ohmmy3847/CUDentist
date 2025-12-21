@@ -141,13 +141,9 @@ async def classify_all_flows(patient: PatientData, llm = Depends(lambda: get_llm
                 detail=f"All flows failed. Errors: {errors}"
             )
         
-        # Log results to Google Sheets
-        if results:
-            try:
-                append_with_result(patient.data, results, FORM_COLUMNS)
-                logger.info("Successfully logged results to Google Sheets")
-            except Exception as log_error:
-                logger.warning(f"Failed to log to Google Sheets: {str(log_error)}")
+        # NOTE: Removed automatic logging to Google Sheets here
+        # Frontend will explicitly call /log/submission endpoint
+        # to avoid duplicate saves
         
         # Return only results (compatible with frontend)
         if errors:
