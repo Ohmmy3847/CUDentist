@@ -10,6 +10,9 @@ from google.oauth2.service_account import Credentials
 
 load_dotenv()
 
+# Import FORM_COLUMNS from risk_service to ensure consistency
+from app.services.risk_service import FORM_COLUMNS
+
 # Get credentials
 service_account_info = json.loads(os.getenv("GOOGLE_SERVICE_ACCOUNT_JSON"))
 scopes = ["https://www.googleapis.com/auth/spreadsheets"]
@@ -19,38 +22,6 @@ client = gspread.authorize(credentials)
 # Open spreadsheet
 spreadsheet_id = os.getenv("SPREADSHEET_ID")
 spreadsheet = client.open_by_key(spreadsheet_id)
-
-# Form columns (from risk_service.py)
-FORM_COLUMNS = [
-    'Timestamp',
-    'อายุ',
-    'เพศ',
-    'HN',
-    'หัตถการที่ทำ',
-    'ได้รับการผ่าตัดเมื่อวันที่',
-    'ระดับความปวด (Pain score)',
-    'ทานยาแก้ปวดแล้วดีขึ้นหรือไม่',
-    'อาการบวม',
-    'มีอาการหายใจลำบาก หรือ กลืนลำบากหรือไม่',
-    'อาการเลือดซึม หรือ เลือดออก',
-    'อาการไข้',
-    'อาการชา',
-    'บริเวณที่เอาเข็มน้ำเกลือออก',
-    'ไหมเย็บแผล',
-    'อาการอื่นๆ',
-    'รับประทานยาฆ่าเชื้อ',
-    'ประคบเย็น หรือ อุ่นอยู่หรือไม่',
-    'มีการมัดฟันบนและล่างเข้าด้วยกัน (IMF)',
-    'ลวด/ยางมัดฟันแน่นดีหรือไม่',
-    'การเดิน',
-    'การแปรงฟัน',
-    'การบ้วนปาก',
-    'วิธีการรับประทานอาหาร',
-    'ประเภทอาหารที่ทาน',
-    'ปริมาณอาหารที่ทาน',
-    'ผู้ป่วยมีคำถามที่จะสอบถามพยาบาลเพิ่มเติม',
-    'ตำแหน่งสายยางให้อาหาร',
-]
 
 # Flow names (18 flows)
 FLOW_NAMES = [
