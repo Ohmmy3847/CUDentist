@@ -4,7 +4,7 @@
  */
 
 import axios, { AxiosError } from 'axios';
-import type { PatientFormData, AllFlowsResult, ApiError } from '../types';
+import type { PatientFormData, ThreeLayerResult, ApiError } from '../types';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
@@ -28,7 +28,7 @@ export const logApi = {
    */
   saveLog: async (
     formData: PatientFormData,
-    results: AllFlowsResult,
+    results: ThreeLayerResult ,
     sessionId?: string
   ): Promise<{ status: string; timestamp: string; session_id?: string }> => {
     try {

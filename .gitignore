@@ -38,6 +38,19 @@ frontend/.env.local
 *.swp
 *.swo
 
+# macOS system files
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Thumbnails
+._*
+
+# VS Code settings
+*.code-workspace
+
 # OS
 .DS_Store
 Thumbs.db
+
+.test.py

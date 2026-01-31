@@ -61,7 +61,6 @@ const getFlowDisplayName = (flowName: string): string => {
     phlebitis: 'Phlebitis',
     suture: 'ไหมเย็บแผล',
     imf: 'การมัดฟัน',
-    hip_wound: 'แผลสะโพก',
     walking: 'การเดิน',
     ng_tube: 'สายยางให้อาหาร',
   };

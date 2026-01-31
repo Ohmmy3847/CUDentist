@@ -319,11 +319,12 @@ export default function DailyLifeForm({ data, onChange, onValidationChange }: Da
         />
       </div>
 
-      {/* 27. สายยางให้อาหาร (NG tube) */}
-      <div>
-        <label className="block text-gray-700 font-medium mb-2">
-          {++qNum}. ตำแหน่งสายยางให้อาหาร <span className="text-red-500">*</span>
-        </label>
+      {/* 27. สายยางให้อาหาร (NG tube) - แสดงเฉพาะเมื่อเลือก NG tube */}
+      {data.special_ng_tube === 'มี' && (
+        <div>
+          <label className="block text-gray-700 font-medium mb-2">
+            {++qNum}. ตำแหน่งสายยางให้อาหาร <span className="text-red-500">*</span>
+          </label>
         <div className="space-y-2">
           {NG_TUBE_OPTIONS.map(option => (
             <label key={option} className="flex items-center">
@@ -353,7 +354,8 @@ export default function DailyLifeForm({ data, onChange, onValidationChange }: Da
             />
           </div>
         )}
-      </div>
+        </div>
+      )}
 
       {/* สรุปข้อมูลที่กรอก */}
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mt-8">

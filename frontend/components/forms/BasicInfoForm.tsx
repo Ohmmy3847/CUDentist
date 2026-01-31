@@ -1,7 +1,7 @@
 import React from 'react';
 import { Plus, X } from 'lucide-react';
 import type { PatientFormData } from '@/lib';
-import { GENDER_OPTIONS, PROCEDURE_OPTIONS } from '@/lib';
+import { GENDER_OPTIONS, PROCEDURE_OPTIONS, LEFORT_SUB_OPTIONS, BSSRO_SUB_OPTIONS } from '@/lib';
 
 interface BasicInfoFormProps {
   data: PatientFormData;
@@ -10,34 +10,56 @@ interface BasicInfoFormProps {
 }
 
 export function validateBasicInfo(data: PatientFormData): boolean {
+  // Validate personal information
+  if (!data.first_name || data.first_name.trim() === '') return false;
+  if (!data.last_name || data.last_name.trim() === '') return false;
+  
+  // Validate email format
+  if (!data.email || data.email.trim() === '') return false;
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(data.email)) return false;
+  
+  // Validate phone (Thai phone number: 10 digits starting with 0)
+  if (!data.phone || data.phone.trim() === '') return false;
+  const phoneRegex = /^0[0-9]{9}$/;
+  if (!phoneRegex.test(data.phone.replace(/[\s-]/g, ''))) return false;
+  
+  // Validate birth year (between 2400-2600 for Thai Buddhist calendar)
+  if (!data.birth_year) return false;
+  if (data.birth_year < 2400 || data.birth_year > 2600) return false;
+  
+  // Validate other required fields
+  if (!data.age) return false;
+  if (!data.gender) return false;
+  if (!data.hn) return false;
+  if (!data.procedures || data.procedures.length === 0) return false;
+  if (!data.surgery_date) return false;
+  if (!data.discharge_date) return false;
+  
   console.log('validateBasicInfo', data);
   return true;
-  // return !!(
-  //   data.age &&
-  //   data.gender &&
-  //   data.hn &&
-  //   data.procedures && data.procedures.length > 0 &&
-  //   data.surgery_date
-  // );
 }
 
 export default function BasicInfoForm({ data, onChange, onValidationChange }: BasicInfoFormProps) {
   const [customProcedures, setCustomProcedures] = React.useState<string[]>([]);
-  
+
+  // Check if specific procedures are selected
+  const hasLefortI = data.procedures?.some(p => p.includes('Lefort I')) || false;
+  const hasBSSRO = data.procedures?.some(p => p.includes('BSSRO')) || false;
+
   // Sync customProcedures from data.procedures when component mounts or data changes
   React.useEffect(() => {
     const currentProcedures = data.procedures || [];
-    const customProcs = currentProcedures.filter(p => 
+    const customProcs = currentProcedures.filter(p =>
       !PROCEDURE_OPTIONS.includes(p as typeof PROCEDURE_OPTIONS[number])
     );
     if (customProcs.length > 0 && customProcedures.length === 0) {
       setCustomProcedures(customProcs);
     }
   }, [data.procedures]);
-  
+
   React.useEffect(() => {
     const isValid = validateBasicInfo(data);
-    console.log('BasicInfoForm validation:', { data, isValid });
     if (onValidationChange) {
       onValidationChange(isValid);
     }
@@ -49,39 +71,55 @@ export default function BasicInfoForm({ data, onChange, onValidationChange }: Ba
       ? [...current, procedure]
       : current.filter(p => p !== procedure);
     onChange({ procedures: updated });
+
+    // Clear sub-options if unchecking
+    if (!checked) {
+      if (procedure.includes('Lefort I')) {
+        onChange({ lefort_sub_options: [] });
+      }
+      if (procedure.includes('BSSRO')) {
+        onChange({ bssro_sub_options: [] });
+      }
+    }
   };
-  
+
+  const handleSubOptionChange = (type: 'lefort' | 'bssro', option: string, checked: boolean) => {
+    const fieldName = type === 'lefort' ? 'lefort_sub_options' : 'bssro_sub_options';
+    const current = data[fieldName] || [];
+    const updated = checked
+      ? [...current, option]
+      : current.filter(o => o !== option);
+    onChange({ [fieldName]: updated });
+  };
+
   const handleAddProcedureField = () => {
-    // ตรวจสอบว่าช่องสุดท้ายมีค่าหรือยัง
     if (customProcedures.length === 0 || customProcedures[customProcedures.length - 1].trim() !== '') {
       setCustomProcedures([...customProcedures, '']);
     }
   };
-  
+
   const handleRemoveProcedureField = (index: number) => {
     const updated = customProcedures.filter((_, i) => i !== index);
     setCustomProcedures(updated);
-    
-    // Remove from procedures array
+
     const currentProcedures = data.procedures || [];
-    const standardProcedures = currentProcedures.filter(p => 
+    const standardProcedures = currentProcedures.filter(p =>
       PROCEDURE_OPTIONS.includes(p as typeof PROCEDURE_OPTIONS[number])
     );
-    const customProcs = currentProcedures.filter(p => 
+    const customProcs = currentProcedures.filter(p =>
       !PROCEDURE_OPTIONS.includes(p as typeof PROCEDURE_OPTIONS[number])
     );
-    customProcs.splice(index, 0);
+    customProcs.splice(index, 1);
     onChange({ procedures: [...standardProcedures, ...customProcs.filter(p => p)] });
   };
-  
+
   const handleCustomProcedureChange = (index: number, value: string) => {
     const updatedCustom = [...customProcedures];
     updatedCustom[index] = value;
     setCustomProcedures(updatedCustom);
-    
-    // Update procedures array
+
     const currentProcedures = data.procedures || [];
-    const standardProcedures = currentProcedures.filter(p => 
+    const standardProcedures = currentProcedures.filter(p =>
       PROCEDURE_OPTIONS.includes(p as typeof PROCEDURE_OPTIONS[number])
     );
     const filledCustomProcedures = updatedCustom.filter(p => p.trim());
@@ -96,24 +134,106 @@ export default function BasicInfoForm({ data, onChange, onValidationChange }: Ba
         ส่วนที่ 1: ข้อมูลพื้นฐาน
       </h2>
 
+      {/* ข้อมูลส่วนตัว */}
+      <div className="bg-blue-50 p-4 rounded-lg space-y-4">
+        <h3 className="text-lg font-semibold text-gray-800 mb-3">ข้อมูลส่วนตัว</h3>
+        
+        {/* ชื่อจริง */}
+        <div>
+          <label className="block text-gray-700 font-medium mb-2">
+            ชื่อจริง <span className="text-red-500">*</span>
+          </label>
+          <input
+            type="text"
+            value={data.first_name || ''}
+            onChange={(e) => onChange({ first_name: e.target.value })}
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            placeholder="กรอกชื่อจริง"
+          />
+        </div>
+
+        {/* นามสกุล */}
+        <div>
+          <label className="block text-gray-700 font-medium mb-2">
+            นามสกุล <span className="text-red-500">*</span>
+          </label>
+          <input
+            type="text"
+            value={data.last_name || ''}
+            onChange={(e) => onChange({ last_name: e.target.value })}
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            placeholder="กรอกนามสกุล"
+          />
+        </div>
+
+        {/* อีเมล */}
+        <div>
+          <label className="block text-gray-700 font-medium mb-2">
+            อีเมล <span className="text-red-500">*</span>
+          </label>
+          <input
+            type="email"
+            value={data.email || ''}
+            onChange={(e) => onChange({ email: e.target.value })}
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            placeholder="example@email.com"
+          />
+        </div>
+
+        {/* เบอร์โทร */}
+        <div>
+          <label className="block text-gray-700 font-medium mb-2">
+            เบอร์โทรศัพท์ <span className="text-red-500">*</span>
+          </label>
+          <input
+            type="tel"
+            value={data.phone || ''}
+            onChange={(e) => onChange({ phone: e.target.value })}
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            placeholder="0812345678"
+          />
+        </div>
+
+        {/* ปีเกิด */}
+        <div>
+          <label className="block text-gray-700 font-medium mb-2">
+            ปีเกิด (พ.ศ.) <span className="text-red-500">*</span>
+          </label>
+          <input
+            type="text"
+            inputMode="numeric"
+            pattern="[0-9]*"
+            value={data.birth_year ?? ""}
+            onChange={(e) => {
+              const value = e.target.value;
+              if (/^\d*$/.test(value)) {
+                onChange({ birth_year: value === "" ? undefined : parseInt(value) });
+              }
+            }}
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            placeholder="เช่น 2540"
+          />
+        </div>
+      </div>
+
       {/* 1. อายุ */}
       <div>
         <label className="block text-gray-700 font-medium mb-2">
           {++qNum}. อายุ <span className="text-red-500">*</span>
         </label>
         <input
-            type="text"
-            inputMode="numeric"
-            pattern="[0-9]*"
-            value={data.age ?? ""}
-            onChange={(e) => {
-                const value = e.target.value;
-                if (/^\d*$/.test(value)) {      // อนุญาตเฉพาะตัวเลข
-                onChange({ age: value === "" ? undefined : parseInt(value) });
-                }
-            }}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            placeholder="กรอกอายุ"
+          type="text"
+          inputMode="numeric"
+          pattern="[0-9]*"
+          value={data.age ?? ""}
+          onChange={(e) => {
+            const value = e.target.value;
+            if (/^\d*$/.test(value)) {
+              onChange({ age: value === "" ? undefined : parseInt(value) });
+            }
+          }}
+          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          placeholder="กรอกอายุ"
         />
       </div>
 
@@ -142,9 +262,7 @@ export default function BasicInfoForm({ data, onChange, onValidationChange }: Ba
                 type="radio"
                 name="gender"
                 checked={!!(data.gender && !GENDER_OPTIONS.includes(data.gender as typeof GENDER_OPTIONS[number]))}
-                onChange={() => {
-                  onChange({ gender: ' ' });
-                }}
+                onChange={() => onChange({ gender: ' ' })}
                 className="w-4 h-4 text-blue-600"
               />
               <span className="ml-2 text-gray-700">อื่นๆ:</span>
@@ -186,18 +304,60 @@ export default function BasicInfoForm({ data, onChange, onValidationChange }: Ba
         </label>
         <div className="space-y-3 border border-gray-200 rounded-lg p-4">
           {PROCEDURE_OPTIONS.map(procedure => (
-            <label key={procedure} className="flex items-start">
-              <input
-                type="checkbox"
-                checked={data.procedures?.includes(procedure) || false}
-                onChange={(e) => handleProcedureChange(procedure, e.target.checked)}
-                className="w-4 h-4 text-blue-600 mt-1"
-              />
-              <span className="ml-2 text-gray-700">{procedure}</span>
-            </label>
+            <div key={procedure}>
+              <label className="flex items-start">
+                <input
+                  type="checkbox"
+                  checked={data.procedures?.includes(procedure) || false}
+                  onChange={(e) => handleProcedureChange(procedure, e.target.checked)}
+                  className="w-4 h-4 text-blue-600 mt-1"
+                />
+                <span className="ml-2 text-gray-700">{procedure}</span>
+              </label>
+
+              {/* Sub-options for Lefort I */}
+              {procedure.includes('Lefort I') && hasLefortI && (
+                <div className="ml-6 mt-2 p-3 bg-blue-50 rounded-lg">
+                  <p className="text-sm text-gray-600 mb-2">เลือกรายละเอียดเพิ่มเติม:</p>
+                  <div className="flex flex-wrap gap-2">
+                    {LEFORT_SUB_OPTIONS.map(option => (
+                      <label key={option} className="inline-flex items-center px-3 py-1 bg-white border border-blue-200 rounded-full hover:bg-blue-100 cursor-pointer transition-colors">
+                        <input
+                          type="checkbox"
+                          checked={data.lefort_sub_options?.includes(option) || false}
+                          onChange={(e) => handleSubOptionChange('lefort', option, e.target.checked)}
+                          className="w-3 h-3 text-blue-600 mr-2"
+                        />
+                        <span className="text-sm">{option}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Sub-options for BSSRO */}
+              {procedure.includes('BSSRO') && hasBSSRO && (
+                <div className="ml-6 mt-2 p-3 bg-green-50 rounded-lg">
+                  <p className="text-sm text-gray-600 mb-2">เลือกรายละเอียดเพิ่มเติม:</p>
+                  <div className="flex flex-wrap gap-2">
+                    {BSSRO_SUB_OPTIONS.map(option => (
+                      <label key={option} className="inline-flex items-center px-3 py-1 bg-white border border-green-200 rounded-full hover:bg-green-100 cursor-pointer transition-colors">
+                        <input
+                          type="checkbox"
+                          checked={data.bssro_sub_options?.includes(option) || false}
+                          onChange={(e) => handleSubOptionChange('bssro', option, e.target.checked)}
+                          className="w-3 h-3 text-green-600 mr-2"
+                        />
+                        <span className="text-sm">{option}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
           ))}
-          
-          {/* หัตถการอื่นๆ - แบบหลายช่อง */}
+
+          {/* หัตถการอื่นๆ */}
           <div className="mt-4 pt-4 border-t border-gray-200">
             <label className="block text-gray-700 font-medium mb-3">หัตถการอื่นๆ:</label>
             <div className="space-y-2">
@@ -226,17 +386,154 @@ export default function BasicInfoForm({ data, onChange, onValidationChange }: Ba
                 className="flex items-center gap-2 px-4 py-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors font-medium"
               >
                 <Plus className="w-5 h-5" />
-                {customProcedures.length === 0
-                  ? 'กดเพื่อเพิ่มหัตถการอื่น ๆ'
-                  : 'กดเพื่อเพิ่มหัตถการถัดไป'
-                }
+                {customProcedures.length === 0 ? 'กดเพื่อเพิ่มหัตถการอื่น ๆ' : 'กดเพื่อเพิ่มหัตถการถัดไป'}
               </button>
             </div>
           </div>
         </div>
       </div>
 
-      {/* 5. ได้รับการผ่าตัดเมื่อวันที่ */}
+      {/* 5. Special Procedures Panel */}
+      <div className="bg-purple-50 border-2 border-purple-200 rounded-lg p-6">
+        <label className="block text-gray-800 font-bold text-lg mb-4">
+          {++qNum}. หัตถการย่อยที่ทำ (เลือกได้หลายหัตการ):
+        </label>
+
+        <div className="space-y-4">
+          {/* IMF */}
+          <div className="bg-white rounded-lg p-4 border border-purple-200">
+            <div className="flex items-center gap-4 mb-3">
+              <label className="flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={!!data.has_imf && data.has_imf !== 'ไม่มีการมัดฟัน'}
+                  onChange={(e) => {
+                    if (e.target.checked) {
+                      onChange({ has_imf: 'มีการมัดฟัน' });
+                    } else {
+                      onChange({ 
+                        has_imf: 'ไม่มีการมัดฟัน', 
+                        imf_type: undefined,
+                        imf_loops: undefined 
+                      });
+                    }
+                  }}
+                  className="w-4 h-4 text-purple-600"
+                />
+                <span className="ml-2 font-medium text-gray-700">IMF</span>
+              </label>
+            </div>
+            
+            {data.has_imf === 'มีการมัดฟัน' && (
+              <div className="ml-6 space-y-3 p-3 bg-purple-50 rounded">
+                <div>
+                  <p className="text-sm text-gray-600 mb-2">ประเภท:</p>
+                  <div className="flex gap-4">
+                    <label className="flex items-center cursor-pointer">
+                      <input
+                        type="radio"
+                        name="imf_type"
+                        value="มัดลวด"
+                        checked={data.imf_type === 'มัดลวด'}
+                        onChange={(e) => onChange({ imf_type: e.target.value as 'มัดลวด' | 'มัดยาง' })}
+                        className="w-4 h-4 text-purple-600"
+                      />
+                      <span className="ml-2">มัดลวด</span>
+                    </label>
+                    <label className="flex items-center cursor-pointer">
+                      <input
+                        type="radio"
+                        name="imf_type"
+                        value="มัดยาง"
+                        checked={data.imf_type === 'มัดยาง'}
+                        onChange={(e) => onChange({ imf_type: e.target.value as 'มัดลวด' | 'มัดยาง' })}
+                        className="w-4 h-4 text-purple-600"
+                      />
+                      <span className="ml-2">มัดยาง</span>
+                    </label>
+                  </div>
+                </div>
+                
+                <div>
+                  <label className="block text-sm text-gray-600 mb-1">จำนวน loop:</label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={data.imf_loops || ''}
+                    onChange={(e) => onChange({ imf_loops: e.target.value ? parseInt(e.target.value) : undefined })}
+                    className="w-32 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 text-sm"
+                    placeholder="กรอกจำนวน"
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* ICBG */}
+          <div className="bg-white rounded-lg p-4 border border-purple-200">
+            <div className="flex items-center gap-4 mb-2">
+              <label className="flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={!!data.special_icbg && data.special_icbg !== 'ไม่ทำ'}
+                  onChange={(e) => {
+                    if (e.target.checked) {
+                      onChange({ special_icbg: 'มี' });
+                    } else {
+                      onChange({ special_icbg: 'ไม่ทำ', special_icbg_description: '' });
+                    }
+                  }}
+                  className="w-4 h-4 text-purple-600"
+                />
+                <span className="ml-2 font-medium text-gray-700">ICBG</span>
+              </label>
+            </div>
+            {data.special_icbg === 'มี' && (
+              <input
+                type="text"
+                value={data.special_icbg_description || ''}
+                onChange={(e) => onChange({ special_icbg_description: e.target.value })}
+                className="ml-6 w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 text-sm"
+                placeholder="ระบุรายละเอียด เช่น ข้างซ้าย, ข้างขวา (สูงสุด 100 ตัวอักษร)"
+                maxLength={100}
+              />
+            )}
+          </div>
+
+          {/* NG Tube */}
+          <div className="bg-white rounded-lg p-4 border border-purple-200">
+            <div className="flex items-center gap-4 mb-2">
+              <label className="flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={!!data.special_ng_tube && data.special_ng_tube !== 'ไม่ทำ'}
+                  onChange={(e) => {
+                    if (e.target.checked) {
+                      onChange({ special_ng_tube: 'มี' });
+                    } else {
+                      onChange({ special_ng_tube: 'ไม่ทำ', special_ng_tube_description: '' });
+                    }
+                  }}
+                  className="w-4 h-4 text-purple-600"
+                />
+                <span className="ml-2 font-medium text-gray-700">NG tube</span>
+              </label>
+            </div>
+            {data.special_ng_tube === 'มี' && (
+              <input
+                type="text"
+                value={data.special_ng_tube_description || ''}
+                onChange={(e) => onChange({ special_ng_tube_description: e.target.value })}
+                className="ml-6 w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 text-sm"
+                placeholder="ระบุรายละเอียด (สูงสุด 100 ตัวอักษร)"
+                maxLength={100}
+              />
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* 6. ได้รับการผ่าตัดเมื่อวันที่ */}
       <div>
         <label className="block text-gray-700 font-medium mb-2">
           {++qNum}. ได้รับการผ่าตัดเมื่อวันที่ <span className="text-red-500">*</span>
@@ -248,13 +545,26 @@ export default function BasicInfoForm({ data, onChange, onValidationChange }: Ba
           className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         />
       </div>
-      
-      {/* Note - หมายเหตุสำหรับหมอ */}
+
+      {/* 6.1 วันที่ Discharge */}
+      <div>
+        <label className="block text-gray-700 font-medium mb-2">
+          {++qNum}. วันที่ Discharge (กลับบ้าน) <span className="text-red-500">*</span>
+        </label>
+        <input
+          type="date"
+          value={data.discharge_date || ''}
+          onChange={(e) => onChange({ discharge_date: e.target.value })}
+          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+        />
+      </div>
+
+      {/* Note - หมายเหตุสำหรับหมอและพยาบาล */}
       <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
         <label className="block text-gray-700 font-medium mb-2">
-          <span className="text-yellow-700">📋</span> หมายเหตุพิเศษ (สำหรับหมอ)
+          <span className="text-yellow-700">📋</span> หมายเหตุพิเศษ (สำหรับหมอและพยาบาล)
         </label>
-       
+
         <textarea
           value={data.note || ''}
           onChange={(e) => onChange({ note: e.target.value })}

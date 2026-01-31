@@ -1,423 +1,942 @@
 from pydantic import BaseModel, Field
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.output_parsers import PydanticOutputParser
-from langchain_core.prompts import PromptTemplate
-from langchain_ollama import ChatOllama
 import asyncio
-import aiohttp
-from typing import List
-from tqdm import tqdm
+from typing import List, Dict, Any
 
 from app.core.flows import FLOWS
-import pandas as pd
-import os
+from app.core.constants import (
+    FIELD_LABELS,
+    FORM_COLUMNS,
+    FIELD_WITH_DESCRIPTION,
+    DESCRIPTION_LABELS,
+    CUSTOM_TEXT_FIELDS,
+    PHONE_NUMBER
+)
+from app.services.flow_parser import RuleEngine
 
 
 # ------------------------------------------------------------
-# Constants
-# ------------------------------------------------------------
-# Mapping ระหว่าง field name กับชื่อคำถามที่อ่านง่าย
-FIELD_LABELS = {
-    # Basic Info (ข้อ 1-5)
-    'age': 'อายุ',
-    'gender': 'เพศ',
-    'hn': 'HN',
-    'procedures': 'หัตถการที่ทำ',
-    'surgery_date': 'ได้รับการผ่าตัดเมื่อวันที่',
-    'note': 'หมายเหตุพิเศษ (สำหรับหมอ)',
-    
-    # Symptoms (ข้อ 6-20)
-    'pain_score': 'ระดับความปวด (Pain score)',
-    'pain_medication_effective': 'ทานยาแก้ปวดแล้วดีขึ้นหรือไม่',
-    'swelling_status': 'อาการบวม',
-    'breathing_or_swallowing_difficulty': 'มีอาการหายใจลำบาก หรือ กลืนลำบากหรือไม่',
-    'bleeding_status': 'อาการเลือดซึม หรือ เลือดออก',
-    'fever_status': 'อาการไข้',
-    'numbness_status': 'อาการชา',
-    'phlebitis': 'บริเวณที่เอาเข็มน้ำเกลือออก',
-    'suture_status': 'ไหมเย็บแผล',
-    'other_symptoms': 'อาการอื่นๆ',
-    'antibiotic_compliance': 'รับประทานยาฆ่าเชื้อ',
-    'compress_type': 'ประคบเย็น หรือ อุ่นอยู่หรือไม่',
-    'has_imf': 'มีการมัดฟันบนและล่างเข้าด้วยกัน (IMF)',
-    'imf_wire_status': 'ลวด/ยางมัดฟันแน่นดีหรือไม่',
-    'walking_status': 'การเดิน',
-    
-    # Daily Life (ข้อ 21-27)
-    'brushing_teeth': 'การแปรงฟัน',
-    'mouth_rinsing': 'การบ้วนปาก',
-    'feeding_method': 'วิธีการรับประทานอาหาร',
-    'food_types': 'ประเภทอาหารที่ทาน',
-    'food_amount': 'ปริมาณอาหารที่ทาน',
-    'additional_questions': 'ผู้ป่วยมีคำถามที่จะสอบถามพยาบาลเพิ่มเติม',
-    'ng_tube_position': 'ตำแหน่งสายยางให้อาหาร',
-}
-
-# FORM_COLUMNS includes Timestamp as first column (matches Google Sheets structure)
-FORM_COLUMNS = ['Timestamp'] + list(FIELD_LABELS.values())
-
-# Mapping ระหว่าง main field กับ description field
-FIELD_WITH_DESCRIPTION = {
-    'swelling_status': 'swelling_description',
-    'breathing_or_swallowing_difficulty': 'breathing_description',
-    'bleeding_status': 'bleeding_description',
-    'fever_status': 'fever_description',
-    'numbness_status': 'numbness_description',
-    'phlebitis': 'phlebitis_description',
-    'suture_status': 'suture_description',
-    'antibiotic_compliance': 'antibiotic_description',
-    'imf_wire_status': 'imf_wire_description',
-    'walking_status': 'walking_description',
-    'brushing_teeth': 'brushing_description',
-    'mouth_rinsing': 'rinsing_description',
-    'feeding_method': 'feeding_description',
-    'food_amount': 'food_amount_description',
-    'ng_tube_position': 'ng_tube_description',
-}
-
-# Mapping ชื่อ description field ที่อ่านง่าย
-DESCRIPTION_LABELS = {
-    'swelling_description': 'คำอธิบายเพิ่มเติมสำหรับอาการบวม',
-    'breathing_description': 'คำอธิบายเพิ่มเติมสำหรับอาการหายใจ/กลืนลำบาก',
-    'bleeding_description': 'คำอธิบายเพิ่มเติมสำหรับอาการเลือดซึม/เลือดออก',
-    'fever_description': 'คำอธิบายเพิ่มเติมสำหรับอาการไข้',
-    'numbness_description': 'คำอธิบายเพิ่มเติมสำหรับอาการชา',
-    'phlebitis_description': 'คำอธิบายเพิ่มเติมสำหรับบริเวณเข็มน้ำเกลือ',
-    'suture_description': 'คำอธิบายเพิ่มเติมสำหรับไหมเย็บแผล',
-    'antibiotic_description': 'จำนวนครั้งที่ลืมทาน',
-    'imf_wire_description': 'คำอธิบายเพิ่มเติมสำหรับลวด/ยางมัดฟัน',
-    'walking_description': 'คำอธิบายเพิ่มเติมสำหรับการเดิน',
-    'brushing_description': 'คำอธิบายเพิ่มเติมสำหรับการแปรงฟัน',
-    'rinsing_description': 'คำอธิบายเพิ่มเติมสำหรับการบ้วนปาก',
-    'feeding_description': 'คำอธิบายเพิ่มเติมสำหรับวิธีการรับประทานอาหาร',
-    'food_amount_description': 'คำอธิบายเพิ่มเติมสำหรับปริมาณอาหาร',
-    'ng_tube_description': 'คำอธิบายเพิ่มเติมสำหรับตำแหน่งสายยางให้อาหาร',
-}
-
-
-# ------------------------------------------------------------
-# 1) Pydantic Model
+# Pydantic Models
 # ------------------------------------------------------------
 class OutputRiskClassification(BaseModel):
     risk_level: str = Field(description="ระดับความเสี่ยงของผู้ป่วย [ความเสี่ยงต่ำ, ความเสี่ยงกลาง, ความเสี่ยงสูง]")
     recommendation: str = Field(description="คำแนะนำการดูแลตนเองสำหรับผู้ป่วย เขียนเป็นภาษาไทย ต้องบอกชัดว่าควรทำอะไร")
     reason: str = Field(description="เหตุผลที่ประเมินระดับความเสี่ยงนี้ เขียนเป็นภาษาไทย")
 
+class DescriptionAnalysisOutput(BaseModel):
+    """Output from LLM analysis of description fields"""
+    has_risk: bool = Field(description="มีสัญญาณเสี่ยงหรือไม่")
+    risk_level: str = Field(description="ระดับความเสี่ยง: 'ปกติ', 'เฝ้าระวัง', 'เสี่ยง'")
+    analysis: str = Field(description="การวิเคราะห์จาก LLM")
+    key_points: List[str] = Field(description="ประเด็นสำคัญที่ต้องสังเกต")
 
-
-
-# ------------------------------------------------------------
-# Helper Functions for Data Conversion
-# ------------------------------------------------------------
-def convert_value_to_string(value) -> str:
-    """แปลงค่าต่างๆ ให้เป็น string ที่อ่านได้"""
-    if value is None or value == "":
-        return "ไม่ได้ระบุ"
+class RiskSummaryOutput(BaseModel):
+    """Output from LLM comprehensive summary"""
+    overall_risk: str = Field(description="ความเสี่ยงโดยรวม")
+    summary: str = Field(description="สรุปสำหรับผู้ป่วย: ภาษาง่าย รวมสาเหตุและคำแนะนำในข้อความเดียว")
+    critical_issues: List[str] = Field(description="ปัญหาเร่งด่วน")
     
-    # Handle list/tuple
-    if isinstance(value, (list, tuple)):
-        if len(value) == 0:
-            return "ไม่ได้ระบุ"
-        return ", ".join(str(v) for v in value)
-    
-    # Handle other iterables (numpy arrays, etc.)
-    if hasattr(value, '__iter__') and not isinstance(value, str):
-        try:
-            if len(value) == 0:
-                return "ไม่ได้ระบุ"
-            return ", ".join(str(v) for v in value)
-        except:
-            return str(value)
-    
-    # Handle pandas NA
-    try:
-        if pd.isna(value):
-            return "ไม่ได้ระบุ"
-    except (TypeError, ValueError):
-        pass
-    return str(value)
-
-
-def format_field_with_description(label: str, value: str, description: str = "", desc_field: str = "") -> str:
-    """Format field พร้อมคำอธิบายเพิ่มเติม"""
-    if description and description != "":
-        # ใช้ชื่อ description field ที่อ่านง่าย
-        desc_label = DESCRIPTION_LABELS.get(desc_field, "เพิ่มเติม")
-        return f"{label}: {value} ({desc_label}: {description})"
-    return f"{label}: {value}"
-
-
-def dict_as_text(data: dict) -> str:
-    """แปลง dictionary ข้อมูลผู้ป่วยเป็น text ที่อ่านง่าย"""
-    processed_fields = set()
-    text_parts = []
-    
-    for col, value in data.items():
-        # ข้าม field ที่เป็น description (จะรวมเข้ากับ main field)
-        if col in processed_fields or col.endswith('_description'):
-            continue
-        
-        # แปลง value เป็น string
-        value_str = convert_value_to_string(value)
-        
-        # ใช้ชื่อคำถามที่อ่านง่าย
-        label = FIELD_LABELS.get(col, col)
-        
-        # ถ้า field นี้มี description คู่กัน
-        if col in FIELD_WITH_DESCRIPTION:
-            desc_field = FIELD_WITH_DESCRIPTION[col]
-            desc_value = data.get(desc_field, "")
-            formatted_text = format_field_with_description(label, value_str, desc_value, desc_field)
-            text_parts.append(formatted_text)
-            processed_fields.add(desc_field)
-        else:
-            text_parts.append(f"{label}: {value_str}")
-    
-    result = "\n".join(text_parts)
-    
-    # เขียนลง temp.txt เพื่อ debug
-    save_debug_output(result)
-    
-    return result
-
-
-def save_debug_output(text: str, filename: str = "temp.txt"):
-    """บันทึก output สำหรับ debug"""
-    try:
-        with open(filename, "w", encoding="utf-8") as f:
-            f.write(text)
-    except Exception as e:
-        # Ignore errors in debug output
-        pass
+class PatientQuestionAnswer(BaseModel):
+    """Output from LLM answering patient questions"""
+    answer: str = Field(description="คำตอบสำหรับผู้ป่วย")
+    urgency_level: str = Field(description="ระดับความเร่งด่วน: 'ปกติ', 'ติดตาม', 'เร่งด่วน'")
+    should_contact_doctor: bool = Field(description="ควรติดต่อแพทย์หรือไม่")
+    related_risks: List[str] = Field(description="ความเสี่ยงที่เกี่ยวข้อง")
 
 
 # ------------------------------------------------------------
 # 3) Build LLM Model
 # ------------------------------------------------------------
-def build_llm(api_key: str, model_name: str = "gemini-2.0-flash-lite"):
+def build_llm(api_key: str, model_name: str = "gemini-2.0-flash-exp"):
+    """Build Google Gemini LLM for text analysis"""
     return ChatGoogleGenerativeAI(
         model=model_name,
-        google_api_key=api_key
+        google_api_key=api_key,
+        temperature=0.2,  # ลดลงเพื่อให้คำตอบสั้นและตรงประเด็นมากขึ้น
+        max_output_tokens=500  # จำกัด output เพื่อลด latency
     )
 
-def build_llm_local():
-    return ChatOllama(
-        model="qwen2:latest",
-        temperature=0.0,
-    )
 
 # ------------------------------------------------------------
-# 4) Create the Prompt + Chain
+# 4) LLM-Based Analysis Functions
 # ------------------------------------------------------------
-def build_risk_chain(llm):
-    parser = PydanticOutputParser(pydantic_object=OutputRiskClassification)
+def analyze_description_field(
+    main_field_label: str, 
+    desc_field_label: str, 
+    description: str, 
+    main_value: str, 
+    procedures: str,
+    llm
+) -> DescriptionAnalysisOutput:
+    """วิเคราะห์ description fields ด้วย LLM"""
+    
+    # Handle empty description
+    if not description:
+        return DescriptionAnalysisOutput(
+            has_risk=False,
+            risk_level="ปกติ",
+            analysis="ไม่มีข้อมูลเพิ่มเติม",
+            key_points=[]
+        )
+    
+    # Convert array to string
+    if isinstance(description, list):
+        description = ", ".join(str(item) for item in description if item)
+    
+    if not description or description.strip() == "":
+        return DescriptionAnalysisOutput(
+            has_risk=False,
+            risk_level="ปกติ",
+            analysis="ไม่มีข้อมูลเพิ่มเติม",
+            key_points=[]
+        )
+    
+    # แปลง procedures (list → string)
+    if procedures and procedures != 'ไม่ระบุ':
+        if isinstance(procedures, list):
+            proc_list = [str(p) for p in procedures if p]
+            proc_str = ', '.join(proc_list) if proc_list else None
+        else:
+            proc_str = str(procedures)
+    else:
+        proc_str = None
+    
+    from langchain_core.output_parsers import PydanticOutputParser
+    parser = PydanticOutputParser(pydantic_object=DescriptionAnalysisOutput)
+    
+    # สร้าง prompt แบบมี condition
+    role = "คุณเป็นพยาบาลหญิงที่วิเคราะห์อาการผู้ป่วย"
+    if proc_str:
+        role += f"หลัง{proc_str}"
+    
+    prompt = f"""
+{role}
 
-    prompt = PromptTemplate(
-        template=(
-            "คุณเป็นพยาบาลที่ให้คำปรึกษาผู้ป่วยหลังผ่าตัด\n\n"
-            "**สำคัญ: ประเมินเฉพาะตามเกณฑ์การประเมินที่กำหนดให้เท่านั้น อย่าวิเคราะห์อาการอื่นๆ**\n\n"
-            
-            "เกณฑ์การประเมิน (ให้ประเมินเฉพาะเกณฑ์นี้):\n{flow_criteria}\n\n"
-            "ข้อมูลผู้ป่วย:\n{result_text}\n\n"
-            
-            "วิธีการประเมิน:\n"
-            "1. ดูเฉพาะข้อมูลที่เกี่ยวข้องกับเกณฑ์การประเมินด้านบน\n"
-            "2. ประเมินระดับความเสี่ยง [ความเสี่ยงต่ำ, ความเสี่ยงกลาง, ความเสี่ยงสูง]\n"
-            "3. เหตุผล (reason): อธิบายสั้นๆ ตามเกณฑ์ที่ประเมิน (ไม่เกิน 2-3 ประโยค)\n"
-            "4. คำแนะนำ (recommendation): ให้คำแนะนำที่เกี่ยวข้องกับเกณฑ์ที่ประเมินเท่านั้น\n\n"
-            
-            "คำแนะนำ (recommendation) ที่ดี:\n"
-            "- กระชับ ตรงประเด็น (2-4 ข้อ)\n"
-            "- บอกชัดว่าควรทำอะไร ไม่ใช่สรุปอาการ\n"
-            "- ตัวอย่าง:\n"
-            "  * ความเสี่ยงสูง: ควรติดต่อแพทย์/พยาบาลโดยเร็ว\n"
-            "  * ความเสี่ยงกลาง: ควรสังเกตอาการ หากแย่ลงให้ติดต่อแพทย์\n"
-            "  * ความเสี่ยงต่ำ: ดูแลตามคำแนะนำทั่วไป\n\n"
-            
-            "กรณีไม่มีข้อมูล: risk_level = 'ความเสี่ยงต่ำ', reason = 'ไม่ได้ระบุข้อมูล', recommendation = 'ไม่มีคำแนะนำเฉพาะ กรุณาปฏิบัติตามคำแนะนำทั่วไปหลังผ่าตัด'\n\n"
-            
-            "{format_instructions}\n"
-        ),
-        input_variables=["flow_criteria", "result_text"],
-        partial_variables={"format_instructions": parser.get_format_instructions()}
-    )
+【 Section: {main_field_label} 】
+- คำตอบหลัก: {main_value}
+- {desc_field_label}: "{description}"
+{f'- หัตถการที่ทำ: {proc_str}' if proc_str else ''}
 
-    chain = prompt | llm | parser
-    return chain
+งาน: วิเคราะห์คำอธิบายเพิ่มเติมว่ามีสัญญาณเสี่ยงที่ต้องระวังหรือไม่
+
+{parser.get_format_instructions()}
+"""
+     # 👇 เพิ่ม logging
+    print("\n" + "="*80)
+    print(f"📝 PROMPT: analyze_description_field ({main_field_label})")
+    print("="*80)
+    print(prompt)
+    print("="*80 + "\n")
+    
+    try:
+        response = llm.invoke(prompt)
+        return parser.parse(response.content)
+    except Exception as e:
+        print(f"Error parsing LLM response: {e}")
+        return DescriptionAnalysisOutput(
+            has_risk=False,
+            risk_level="ปกติ",
+            analysis=f"ไม่สามารถวิเคราะห์ได้: {str(e)[:50]}",
+            key_points=[]
+        )
 
 
 # ------------------------------------------------------------
-# 5) Main Risk Classification Function
+# Helper Functions for Risk Summarization
 # ------------------------------------------------------------
-def classify_risk(input_data: dict, api_key: str = None, flow: str = None, llm=None, max_retries: int = 3):
+
+def _categorize_risks_by_level(all_results: Dict[str, Dict[str, str]]) -> tuple:
     """
-    Classify risk with option to reuse LLM instance and retry mechanism
+    แยก results ตามระดับความเสี่ยง
+    
+    Returns:
+        tuple: (high_risk, high_risk_flows, medium_risk, medium_risk_flows, low_risk, low_risk_flows, complicated_risk, complicated_risk_flows)
+    """
+    high_risk = []
+    high_risk_flows = []
+    medium_risk = []
+    medium_risk_flows = []
+    low_risk = []
+    low_risk_flows = []
+    complicated_risk = []
+    complicated_risk_flows = []
+    
+    for flow_name, result in all_results.items():
+        risk_level = result['risk_level']
+        if 'สูง' in risk_level:
+            high_risk.append(f"{flow_name}: {result['reason']}")
+            high_risk_flows.append((flow_name, result))
+        elif 'กลาง' in risk_level or 'ปานกลาง' in risk_level:
+            medium_risk.append(f"{flow_name}: {result['reason']}")
+            medium_risk_flows.append((flow_name, result))
+        elif 'ซับซ้อน' in risk_level or 'ไม่สามารถสรุป' in risk_level:
+            complicated_risk.append(f"{flow_name}: {result['reason']}")
+            complicated_risk_flows.append((flow_name, result))
+        elif 'ต่ำ' in risk_level:
+            low_risk.append(f"{flow_name}: {result['reason']}")
+            low_risk_flows.append((flow_name, result))
+    
+    return high_risk, high_risk_flows, medium_risk, medium_risk_flows, low_risk, low_risk_flows, complicated_risk, complicated_risk_flows
+
+
+def _calculate_overall_risk(high_risk_count: int, medium_risk_count: int, complicated_risk_count: int) -> str:
+    """
+    คำนวณระดับความเสี่ยงโดยรวมด้วย rule-based logic
+    
+    Args:
+        high_risk_count: จำนวนความเสี่ยงสูง
+        medium_risk_count: จำนวนความเสี่ยงปานกลาง
+        complicated_risk_count: จำนวนอาการซับซ้อน
+    
+    Returns:
+        str: ระดับความเสี่ยงโดยรวม
+    """
+    if high_risk_count >= 1:
+        return 'ความเสี่ยงสูง'
+    elif medium_risk_count >= 1:
+        return 'ความเสี่ยงปานกลาง'
+    elif complicated_risk_count >= 1:
+        return 'ไม่สามารถสรุปผลความเสี่ยงได้เนื่องจากอาการมีความซับซ้อน'
+    else:
+        return 'ความเสี่ยงต่ำ'
+
+
+def _build_critical_issues(high_risk_flows: List[tuple]) -> List[str]:
+    """
+    สร้างรายการปัญหาวิกฤติจากความเสี่ยงสูง
+    
+    Args:
+        high_risk_flows: List of (flow_name, result) tuples
+    
+    Returns:
+        List[str]: รายการปัญหาวิกฤติ
+    """
+    critical_issues = []
+    for flow_name, result in high_risk_flows:
+        critical_issues.append(f"⚠️ {flow_name}: {result['reason']}")
+    return critical_issues
+
+
+def _build_description_context(description_analysis) -> str:
+    """
+    สร้าง context string จากการวิเคราะห์ description fields
+    
+    Args:
+        description_analysis: ผลการวิเคราะห์จาก LLM (dict หรือ list)
+    
+    Returns:
+        str: Context string สำหรับใส่ใน prompt
+    """
+    if not description_analysis:
+        return ""
+    
+    desc_parts = []
+    
+    # รองรับทั้ง dict และ list
+    if isinstance(description_analysis, dict):
+        for field, analysis in description_analysis.items():
+            if isinstance(analysis, dict) and analysis.get('has_risk'):
+                desc_parts.append(
+                    f"- {field}: {analysis.get('risk_level', 'ไม่ระบุ')} - {analysis.get('analysis', '')[:100]}"
+                )
+    elif isinstance(description_analysis, list):
+        for analysis in description_analysis:
+            if isinstance(analysis, dict) and analysis.get('has_risk'):
+                field = analysis.get('field', 'Unknown')
+                desc_parts.append(
+                    f"- {field}: {analysis.get('risk_level', 'ไม่ระบุ')} - {analysis.get('analysis', '')[:100]}"
+                )
+    
+    if desc_parts:
+        return "\n\nการวิเคราะห์คำอธิบายเพิ่มเติม:\n" + "\n".join(desc_parts)
+    return ""
+
+
+def _build_recommendations_context(
+    high_risk_flows: List[tuple],
+    medium_risk_flows: List[tuple],
+    low_risk_flows: List[tuple]
+) -> str:
+    """
+    สร้าง context string จากคำแนะนำของแต่ละ flow
+    
+    Args:
+        high_risk_flows: List of (flow_name, result) tuples
+        medium_risk_flows: List of (flow_name, result) tuples
+        low_risk_flows: List of (flow_name, result) tuples
+    
+    Returns:
+        str: Context string สำหรับใส่ใน prompt
+    """
+    high_recs = [f"- {name}: {res['recommendation']}" for name, res in high_risk_flows if res.get('recommendation')]
+    medium_recs = [f"- {name}: {res['recommendation']}" for name, res in medium_risk_flows if res.get('recommendation')]
+    low_recs = [f"- {name}: {res['recommendation']}" for name, res in low_risk_flows if res.get('recommendation')]
+    
+    if not (high_recs or medium_recs or low_recs):
+        return ""
+    
+    context = "\n\nคำแนะนำจาก Rule-based Assessment:\n"
+    if high_recs:
+        context += "ความเสี่ยงสูง:\n" + "\n".join(high_recs) + "\n"
+    if medium_recs:
+        context += "ความเสี่ยงปานกลาง:\n" + "\n".join(medium_recs) + "\n"
+    if low_recs:
+        context += "ความเสี่ยงต่ำ:\n" + "\n".join(low_recs)
+    
+    return context
+
+
+
+
+def _generate_patient_summary(
+    overall_risk: str,
+    high_risk: List[str],
+    medium_risk: List[str],
+    low_risk: List[str],
+    complicated_risk: List[str],
+    recommendations_context: str,
+    procedures: str,
+    patient_name: str,
+    llm
+) -> str:
+    """
+    สร้าง summary สำหรับผู้ป่วย - แยก prompt ตามระดับความเสี่ยง
+    
+    Args:
+        overall_risk: ระดับความเสี่ยงโดยรวม
+        high_risk: รายการความเสี่ยงสูง
+        medium_risk: รายการความเสี่ยงปานกลาง
+        low_risk: รายการความเสี่ยงต่ำ
+        complicated_risk: รายการอาการซับซ้อน
+        recommendations_context: Context ของคำแนะนำจาก rule-based
+        procedures: หัตถการที่ทำ
+        patient_name: ชื่อผู้ป่วย
+        llm: LLM instance
+    
+    Returns:
+        str: Summary text สำหรับผู้ป่วย ตาม format ที่กำหนด
+    """
+    # แปลง procedures
+    if procedures and procedures != 'ไม่ระบุ':
+        if isinstance(procedures, list):
+            proc_list = [str(p) for p in procedures if p]
+            procedures_text = ', '.join(proc_list) if proc_list else ""
+        else:
+            procedures_text = str(procedures)
+    else:
+        procedures_text = ""
+    
+    # เตรียมข้อมูลสำหรับ prompt
+    name_text = f"คุณ{patient_name}" if patient_name else ""
+    
+    # รวม risks ทั้งหมดเพื่อสร้างคำแนะนำ
+    all_risk_items = high_risk + medium_risk + low_risk + complicated_risk
+    
+    # กรณีซับซ้อน: ถ้ามี error หรือไม่สามารถประเมินได้ หรือ COMPLICATED
+    is_complex = any('ไม่สามารถประเมินได้' in item or 'error' in item.lower() 
+                     for item in all_risk_items)
+    has_complicated = 'ซับซ้อน' in overall_risk
+    
+    # เลือก prompt ตามระดับความเสี่ยง
+    if is_complex or has_complicated:
+        prompt = _build_complex_case_prompt(
+            name_text, all_risk_items, recommendations_context
+        )
+    elif 'สูง' in overall_risk:
+        prompt = _build_high_risk_prompt(
+            name_text, high_risk, medium_risk, low_risk, recommendations_context
+        )
+    elif 'กลาง' in overall_risk or 'ปานกลาง' in overall_risk:
+        prompt = _build_medium_risk_prompt(
+            name_text, high_risk, medium_risk, low_risk, recommendations_context
+        )
+    else:  # ความเสี่ยงต่ำ
+        prompt = _build_low_risk_prompt(
+            name_text, all_risk_items, recommendations_context
+        )
+    
+    print("\n" + "="*80)
+    print(f"📝 PROMPT: _generate_patient_summary ({overall_risk})")
+    print("="*80)
+    print(prompt)
+    print("="*80 + "\n")
+    
+    try:
+        response = llm.invoke(prompt)
+        return response.content.strip().replace("*", "")
+    except Exception as e:
+        print(f"Error generating patient summary: {e}")
+        return _generate_fallback_summary_text(overall_risk, name_text)
+
+
+def _build_high_risk_prompt(
+    name_text: str,
+    high_risk: List[str],
+    medium_risk: List[str],
+    low_risk: List[str],
+    recommendations_context: str
+) -> str:
+    """สร้าง prompt สำหรับกรณีเสี่ยงสูง"""
+    return f"""คุณเป็นพยาบาลที่สื่อสารกับผู้ป่วยผ่าน LINE
+
+รายละเอียดความเสี่ยงสูง:
+{chr(10).join(f'{i+1}. {item}' for i, item in enumerate(high_risk)) if high_risk else '- ไม่มี'}
+
+รายละเอียดความเสี่ยงปานกลาง:
+{chr(10).join(f'{i+1}. {item}' for i, item in enumerate(medium_risk)) if medium_risk else '- ไม่มี'}
+
+รายละเอียดความเสี่ยงต่ำ:
+{chr(10).join(f'{i+1}. {item}' for i, item in enumerate(low_risk)) if low_risk else '- ไม่มี'}
+{recommendations_context}
+
+งาน: สร้างข้อความตาม format ด้านล่างนี้เท่านั้น
+
+**FORMAT ที่ต้องการ (ห้ามเปลี่ยนแปลงโครงสร้าง):**
+
+จากการประเมิน พบว่า{name_text} มีความเสี่ยงต่อการเกิดภาวะแทรกซ้อนหลังการผ่าตัดในช่องปากในระดับสูง
+เนื่องจาก [สรุปสาเหตุหลักจากรายละเอียดความเสี่ยงสูง]
+
+แนะนำ:
+[สรุปคำแนะนำสำหรับอาการเสี่ยงสูง จากรายละเอียดความเสี่ยงสูง ในรูปแบบ bullet point]
+• อาการ......: คำแนะนำ......
+• อาการ......: คำแนะนำ......
+แนะนำให้ติดต่อพยาบาลโดยเร็ว โทร {PHONE_NUMBER} เพื่อรับการประเมินอาการหรือนัดหมายเป็นกรณีพิเศษ
+
+คำแนะนำเพิ่มเติมตามอาการ
+[ระบุอาการความเสี่ยงปานกลาง และ ต่ำ พร้อมคำแนะนำ]
+• อาการ......: คำแนะนำ......
+• อาการ......: คำแนะนำ......
+
+**กฎสำคัญ:**
+1. ห้ามใช้ markdown (**, *, -,) ห้ามใช้ emoji
+2. ใช้ข้อความ plain text เท่านั้น
+3. สรุปสาเหตุให้กระชับ ไม่เกิน 2 ประโยค
+4. **ส่วน "แนะนำ:"**
+   - สรุปคำแนะนำจากอาการเสี่ยงสูงเท่านั้น (ครอบคลุมทั้งอาการและการใช้ชีวิตประจำวัน)
+   - ใช้รูปแบบ bullet point (•)
+   - รูปแบบ: "• อาการ......: คำแนะนำ......"
+   - ถ้าอาการดูยาวดูงงหรือเป็นคำถาม ย่อเหลือ 3-5 คำ จับคีย์เวิร์ดสำคัญให้เป็นหัวข้อ **ห้ามใส่คำอธิบายหรืออาการในวงเล็บ**
+   - **ห้ามขึ้นต้นคำแนะนำด้วยคำว่า "แนะนำ"** - เริ่มจากการกระทำเลย
+   - **ห้ามตัดหรือย่อคำแนะนำ** - ใช้คำแนะนำเต็มตาม recommendations_context
+   - **ห้ามซ้ำซ้อน** - ถ้าหลาย flow มีคำแนะนำเหมือนกัน ให้รวมเป็นหัวข้อเดียว
+   - ตัดส่วน "ติดต่อพยาบาล/แพทย์" ออก (เพราะมีโทรศัพท์ด้านล่างแล้ว)
+   - ตัวอย่าง: 
+     * "• เลือดออก: กัดผ้าก๊อซให้แน่น(จากแผลในช่องปาก)หรือก้มหน้าและกดปีกจมูกเข้ากัน(จากจมูก) ร่วมกับประคบเย็นนอกช่องปาก"
+     * "• การรับประทานอาหาร: ทานอาหารเสริม เช่น นมเอนชัวร์ และแบ่งทานอาหารหลายมื้อ"
+   - หลังจาก bullet points ทั้งหมดแล้ว ให้ขึ้นบรรทัดใหม่ แล้วใส่: "แนะนำให้ติดต่อพยาบาลโดยเร็ว โทร {PHONE_NUMBER}"
+5. **ส่วน "คำแนะนำเพิ่มเติมตามอาการ"**
+   - แสดงเฉพาะอาการเสี่ยงปานกลางและต่ำ (ครอบคลุมทั้งอาการและการใช้ชีวิตประจำวัน)
+   - **ห้ามตัดหรือย่อคำแนะนำ** - ใช้คำแนะนำเต็มตาม recommendations_context
+   - ถ้าคำแนะนำมีแค่ "ติดต่อพยาบาล/แพทย์" → ข้าม ไม่แสดง
+   - ถ้าคำแนะนำมีทั้ง การดูแลตนเอง + ติดต่อพยาบาล → แสดง แต่ตัดส่วนติดต่อพยาบาลออก
+   - ถ้าไม่มีอาการเสี่ยงกลาง/ต่ำ → ตัดส่วนนี้ทั้งหมดออก
+6. แต่ละอาการแยกบรรทัด ใช้รูปแบบ "• หัวข้อสั้นๆ: คำแนะนำ......"
+   - **ย่อหัวข้อให้สั้นแต่ความหมายเดิม** จับคีย์เวิร์ดสำคัญ ไม่เกิน 3-5 คำ **ห้ามใส่คำอธิบายหรืออาการในวงเล็บ**
+   - **ห้ามขึ้นต้นคำแนะนำด้วยคำว่า "แนะนำ"** - เริ่มจากการกระทำเลย
+   - **ห้ามตัดหรือย่อคำแนะนำ** - คัดลอกทั้งหมดจาก recommendations_context
+   - ตัวอย่าง: "• อาการบวม: ประคบอุ่นนอกช่องปาก และนอนยกศีรษะสูง 30 องศา"
+"""
+
+
+def _build_medium_risk_prompt(
+    name_text: str,
+    high_risk: List[str],
+    medium_risk: List[str],
+    low_risk: List[str],
+    recommendations_context: str
+) -> str:
+    """สร้าง prompt สำหรับกรณีเสี่ยงกลาง"""
+    return f"""คุณเป็นพยาบาลที่สื่อสารกับผู้ป่วยผ่าน LINE
+
+รายละเอียดความเสี่ยงปานกลาง:
+{chr(10).join(f'{i+1}. {item}' for i, item in enumerate(medium_risk)) if medium_risk else '- ไม่มี'}
+
+รายละเอียดความเสี่ยงต่ำ:
+{chr(10).join(f'{i+1}. {item}' for i, item in enumerate(low_risk)) if low_risk else '- ไม่มี'}
+{recommendations_context}
+
+งาน: สร้างข้อความตาม format ด้านล่างนี้เท่านั้น
+
+**FORMAT ที่ต้องการ (ห้ามเปลี่ยนแปลงโครงสร้าง):**
+
+จากการประเมิน พบว่า{name_text} มีความเสี่ยงต่อการเกิดภาวะแทรกซ้อนหลังการผ่าตัดในช่องปากระดับปานกลาง
+เนื่องจาก [สรุปสาเหตุหลักจากรายละเอียดความเสี่ยงปานกลาง]
+
+แนะนำ:
+[สรุปคำแนะนำสำหรับอาการเสี่ยงปานกลาง จากรายละเอียดความเสี่ยงปานกลาง ในรูปแบบ bullet point]
+• อาการ......: คำแนะนำ......
+• อาการ......: คำแนะนำ......
+ทีมพยาบาลจะติดต่อกลับเพื่อประเมินอาการเพิ่มเติม
+สอบถามเพิ่มเติม โทร {PHONE_NUMBER}
+
+คำแนะนำเพิ่มเติมตามอาการ
+[ระบุอาการความเสี่ยงต่ำ พร้อมคำแนะนำ]
+• อาการ......: คำแนะนำ......
+• อาการ......: คำแนะนำ......
+
+**กฎสำคัญ:**
+1. ห้ามใช้ markdown (**, *, -,) ห้ามใช้ emoji
+2. ใช้ข้อความ plain text เท่านั้น
+3. **ส่วน "แนะนำ:"**
+   - สรุปคำแนะนำจากอาการเสี่ยงปานกลางเท่านั้น (ครอบคลุมทั้งอาการและการใช้ชีวิตประจำวัน)
+   - ใช้รูปแบบ bullet point (•)
+   - รูปแบบ: "• อาการ......: คำแนะนำ......"
+   - ถ้าอาการยาวย่อเหลือ 3-5 คำ จับคีย์เวิร์ดสำคัญ **ห้ามใส่คำอธิบายหรืออาการในวงเล็บ**
+   - **ห้ามขึ้นต้นคำแนะนำด้วยคำว่า "แนะนำ"** - เริ่มจากการกระทำเลย
+   - **ห้ามตัดหรือย่อคำแนะนำ** - ใช้คำแนะนำเต็มตาม recommendations_context
+   - **ห้ามซ้ำซ้อน** - ถ้าหลาย flow มีคำแนะนำเหมือนกัน ให้รวมเป็นหัวข้อเดียว
+   - ตัดส่วน "ติดต่อพยาบาล/แพทย์" ออก (เพราะมีโทรศัพท์ด้านล่างแล้ว)
+   - ตัวอย่าง:
+     * "• อาการบวม: ประคบอุ่นนอกช่องปาก และนอนยกศีรษะสูง 30 องศา"
+     * "• การแปรงฟัน: ใช้แปรงหัวเล็กขนนุ่ม + ยาสีฟันไม่แสบ แปรงเบาๆ หลีกเลี่ยงเหงือกที่มีแผล"
+4. **ส่วน "คำแนะนำเพิ่มเติมตามอาการ"**
+   - แสดงเฉพาะอาการเสี่ยงต่ำ (ครอบคลุมทั้งอาการและการใช้ชีวิตประจำวัน)
+   - **ห้ามตัดหรือย่อคำแนะนำ** - ใช้คำแนะนำเต็มตาม recommendations_context
+   - ถ้าคำแนะนำมีแค่ "ติดต่อพยาบาล/แพทย์" → ข้าม ไม่แสดง
+   - ถ้าคำแนะนำมีทั้ง การดูแลตนเอง + ติดต่อพยาบาล → แสดง แต่ตัดส่วนติดต่อพยาบาลออก
+   - ถ้าไม่มีอาการเสี่ยงต่ำ → ตัดส่วนนี้ทั้งหมดออก
+5. แต่ละอาการแยกบรรทัด ใช้รูปแบบ "• หัวข้อสั้นๆ: คำแนะนำ......"
+   - **ย่อหัวข้อให้สั้นแต่ความหมายเดิม** จับคีย์เวิร์ดสำคัญ ไม่เกิน 3-5 คำ **ห้ามใส่คำอธิบายหรืออาการในวงเล็บ**
+   - **ห้ามขึ้นต้นคำแนะนำด้วยคำว่า "แนะนำ"** - เริ่มจากการกระทำเลย
+   - **ห้ามตัดหรือย่อคำแนะนำ** - คัดลอกทั้งหมดจาก recommendations_context
+   - ตัวอย่าง: "• อาการชา: สังเกตอาการ หากชานานเกิน 2 สัปดาห์ ควรพบทันตแพทย์"
+"""
+
+
+def _build_complex_case_prompt(
+    name_text: str,
+    all_risk_items: List[str],
+    recommendations_context: str
+) -> str:
+    """สร้าง prompt สำหรับกรณีซับซ้อน"""
+    return f"""คุณเป็นพยาบาลที่สื่อสารกับผู้ป่วยผ่าน LINE
+
+รายละเอียดอาการ:
+{chr(10).join(f'{i+1}. {item}' for i, item in enumerate(all_risk_items)) if all_risk_items else '- ไม่มี'}
+{recommendations_context}
+
+งาน: สร้างข้อความตาม format ด้านล่างนี้เท่านั้น
+
+**FORMAT ที่ต้องการ (ห้ามเปลี่ยนแปลงโครงสร้าง):**
+
+จากการประเมินความเสี่ยงในการเกิดภาวะแทรกซ้อนหลังการผ่าตัดในช่องปาก พบว่าไม่สามารถสรุปผลความเสี่ยงได้เนื่องจากอาการมีความซับซ้อน
+ทีมพยาบาลจะติดต่อกลับเพื่อประเมินอาการเพิ่มเติม
+หากมีข้อสงสัย โทร {PHONE_NUMBER}
+
+คำแนะนำเบื้องต้นตามอาการ
+[ระบุอาการและคำแนะนำในรูปแบบ]
+• อาการ......: คำแนะนำ......
+• อาการ......: คำแนะนำ......
+
+**กฎสำคัญ:**
+1. ห้ามใช้ markdown (**, *, -) ห้ามใช้ emoji
+2. ใช้ข้อความ plain text เท่านั้น
+3. **จัดการคำแนะนำที่มี "ติดต่อพยาบาล":**
+   - ถ้าคำแนะนำมีแค่ "ติดต่อพยาบาล/แพทย์" อย่างเดียว → ข้าม ไม่แสดง
+   - ถ้าคำแนะนำมีทั้ง การดูแลตนเอง + ติดต่อพยาบาล → แสดง แต่ตัดส่วน "ติดต่อพยาบาล/แพทย์/โทร..." ออก
+   - **ห้ามตัดหรือย่อคำแนะนำ** - ใช้คำแนะนำเต็มตาม recommendations_context
+4. ถ้าไม่มีคำแนะนำเพิ่มเติม ให้ตัดส่วน "คำแนะนำเบื้องต้นตามอาการ" ทั้งหมดออก
+5. แต่ละอาการแยกบรรทัด ใช้รูปแบบ "• หัวข้อสั้นๆ: คำแนะนำ......"
+   - **ย่อหัวข้อให้สั้นแต่ความหมายเดิม** จับคีย์เวิร์ดสำคัญ ไม่เกิน 3-5 คำ **ห้ามใส่คำอธิบายหรืออาการในวงเล็บ**
+   - **ห้ามขึ้นต้นคำแนะนำด้วยคำว่า "แนะนำ"** - เริ่มจากการกระทำเลย
+   - **ห้ามตัดหรือย่อคำแนะนำ** - คัดลอกทั้งหมดจาก recommendations_context
+   - **ห้ามซ้ำซ้อน** - ถ้าหลาย flow มีคำแนะนำเหมือนกัน ให้รวมเป็นหัวข้อเดียว
+   - ตัวอย่าง: "• เลือดออก: กัดผ้าก๊อซให้แน่น(จากแผลในช่องปาก)หรือก้มหน้าและกดปีกจมูกเข้ากัน(จากจมูก) ร่วมกับประคบเย็นนอกช่องปาก"
+
+"""
+
+
+def _build_low_risk_prompt(
+    name_text: str,
+    all_risk_items: List[str],
+    recommendations_context: str
+) -> str:
+    """สร้าง prompt สำหรับกรณีเสี่ยงต่ำ"""
+    return f"""คุณเป็นพยาบาลที่สื่อสารกับผู้ป่วยผ่าน LINE
+
+รายละเอียดอาการ:
+{chr(10).join(f'{i+1}. {item}' for i, item in enumerate(all_risk_items)) if all_risk_items else '- ไม่มี'}
+{recommendations_context}
+
+งาน: สร้างข้อความตาม format ด้านล่างนี้เท่านั้น
+
+**FORMAT ที่ต้องการ (ห้ามเปลี่ยนแปลงโครงสร้าง):**
+
+จากผลประเมินพบว่ามีความเสี่ยงในการเกิดภาวะแทรกซ้อนหลังการผ่าตัดในช่องปาก ระดับต่ำ
+อาการโดยรวมอยู่ในเกณฑ์ปกติ
+
+คำแนะนำเบื้องต้นตามอาการ
+[ระบุอาการและคำแนะนำในรูปแบบ]
+อาการ......: คำแนะนำ......
+อาการ......: คำแนะนำ......
+
+หากมีข้อสงสัย โทร {PHONE_NUMBER}
+
+**กฎสำคัญ:**
+1. ห้ามใช้ markdown (**, *, -, •) ห้ามใช้ emoji
+2. ใช้ข้อความ plain text เท่านั้น
+3. **จัดการคำแนะนำที่มี "ติดต่อพยาบาล":**
+   - ถ้าคำแนะนำมีแค่ "ติดต่อพยาบาล/แพทย์" อย่างเดียว → ข้าม ไม่แสดง
+   - ถ้าคำแนะนำมีทั้ง การดูแลตนเอง + ติดต่อพยาบาล → แสดง แต่ตัดส่วน "ติดต่อพยาบาล/แพทย์/โทร..." ออก
+   - **ห้ามตัดหรือย่อคำแนะนำ** - ใช้คำแนะนำเต็มตาม recommendations_context
+4. ถ้าไม่มีคำแนะนำเพิ่มเติม ให้ตัดส่วน "คำแนะนำเบื้องต้นตามอาการ" ทั้งหมดออก
+5. แต่ละอาการแยกบรรทัด ใช้รูปแบบ "อาการ......: คำแนะนำ......" (ไม่ใช้ bullet point)
+   - **ย่อหัวข้อให้สั้นแต่ความหมายเดิม** จับคีย์เวิร์ดสำคัญ ไม่เกิน 3-5 คำ **ห้ามใส่คำอธิบายหรืออาการในวงเล็บ**
+   - **ห้ามขึ้นต้นคำแนะนำด้วยคำว่า "แนะนำ"** - เริ่มจากการกระทำเลย
+   - **ห้ามตัดหรือย่อคำแนะนำ** - คัดลอกทั้งหมดจาก recommendations_context
+   - **ห้ามซ้ำซ้อน** - ถ้าหลาย flow มีคำแนะนำเหมือนกัน ให้รวมเป็นหัวข้อเดียว
+   - ตัวอย่าง: "เลือดออก: กัดผ้าก๊อซให้แน่น(จากแผลในช่องปาก)หรือก้มหน้าและกดปีกจมูกเข้ากัน(จากจมูก) ร่วมกับประคบเย็นนอกช่องปาก"
+"""
+
+
+def _generate_fallback_summary_text(overall_risk: str, name_text: str) -> str:
+    """สร้าง fallback text เมื่อ LLM error"""
+    if 'สูง' in overall_risk:
+        return f"""จากการประเมิน พบว่า{name_text}มีความเสี่ยงต่อการเกิดภาวะแทรกซ้อนหลังการผ่าตัดในช่องปากในระดับสูง
+
+แนะนำ:
+แนะนำให้ติดต่อพยาบาลโดยเร็ว โทรศัพท์ {PHONE_NUMBER}"""
+    elif 'กลาง' in overall_risk or 'ปานกลาง' in overall_risk:
+        return f"""จากการประเมิน พบว่า{name_text}มีความเสี่ยงต่อการเกิดภาวะแทรกซ้อนหลังการผ่าตัดในช่องปากระดับปานกลาง
+
+แนะนำ:
+ทีมพยาบาลจะติดต่อกลับเพื่อประเมินอาการเพิ่มเติมค่ะ
+สอบถามเพิ่มเติม โทร {PHONE_NUMBER}"""
+    else:
+        return """จากผลประเมินพบว่ามีความเสี่ยงในการเกิดภาวะแทรกซ้อนหลังการผ่าตัดในช่องปาก ระดับต่ำ
+อาการโดยรวมอยู่ในเกณฑ์ปกติ
+
+หากมีข้อสงสัย โทร {PHONE_NUMBER}"""
+
+
+# Note: _generate_summary_prompt function was removed as it's no longer used.
+# The system now uses _generate_patient_summary instead.
+
+
+def _create_fallback_summary(
+    overall_risk: str,
+    high_risk: List[str],
+    medium_risk: List[str],
+    low_risk: List[str],
+    high_risk_flows: List[tuple],
+    medium_risk_flows: List[tuple],
+    low_risk_flows: List[tuple],
+    critical_issues: List[str]
+) -> RiskSummaryOutput:
+    """
+    สร้าง fallback summary เมื่อ LLM ไม่พร้อมใช้งาน
+    
+    Returns:
+        RiskSummaryOutput: Summary object แบบ simple
+    """
+    
+    # Summary for patient (with recommendations merged)
+    patient_summary_parts = []
+    if high_risk:
+        patient_summary_parts.append(f"พบความเสี่ยงสูง {len(high_risk)} รายการ ต้องดูแลอย่างใกล้ชิด")
+    if medium_risk:
+        patient_summary_parts.append(f"มีความเสี่ยงปานกลาง {len(medium_risk)} รายการ")
+    
+    # Add recommendations to patient summary
+    rec_parts = []
+    for flow_name, result in high_risk_flows:
+        if result['recommendation']:
+            rec_parts.append(result['recommendation'])
+    for flow_name, result in medium_risk_flows:
+        if result['recommendation']:
+            rec_parts.append(result['recommendation'])
+    
+    if patient_summary_parts:
+        summary = " ".join(patient_summary_parts)
+        if rec_parts:
+            summary += " คำแนะนำ: " + " ".join(rec_parts[:3])  # Top 3 recommendations
+    else:
+        summary = "อาการอยู่ในเกณฑ์ปกติ ดูแลตามคำแนะนำจากแพทย์"
+    
+    return RiskSummaryOutput(
+        overall_risk=overall_risk,
+        summary=summary,
+        critical_issues=critical_issues
+    )
+
+
+# ------------------------------------------------------------
+# Main Summarization Function
+# ------------------------------------------------------------
+
+def summarize_all_risks(
+    all_results: Dict[str, Dict[str, str]], 
+    llm, 
+    patient_data: dict = None,
+    description_analysis: Dict[str, Any] = None,
+    procedures: str = None
+) -> RiskSummaryOutput:
+    """
+    สรุปผลการประเมินจากทุก flows โดยใช้ rule-based คำนวณ overall risk 
+    และใช้ LLM สรุป "เหตุผล" และ "คำแนะนำ" พร้อมรวม context จาก description analysis
+    
+    Args:
+        all_results: ผลการประเมินจากทุก flows {flow_name: {risk_level, reason, recommendation}}
+        llm: LLM instance (ใช้สำหรับสรุป summary และ recommendations)
+        patient_data: ข้อมูลผู้ป่วยเดิม (optional) - ควรมี 'name' field
+        description_analysis: ผลการวิเคราะห์จาก analyze_description_field (optional)
+        procedures: หัตถการที่ผู้ป่วยเข้ารับ (optional)
+    
+    Returns:
+        RiskSummaryOutput object containing overall_risk, summary, recommendations, critical_issues
+    """
+    # 1. แยกตามระดับควาวามเสี่ยง
+    (high_risk, high_risk_flows, medium_risk, 
+     medium_risk_flows, low_risk, low_risk_flows,
+     complicated_risk, complicated_risk_flows) = _categorize_risks_by_level(all_results)
+    
+    # 2. คำนวณความเสี่ยงโดยรวม (Rule-based)
+    overall_risk = _calculate_overall_risk(len(high_risk), len(medium_risk), len(complicated_risk))
+    
+    # 3. สร้าง Critical Issues
+    critical_issues = _build_critical_issues(high_risk_flows)
+    
+    # 4. ดึงชื่อผู้ป่วย - รองรับทั้ง first_name+last_name และ name เก่า
+    patient_name = ""
+    if patient_data and isinstance(patient_data, dict):
+        # Try first_name + last_name first (new format)
+        first_name = patient_data.get('first_name', '')
+        last_name = patient_data.get('last_name', '')
+        if first_name or last_name:
+            patient_name = f"{first_name}".strip()
+    
+    # 5. ถ้าไม่มี LLM ให้ใช้ fallback
+    if not llm:
+        return _create_fallback_summary(
+            overall_risk, high_risk, medium_risk, low_risk,
+            high_risk_flows, medium_risk_flows, low_risk_flows,
+            critical_issues
+        )
+    
+    # 6. สร้าง context strings สำหรับ LLM
+    description_context = _build_description_context(description_analysis)
+    recommendations_context = _build_recommendations_context(
+        high_risk_flows, medium_risk_flows, low_risk_flows
+    )
+    
+    # 7. เรียก LLM สร้าง summary สำหรับผู้ป่วย
+    try:
+        # Generate patient summary (easy language + recommendations)
+        summary = _generate_patient_summary(
+            overall_risk, high_risk, medium_risk, low_risk, complicated_risk,
+            recommendations_context, procedures, patient_name, llm
+        )
+        
+        return RiskSummaryOutput(
+            overall_risk=overall_risk,
+            summary=summary,
+            critical_issues=critical_issues
+        )
+    except Exception as e:
+        print(f"Error in LLM summarization: {str(e)}")
+        return _create_fallback_summary(
+            overall_risk, high_risk, medium_risk, low_risk,
+            high_risk_flows, medium_risk_flows, low_risk_flows,
+            critical_issues
+        )
+
+
+def answer_patient_questions(
+    question: str, 
+    patient_context: dict, 
+    llm,
+    risk_results: Dict[str, Dict[str, str]] = None,
+    procedures: str = None
+) -> PatientQuestionAnswer:
+    """ตอบคำถามผู้ป่วยด้วย LLM"""
+    
+    if not question or question.strip() == "":
+        return PatientQuestionAnswer(
+            answer="ไม่มีคำถามเพิ่มเติม",
+            urgency_level="ปกติ",
+            should_contact_doctor=False,
+            related_risks=[]
+        )
+    
+    # สร้างบริบทผู้ป่วย
+    context_parts = []
+    if patient_context:
+        if 'age' in patient_context:
+            context_parts.append(f"อายุ {patient_context['age']} ปี")
+        if 'gender' in patient_context:
+            context_parts.append(f"เพศ {patient_context['gender']}")
+        if 'surgery_date' in patient_context:
+            context_parts.append(f"ผ่าตัดเมื่อ: {patient_context['surgery_date']}")
+    
+    # แปลง procedures
+    if procedures and procedures != 'ไม่ระบุ':
+        if isinstance(procedures, list):
+            proc_list = [str(p) for p in procedures if p]
+            if proc_list:
+                context_parts.append(f"หัตถการ: {', '.join(proc_list)}")
+                proc_str = ', '.join(proc_list)
+        else:
+            context_parts.append(f"หัตถการ: {procedures}")
+            proc_str = str(procedures)
+    else:
+        proc_str = None
+    
+    context_str = ", ".join(context_parts) if context_parts else None
+    
+    # เพิ่มบริบทจากผลการประเมินความเสี่ยง
+    risk_context = ""
+    if risk_results:
+        high_risks = []
+        medium_risks = []
+        for flow_name, result in risk_results.items():
+            if 'สูง' in result.get('risk_level', ''):
+                high_risks.append(f"{flow_name}: {result.get('reason', '')}")
+            elif 'กลาง' in result.get('risk_level', '') or 'ปานกลาง' in result.get('risk_level', ''):
+                medium_risks.append(f"{flow_name}: {result.get('reason', '')}")
+        
+        if high_risks or medium_risks:
+            risk_context = "\n\nผลการประเมินความเสี่ยง:\n"
+            if high_risks:
+                risk_context += "ความเสี่ยงสูง:\n" + "\n".join(f"- {r}" for r in high_risks) + "\n"
+            if medium_risks:
+                risk_context += "ความเสี่ยงปานกลาง:\n" + "\n".join(f"- {r}" for r in medium_risks[:3])
+    
+    # สร้าง role
+    role = "คุณเป็นพยาบาลหญิงผู้เชี่ยวชาญด้านการดูแลผู้ป่วย"
+    if proc_str:
+        role += f"หลัง{proc_str}"
+    
+    parser = PydanticOutputParser(pydantic_object=PatientQuestionAnswer)
+    format_instructions = parser.get_format_instructions()
+    
+    prompt = f"""
+{role}
+
+{f'ข้อมูลผู้ป่วย: {context_str}' if context_str else ''}{risk_context}
+
+คำถามจากผู้ป่วย:
+"{question}"
+
+งาน: ตอบคำถามสั้นๆ เหมือนส่งผ่าน LINE
+
+**กฎสำคัญ:**
+1. **ตอบสั้นมาก** - เริ่มด้วยคำตอบตรงๆ ไม่เกิน 2 ประโยค
+2. **ไม่ต้องเรียก** "คุณคะ" หรือ "กรุณา" (เป็นกันเองแบบ LINE)
+3. ถ้าเร่งด่วน: ใช้ "แจ้งทันตแพทย์ทันที" (ไม่ต้องพูดยืดยาว)
+4. ถ้าไม่เร่งด่วน: ตอบตรงๆ พร้อมคำแนะนำสั้นๆ
+
+ตัวอย่าง:
+- คำถาม: "หายใจลำบากควรทำอย่างไร?"
+- คำตอบ: "อาการนี้เร่งด่วนมาก แจ้งทันตแพทย์ทันทีนะคะ"
+
+- คำถาม: "ควรประคบนานแค่ไหน?"
+- คำตอบ: "ประคบครั้งละ 15-20 นาที วันละ 3-4 ครั้ง โดยเฉพาะหลังอาหารค่ะ"
+
+- คำถาม: "อาการชาจะหายเมื่อไหร่?"
+- คำตอบ: "ปกติจะค่อยๆ ดีขึ้นใน 2-3 สัปดาห์ ถ้ายังไม่ดีขึ้นให้แจ้งทันตแพทย์นะคะ"
+
+{format_instructions}
+"""
+    # 👇 เพิ่ม logging
+    print("\n" + "="*80)
+    print("📝 PROMPT: answer_patient_questions")
+    print("="*80)
+    print(prompt)
+    print("="*80 + "\n")
+    try:
+        response = llm.invoke(prompt)
+        content = response.content.strip()
+        result = parser.parse(content)
+        return result
+    except Exception as e:
+        print(f"Error in answer_patient_questions: {str(e)}")
+        return PatientQuestionAnswer(
+            answer="ขออภัย ไม่สามารถตอบคำถามได้ในขณะนี้ กรุณาติดต่อทีมแพทย์โดยตรง",
+            urgency_level="เร่งด่วน",
+            should_contact_doctor=True,
+            related_risks=["ไม่สามารถวิเคราะห์ได้"]
+        )
+
+
+# ------------------------------------------------------------
+# Main Risk Classification Functions (Rule-Based)
+# ------------------------------------------------------------
+def classify_risk(input_data: dict, api_key: str = None, flow: str = None, flow_name: str = None, llm=None, max_retries: int = 3):
+    """
+    Classify risk using Rule Engine (deterministic)
     Args:
         input_data: Patient data dictionary
-        api_key: Google API key (not needed if llm is provided)
-        flow: Risk flow criteria
-        llm: Pre-built LLM instance (optional, will create new if not provided)
-        max_retries: Maximum number of retries if LLM returns None (default: 3)
+        api_key: Google API key (optional, kept for backward compatibility)
+        flow: Risk flow criteria (kept for backward compatibility, not used)
+        flow_name: Name of the flow to evaluate
+        llm: Pre-built LLM instance (optional, kept for backward compatibility)
+        max_retries: Maximum number of retries (kept for backward compatibility)
     """
-    if llm is None:
-        if api_key is None:
-            raise ValueError("Either llm or api_key must be provided")
-        os.environ["GOOGLE_API_KEY"] = api_key
-        llm = build_llm(api_key)
-
-    # Prepare model + data
-    result_text = dict_as_text(input_data)
-    chain = build_risk_chain(llm)
-
-    # Retry mechanism
-    last_error = None
-    for attempt in range(max_retries):
-        try:
-            # Run prediction
-            result = chain.invoke({
-                "flow_criteria": flow,
-                "result_text": result_text
-            })
-            
-            # Check if result is None
-            if result is None:
-                raise ValueError(f"LLM returned None (attempt {attempt + 1}/{max_retries})")
-            
-            return result
-            
-        except Exception as e:
-            last_error = e
-            print(f"Error on attempt {attempt + 1}/{max_retries}: {str(e)}")
-            
-            # Wait before retry (exponential backoff)
-            if attempt < max_retries - 1:
-                import time
-                wait_time = 2 ** attempt  # 1s, 2s, 4s
-                print(f"Waiting {wait_time}s before retry...")
-                time.sleep(wait_time)
+    # Use Rule Engine for deterministic classification
+    engine = RuleEngine()
     
-    # If all retries failed, return default safe response
-    print(f"All {max_retries} attempts failed. Returning default response.")
-    return OutputRiskClassification(
-        risk_level="ไม่สามารถประเมินได้",
-        recommendation="กรุณาติดต่อทีมแพทย์เพื่อประเมินเพิ่มเติม เนื่องจากระบบไม่สามารถประเมินความเสี่ยงได้ในขณะนี้",
-        reason=f"ระบบประมวลผลล้มเหลว: {str(last_error)[:100]}"
-    )
+    try:
+        # Rule-based evaluation (deterministic)
+        result = engine.evaluate_flow(flow_name, input_data)
+        
+        # Convert to OutputRiskClassification format
+        return OutputRiskClassification(
+            risk_level=result['risk_level'],
+            recommendation=result['recommendation'],
+            reason=result['reason']
+        )
+        
+    except Exception as e:
+        print(f"Error in rule-based classification for {flow_name}: {str(e)}")
+        
+        # Fallback to default response
+        return OutputRiskClassification(
+            risk_level="ไม่สามารถประเมินได้",
+            recommendation="กรุณาติดต่อทีมแพทย์เพื่อประเมินเพิ่มเติม",
+            reason=f"ไม่สามารถประเมินได้: {str(e)[:100]}"
+        )
+
 
 # Async version for concurrent processing
 async def classify_risk_async(input_data: dict, llm, flow: str, flow_name: str, semaphore, max_retries: int = 3):
     """
-    Classify risk with concurrency, error handling, and retry mechanism
+    Classify risk using Rule Engine (deterministic, async wrapper)
+    Note: This function uses async for API compatibility
     """
     async with semaphore:
-        last_error = None
-        for attempt in range(max_retries):
-            try:
-                # Convert input data to text for LLM
-                result_text = dict_as_text(input_data)
-                
-                # Build the risk classification chain
-                chain = build_risk_chain(llm)
-                
-                # Run the prediction in a thread pool to avoid blocking
-                loop = asyncio.get_event_loop()
-                result = await loop.run_in_executor(
-                    None,
-                    lambda: chain.invoke({
-                        "flow_criteria": flow,
-                        "result_text": result_text
-                    })
-                )
-                
-                # Validate result is not None
-                if result is None:
-                    raise ValueError(f"LLM returned None for flow: {flow_name} (attempt {attempt + 1}/{max_retries})")
-                
-                return flow_name, result
-                
-            except Exception as e:
-                last_error = e
-                print(f"Error in flow {flow_name} (attempt {attempt + 1}/{max_retries}): {str(e)}")
-                
-                # Wait before retry
-                if attempt < max_retries - 1:
-                    await asyncio.sleep(2 ** attempt)
-        
-        # All retries failed - return default safe response
-        print(f"All {max_retries} attempts failed for flow {flow_name}. Returning default response.")
-        default_response = OutputRiskClassification(
-            risk_level="ไม่สามารถประเมินได้",
-            recommendation="กรุณาติดต่อทีมแพทย์เพื่อประเมินเพิ่มเติม",
-            reason=f"ไม่สามารถประเมินความเสี่ยงได้: {str(last_error)[:100]}"
-        )
-        return flow_name, default_response
+        try:
+            # Use Rule Engine for deterministic classification
+            engine = RuleEngine()
+            
+            # Run in thread pool to maintain async compatibility
+            loop = asyncio.get_event_loop()
+            result_dict = await loop.run_in_executor(
+                None,
+                lambda: engine.evaluate_flow(flow_name, input_data)
+            )
+            
+            # Convert to OutputRiskClassification format
+            result = OutputRiskClassification(
+                risk_level=result_dict['risk_level'],
+                recommendation=result_dict['recommendation'],
+                reason=result_dict['reason']
+            )
+            
+            return flow_name, result
+            
+        except Exception as e:
+            print(f"Error in flow {flow_name}: {str(e)}")
+            
+            # Return default safe response
+            default_response = OutputRiskClassification(
+                risk_level="ไม่สามารถประเมินได้",
+                recommendation="กรุณาติดต่อทีมแพทย์เพื่อประเมินเพิ่มเติม",
+                reason=f"ไม่สามารถประเมินได้: {str(e)[:100]}"
+            )
+            return flow_name, default_response
 
-async def _process_all_rows(df: pd.DataFrame, llm, output_file: str, max_concurrent: int):
-    """
-    Process all rows with concurrent API calls
-    
-    This function takes a Pandas DataFrame, an LLM instance, an output file path, 
-    and a maximum number of concurrent API calls. It processes each row of the 
-    DataFrame by creating a task for each risk flow criteria to classify the risk 
-    level, reason, and recommendation. It then runs all these tasks concurrently 
-    using asyncio.gather and updates the DataFrame with the results. Finally, it 
-    saves the updated DataFrame to the output file path.
-    """
-    semaphore = asyncio.Semaphore(max_concurrent)
-    
-    # Process each row
-    for idx, row in tqdm(df.iterrows(), total=len(df), desc="Processing rows"):
-        # Convert row to dictionary for LLM input
-        input_data = row.to_dict()
-        
-        # Create tasks for all flows for this row
-        tasks = [
-            classify_risk_async(input_data, llm, flow, flow_name, semaphore)
-            for flow_name, flow in FLOWS.items()
-        ]
-        
-        # Run all flow classifications concurrently for this row
-        results = await asyncio.gather(*tasks)
-        
-        # Update dataframe with results
-        for flow_name, output in results:
-            # Update dataframe with risk level, reason, and recommendation
-            df.at[idx, f"{flow_name}_risk_level"] = output.risk_level
-            df.at[idx, f"{flow_name}_risk_reason"] = output.reason
-            df.at[idx, f"{flow_name}_recommendation"] = output.recommendation
-    
-    # Save results
-    df.to_csv(output_file, index=False)
-    print(f"\nResults saved to {output_file}")
 
-def csv_to_risk_classification(csv_file: str, api_key: str, output_file: str = "result_with_risk.csv", max_concurrent: int = 10):
-    """Optimized version using async processing
-    
-    Args:
-        csv_file: Path to input CSV
-        api_key: Google API key
-        output_file: Path to output CSV
-        max_concurrent: Maximum concurrent API calls (default: 10)
-    """
-    os.environ["GOOGLE_API_KEY"] = api_key
-    
-    df = pd.read_csv(csv_file)
-    for flow_name in FLOWS.keys():
-        df[f"{flow_name}_risk_level"] = ""
-        df[f"{flow_name}_risk_reason"] = ""
-        df[f"{flow_name}_recommendation"] = ""
-
-    # สร้าง LLM instance เพียงครั้งเดียว
-    llm = build_llm(api_key)
-    
-    # Run async processing
-    asyncio.run(_process_all_rows(df, llm, output_file, max_concurrent))
-
-if __name__ == "__main__":
-    # Example usage
-    csv_file = "patient_data.csv"
-    api_key = os.getenv("GOOGLE_API_KEY")
-    csv_to_risk_classification(csv_file, api_key)
 
 
 

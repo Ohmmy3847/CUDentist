@@ -4,7 +4,7 @@ import logging
 from dotenv import load_dotenv
 
 from app.core.config import settings
-from app.routers import classification, logs
+from app.routers import assessment, logs
 from app.services.risk_service import build_llm
 
 load_dotenv()
@@ -44,10 +44,10 @@ def get_llm():
 
 
 # Make get_llm available to routers
-classification.get_llm = get_llm
+assessment.get_llm = get_llm
 
 # Include routers
-app.include_router(classification.router)
+app.include_router(assessment.router)
 app.include_router(logs.router)
 
 if __name__ == "__main__":

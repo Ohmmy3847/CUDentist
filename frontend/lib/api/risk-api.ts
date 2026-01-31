@@ -6,12 +6,11 @@
 import axios, { AxiosError } from 'axios';
 import type {
   PatientFormData,
-  AllFlowsResult,
   ApiError,
+  ThreeLayerResult,
 } from '../types';
 import type {
   ProgressCallback,
-  UploadProgressCallback,
 } from '../types/api.types';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
@@ -28,45 +27,104 @@ const apiClient = axios.create({
  */
 export const riskApi = {
   /**
-   * Classify patient risk across all flows with progress tracking
+   * Comprehensive patient risk assessment with progress tracking
+   * Returns 3-layer response: flows, descriptions, summary, patient_qa
    */
-  classifyPatient: async (
+  assessPatient: async (
     data: PatientFormData,
     onProgress?: ProgressCallback
-  ): Promise<AllFlowsResult> => {
+  ): Promise<ThreeLayerResult> => {
     try {
-      // Get list of flows first
-      const flowsResponse = await apiClient.get<{ flows: string[] }>('/flows');
-      const flows = flowsResponse.data.flows;
-      const totalFlows = flows.length;
+      // Show phases instead of fake flow-by-flow progress
+      const phases = [
+        { name: '1. ประเมินความเสี่ยง 17 ด้าน...', progress: 30 },
+        { name: '2. วิเคราะห์รายละเอียดด้วย AI...', progress: 60 },
+        { name: '3. สรุปผลและคำแนะนำ...', progress: 90 },
+      ];
 
-      // Show progress before starting actual API call
-      if (onProgress) {
-        // Simulate progress during preparation phase
-        for (let i = 0; i < Math.min(3, totalFlows); i++) {
-          onProgress(i + 1, totalFlows, 'กำลังเตรียมข้อมูล...');
-          await new Promise(resolve => setTimeout(resolve, 200));
+      let currentPhase = 0;
+      const showPhase = () => {
+        if (onProgress && currentPhase < phases.length) {
+          const phase = phases[currentPhase];
+          onProgress(phase.progress, 100, phase.name);
+          currentPhase++;
         }
-      }
+      };
 
-      // Start classification - send data wrapped in { data: ... }
-      const startTime = Date.now();
-      const response = await apiClient.post<AllFlowsResult>('/classify-all-flows', {
-        data: data,
+      // Start classification immediately
+      showPhase(); // Show phase 1
+
+      // Separate basic info from assessment data
+      const { 
+        // Personal Information
+        first_name, 
+        last_name, 
+        email, 
+        phone, 
+        birth_year,
+        // Basic Medical Info
+        age,
+        gender,
+        hn,
+        procedures,
+        lefort_sub_options,
+        bssro_sub_options,
+        surgery_date,
+        discharge_date,
+        note,
+        // Special Procedures
+        has_imf,
+        imf_type,
+        imf_loops,
+        special_icbg,
+        special_icbg_description,
+        special_ng_tube,
+        special_ng_tube_description,
+        // Rest is assessment data (symptoms, care, etc.)
+        ...assessmentData 
+      } = data;
+
+      const apiPromise = apiClient.post<ThreeLayerResult>('/patient-assessment', {
+        basic_info: {
+          // Personal Information
+          first_name,
+          last_name,
+          email,
+          phone,
+          birth_year,
+          // Basic Medical Info
+          age,
+          gender,
+          hn,
+          procedures,
+          lefort_sub_options,
+          bssro_sub_options,
+          surgery_date,
+          discharge_date,
+          note,
+          // Special Procedures
+          has_imf,
+          imf_type,
+          imf_loops,
+          special_icbg,
+          special_icbg_description,
+          special_ng_tube,
+          special_ng_tube_description,
+        },
+        assessment_data: assessmentData,
       });
-      const elapsed = Date.now() - startTime;
 
-      // Simulate progress during/after processing to show user what's happening
+      // Update progress every 3 seconds while waiting
+      const progressInterval = setInterval(() => {
+        showPhase();
+      }, 3000);
+
+      const response = await apiPromise;
+      clearInterval(progressInterval);
+
+      // Show completion
       if (onProgress) {
-        const minDisplayTime = 2000; // แสดง loading อย่างน้อย 2 วินาที
-        const remainingTime = Math.max(0, minDisplayTime - elapsed);
-        // const steps = Math.max(1, Math.floor(remainingTime / 150));
-        const startProgress = Math.min(3, totalFlows);
-        
-        for (let i = startProgress; i < totalFlows; i++) {
-          onProgress(i + 1, totalFlows, flows[i] || 'กำลังวิเคราะห์...');
-          await new Promise(resolve => setTimeout(resolve, Math.floor(remainingTime / (totalFlows - startProgress))));
-        }
+        onProgress(100, 100, '✅ ประเมินเสร็จสมบูรณ์');
       }
 
       return response.data;
@@ -75,70 +133,6 @@ export const riskApi = {
         const axiosError = error as AxiosError<ApiError>;
         throw new Error(
           axiosError.response?.data?.detail || 'Failed to classify patient data'
-        );
-      }
-      throw error;
-    }
-  },
-
-  /**
-   * Upload CSV file and get processed results
-   */
-  uploadCSV: async (
-    file: File,
-    maxConcurrent: number = 10,
-    onProgress?: UploadProgressCallback
-  ): Promise<Blob> => {
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
-
-      // Estimate total rows for progress (read first to count)
-      let estimatedRows = 0;
-      try {
-        const text = await file.text();
-        estimatedRows = text.split('\n').length - 1; // -1 for header
-      } catch {
-        // Fallback to file size estimate
-        estimatedRows = Math.floor(file.size / 500); // rough estimate
-      }
-
-      const response = await apiClient.post(
-        `/classify-csv?max_concurrent=${maxConcurrent}`,
-        formData,
-        {
-          responseType: 'blob',
-          headers: {
-            'Content-Type': 'multipart/form-data',
-          },
-          onUploadProgress: (progressEvent) => {
-            if (onProgress && progressEvent.total) {
-              const uploadPercent = Math.round(
-                (progressEvent.loaded * 100) / progressEvent.total
-              );
-              // First 10% is upload
-              onProgress(Math.min(uploadPercent, 100), 0, estimatedRows);
-            }
-          },
-          onDownloadProgress: (progressEvent) => {
-            if (onProgress && progressEvent.total) {
-              const downloadPercent = Math.round(
-                (progressEvent.loaded * 100) / progressEvent.total
-              );
-              // Simulate processing progress (90% upload + processing, 10% download)
-              const processedRows = Math.floor((downloadPercent / 100) * estimatedRows);
-              onProgress(100, processedRows, estimatedRows);
-            }
-          },
-        }
-      );
-
-      return response.data;
-    } catch (error) {
-      if (axios.isAxiosError(error)) {
-        const axiosError = error as AxiosError<ApiError>;
-        throw new Error(
-          axiosError.response?.data?.detail || 'Failed to process CSV file'
         );
       }
       throw error;

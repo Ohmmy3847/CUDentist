@@ -3,37 +3,27 @@
  * All imports should come from here for consistency
  */
 
-import riskApi from './api';
-import logApi from './api/log-save-api';
-import type {
-  PatientFormData,
-  RiskAssessmentResult,
-  AllFlowsResult,
-  ApiError,
-} from './types';
-import type {
-  ProgressCallback,
-  UploadProgressCallback,
-} from './types/api.types';
+// API clients - import from api directory
+export { riskApi, logApi } from './api';
+export { riskApi as api } from './api';
 
-// API clients
-export { riskApi, logApi };
-export { riskApi as api };
-
-// Types
+// Types - use type keyword for types only
 export type {
   PatientFormData,
   RiskAssessmentResult,
-  AllFlowsResult,
+  DescriptionAnalysis,
+  RiskSummary,
+  ThreeLayerResult,
   ApiError,
   ProgressCallback,
-  UploadProgressCallback,
-};
+} from './types';
 
-// Form options constants
+// Form options constants - regular export for runtime values
 export {
   GENDER_OPTIONS,
   PROCEDURE_OPTIONS,
+  LEFORT_SUB_OPTIONS,
+  BSSRO_SUB_OPTIONS,
   PAIN_MEDICATION_OPTIONS,
   SWELLING_OPTIONS,
   BLEEDING_OPTIONS,
@@ -47,6 +37,7 @@ export {
   IMF_WIRE_OPTIONS,
   WALKING_OPTIONS,
   FEEDING_METHOD_OPTIONS,
+  FOOD_TYPE_OPTIONS,
   FOOD_AMOUNT_OPTIONS,
   NG_TUBE_OPTIONS,
-} from './types';
+} from './types/form.types';

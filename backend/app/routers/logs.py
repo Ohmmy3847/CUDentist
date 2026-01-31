@@ -22,18 +22,32 @@ async def log_form_submission(log_data: LogData):
     """
     Log form submission to Google Sheets
     
+    Supports both legacy and new 3-layer response formats:
+    - Legacy: {"อาการปวด": {"risk_level": "...", ...}}
+    - New: {"flows": {...}, "descriptions": {...}, "summary": {...}}
+    
     Example request:
     {
         "form_data": {"age": 25, "gender": "หญิง", ...},
-        "results": {"อาการปวด": {"risk_level": "ต่ำ", ...}},
+        "results": {"flows": {...}, "summary": {...}},  // New format
         "session_id": "user_123"
     }
     """
     try:
         timestamp = datetime.now().isoformat()
         
-        # Log to Google Sheets
-        append_with_result(log_data.form_data, log_data.results, FORM_COLUMNS)
+        # Check if results is new 3-layer format or legacy format
+        results_to_log = log_data.results
+        if "flows" in log_data.results:
+            # New format - extract flows for backward compatibility with Google Sheets
+            logger.info("Detected new 3-layer format, extracting flows")
+            results_to_log = log_data.results["flows"]
+        else:
+            # Legacy format - use as-is
+            logger.info("Using legacy format")
+        
+        # Log to Google Sheets (only flows data for now)
+        append_with_result(log_data.form_data, results_to_log, FORM_COLUMNS)
         
         logger.info(f"Successfully logged form submission for session: {log_data.session_id}")
         

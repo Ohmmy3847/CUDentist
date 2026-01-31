@@ -29,7 +29,7 @@ export function validateSymptoms(data: PatientFormData): boolean {
   
   const isValid = !!(
     data.pain_score !== undefined &&
-    (!hasPain || data.pain_medication_effective) &&
+    (!hasPain || data.pain_medication_effect) &&
     data.swelling_status &&
     data.breathing_or_swallowing_difficulty &&
     data.bleeding_status &&
@@ -40,7 +40,6 @@ export function validateSymptoms(data: PatientFormData): boolean {
     data.antibiotic_compliance &&
     (!forgotAntibiotic || data.antibiotic_description) &&
     data.compress_type &&
-    data.has_imf &&
     (!hasIMF || data.imf_wire_status) &&
     data.walking_status
   );
@@ -49,7 +48,7 @@ export function validateSymptoms(data: PatientFormData): boolean {
     isValid,
     pain_score: data.pain_score,
     hasPain,
-    pain_medication_effective: data.pain_medication_effective,
+    pain_medication_effect: data.pain_medication_effect,
     swelling_status: data.swelling_status,
     breathing_or_swallowing_difficulty: data.breathing_or_swallowing_difficulty,
     bleeding_status: data.bleeding_status,
@@ -71,18 +70,23 @@ export function validateSymptoms(data: PatientFormData): boolean {
 }
 
 export default function SymptomsForm({ data, onChange, onValidationChange }: SymptomsFormProps) {
-  const [customSymptoms, setCustomSymptoms] = React.useState<string[]>([]);
+  const [customSymptoms, setCustomSymptoms] = React.useState<Array<{name: string, description: string}>>([]);
   
-  // Sync customSymptoms from data.other_symptoms when component mounts or data changes
+  // Sync customSymptoms from data.other_symptoms_custom when component mounts or data changes
   React.useEffect(() => {
-    const currentSymptoms = data.other_symptoms || [];
-    const customSyms = currentSymptoms.filter(s => 
-      !OTHER_SYMPTOMS_OPTIONS.includes(s as typeof OTHER_SYMPTOMS_OPTIONS[number])
-    );
-    if (customSyms.length > 0 && customSymptoms.length === 0) {
-      setCustomSymptoms(customSyms);
+    if (data.other_symptoms_custom && data.other_symptoms_custom.length > 0 && customSymptoms.length === 0) {
+      // Parse from string array to object array
+      const parsed = data.other_symptoms_custom.map(s => {
+        // Try to parse if it's in format "name: description"
+        const parts = s.split(':');
+        if (parts.length >= 2) {
+          return { name: parts[0].trim(), description: parts.slice(1).join(':').trim() };
+        }
+        return { name: s, description: '' };
+      });
+      setCustomSymptoms(parsed);
     }
-  }, [data.other_symptoms]);
+  }, [data.other_symptoms_custom]);
   
   // Clear conditional fields when parent field changes
   React.useEffect(() => {
@@ -92,9 +96,9 @@ export default function SymptomsForm({ data, onChange, onValidationChange }: Sym
     
     const updates: Partial<PatientFormData> = {};
     
-    // ถ้า pain_score = 0 ให้ล้าง pain_medication_effective
-    if (!hasPain && data.pain_medication_effective) {
-      updates.pain_medication_effective = undefined;
+    // ถ้า pain_score = 0 ให้ล้าง pain_medication_effect
+    if (!hasPain && data.pain_medication_effect) {
+      updates.pain_medication_effect = undefined;
     }
     
     // ถ้าไม่มีการมัดฟัน ให้ล้าง imf_wire_status และ description
@@ -167,8 +171,8 @@ export default function SymptomsForm({ data, onChange, onValidationChange }: Sym
   
   const handleAddSymptomField = () => {
     // ตรวจสอบว่าช่องสุดท้ายมีค่าหรือยัง
-    if (customSymptoms.length === 0 || customSymptoms[customSymptoms.length - 1].trim() !== '') {
-      setCustomSymptoms([...customSymptoms, '']);
+    if (customSymptoms.length === 0 || (customSymptoms[customSymptoms.length - 1].name.trim() !== '' || customSymptoms[customSymptoms.length - 1].description.trim() !== '')) {
+      setCustomSymptoms([...customSymptoms, { name: '', description: '' }]);
     }
   };
   
@@ -176,30 +180,23 @@ export default function SymptomsForm({ data, onChange, onValidationChange }: Sym
     const updated = customSymptoms.filter((_, i) => i !== index);
     setCustomSymptoms(updated);
     
-    // Remove from other_symptoms array
-    const currentSymptoms = data.other_symptoms || [];
-    const standardSymptoms = currentSymptoms.filter(s => 
-      OTHER_SYMPTOMS_OPTIONS.includes(s as typeof OTHER_SYMPTOMS_OPTIONS[number])
-    );
-    const customSyms = currentSymptoms.filter(s => 
-      !OTHER_SYMPTOMS_OPTIONS.includes(s as typeof OTHER_SYMPTOMS_OPTIONS[number])
-    );
-    customSyms.splice(index, 1);
-    onChange({ other_symptoms: [...standardSymptoms, ...customSyms.filter(s => s)] });
+    // Update other_symptoms_custom array
+    const customArray = updated
+      .filter(s => s.name.trim() || s.description.trim())
+      .map(s => s.name && s.description ? `${s.name}: ${s.description}` : s.name || s.description);
+    onChange({ other_symptoms_custom: customArray });
   };
   
-  const handleCustomSymptomChange = (index: number, value: string) => {
+  const handleCustomSymptomChange = (index: number, field: 'name' | 'description', value: string) => {
     const updatedCustom = [...customSymptoms];
-    updatedCustom[index] = value;
+    updatedCustom[index] = { ...updatedCustom[index], [field]: value };
     setCustomSymptoms(updatedCustom);
     
-    // Update other_symptoms array
-    const currentSymptoms = data.other_symptoms || [];
-    const standardSymptoms = currentSymptoms.filter(s => 
-      OTHER_SYMPTOMS_OPTIONS.includes(s as typeof OTHER_SYMPTOMS_OPTIONS[number])
-    );
-    const filledCustomSymptoms = updatedCustom.filter(s => s.trim());
-    onChange({ other_symptoms: [...standardSymptoms, ...filledCustomSymptoms] });
+    // Update other_symptoms_custom array - combine name and description
+    const customArray = updatedCustom
+      .filter(s => s.name.trim() || s.description.trim())
+      .map(s => s.name && s.description ? `${s.name}: ${s.description}` : s.name || s.description);
+    onChange({ other_symptoms_custom: customArray });
   };
 
   let qNum = 5; // เริ่มจาก 6 (5+1)
@@ -264,8 +261,8 @@ export default function SymptomsForm({ data, onChange, onValidationChange }: Sym
                   type="radio"
                   name="pain_medication"
                   value={option}
-                  checked={data.pain_medication_effective === option}
-                  onChange={(e) => onChange({ pain_medication_effective: e.target.value as typeof data.pain_medication_effective })}
+                  checked={data.pain_medication_effect === option}
+                  onChange={(e) => onChange({ pain_medication_effect: e.target.value as typeof data.pain_medication_effect })}
                   className="w-4 h-4 text-blue-600"
                 />
                 <span className="ml-2 text-gray-700">{option}</span>
@@ -568,29 +565,37 @@ export default function SymptomsForm({ data, onChange, onValidationChange }: Sym
             <label className="block text-gray-700 font-medium mb-3">อาการอื่นๆ ที่ต้องการระบุเพิ่มเติม:</label>
             <div className="space-y-3">
               {customSymptoms.map((symptom, index) => (
-                <div key={index} className="space-y-2">
-                  <div className="flex items-start gap-2">
-                    <div className="flex-1">
-                      <label className="block text-gray-600 text-sm mb-1">
-                        โปรดระบุอาการ พร้อมอธิบายลักษณะอาการ
-                      </label>
-                      <textarea
-                        value={symptom}
-                        onChange={(e) => handleCustomSymptomChange(index, e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        placeholder="อาการที่เป็น, ลักษณะอาการ เช่น บริเวณที่เป็น ระยะเวลาที่เกิด"
-                        rows={1}
-                      />
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveSymptomField(index)}
-                      className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors mt-6"
-                      title="ลบอาการนี้"
-                    >
-                      <X className="w-5 h-5" />
-                    </button>
+                <div key={index} className="flex items-start gap-2">
+                  {/* ช่องชื่ออาการ (เล็ก ซ้าย) */}
+                  <div className="w-1/3">
+                    <input
+                      type="text"
+                      value={symptom.name || ''}
+                      onChange={(e) => handleCustomSymptomChange(index, 'name', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="ชื่ออาการ"
+                    />
                   </div>
+                  
+                  {/* ช่องคำอธิบาย (ยาว ขวา) */}
+                  <div className="flex-1">
+                    <input
+                      type="text"
+                      value={symptom.description || ''}
+                      onChange={(e) => handleCustomSymptomChange(index, 'description', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="คำอธิบายอาการ เช่น บริเวณที่เป็น ระยะเวลาที่เกิด"
+                    />
+                  </div>
+                  
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveSymptomField(index)}
+                    className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                    title="ลบอาการนี้"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
                 </div>
               ))}
               <button
@@ -671,29 +676,7 @@ export default function SymptomsForm({ data, onChange, onValidationChange }: Sym
         </div>
       </div>
 
-      {/* 18. มัดฟัน */}
-      <div>
-        <label className="block text-gray-700 font-medium mb-2">
-          {++qNum}. มีการมัดฟันบนและล่างเข้าด้วยกัน โดยที่ไม่สามารถอ้าปากได้หรือไม่? (IMF) <span className="text-red-500">*</span>
-        </label>
-        <div className="space-y-2">
-          {IMF_OPTIONS.map(option => (
-            <label key={option} className="flex items-center">
-              <input
-                type="radio"
-                name="imf"
-                value={option}
-                checked={data.has_imf === option}
-                onChange={(e) => onChange({ has_imf: e.target.value as typeof data.has_imf })}
-                className="w-4 h-4 text-blue-600"
-              />
-              <span className="ml-2 text-gray-700">{option}</span>
-            </label>
-          ))}
-        </div>
-      </div>
-
-      {/* 19. ลวดมัดฟัน (แสดงถ้ามีการมัดฟัน) */}
+      {/* 19. ลวดมัดฟัน (แสดงถ้าเลือก IMF) */}
       {data.has_imf === 'มีการมัดฟัน' && (
         <div>
           <label className="block text-gray-700 font-medium mb-2">
@@ -729,11 +712,12 @@ export default function SymptomsForm({ data, onChange, onValidationChange }: Sym
           </div>
         )}      </div>
       )}
-      {/* 20. การเดิน */}
-      <div>
-        <label className="block text-gray-700 font-medium mb-2">
-          {++qNum}. การเดิน ในผู้ป่วยที่ได้รับการรักษาการแหว่งของสันเหงือกโดยการนำกระดูกสะโพกมาปลูก <span className="text-red-500">*</span>
-        </label>
+      {/* 20. การเดิน (แสดงถ้าเลือก ICBG) */}
+      {data.special_icbg === 'มี' && (
+        <div>
+          <label className="block text-gray-700 font-medium mb-2">
+            {++qNum}. การเดิน ในผู้ป่วยที่ได้รับการรักษาการแหว่งของสันเหงือกโดยการนำกระดูกสะโพกมาปลูก <span className="text-red-500">*</span>
+          </label>
         <div className="space-y-2">
           {WALKING_OPTIONS.map(option => (
             <label key={option} className="flex items-center">
@@ -763,7 +747,8 @@ export default function SymptomsForm({ data, onChange, onValidationChange }: Sym
             />
           </div>
         )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

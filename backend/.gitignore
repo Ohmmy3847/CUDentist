@@ -28,3 +28,8 @@ temp_*.csv
 # OS
 .DS_Store
 Thumbs.db
+
+# Backup files
+*~
+# Log files
+*.log

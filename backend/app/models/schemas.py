@@ -5,10 +5,41 @@ from pydantic import BaseModel
 from typing import Dict, Optional, Any
 
 
+class BasicInfo(BaseModel):
+    """Basic patient information"""
+    # Personal Information
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    email: Optional[str] = None
+    phone: Optional[str] = None
+    birth_year: Optional[int] = None
+    
+    # Basic Medical Info
+    age: Optional[int] = None
+    gender: Optional[str] = None
+    hn: Optional[str] = None
+    procedures: Optional[list] = None
+    lefort_sub_options: Optional[list] = None
+    bssro_sub_options: Optional[list] = None
+    surgery_date: Optional[str] = None
+    discharge_date: Optional[str] = None
+    note: Optional[str] = None
+    
+    # Special Procedures
+    has_imf: Optional[str] = None
+    imf_type: Optional[str] = None
+    imf_loops: Optional[int] = None
+    special_icbg: Optional[str] = None
+    special_icbg_description: Optional[str] = None
+    special_ng_tube: Optional[str] = None
+    special_ng_tube_description: Optional[str] = None
+
+
 class PatientData(BaseModel):
     """Patient data for classification"""
-    data: Dict[str, Any]
-    flow_name: Optional[str] = None  # ถ้าไม่ระบุจะรันทุก flow
+    basic_info: BasicInfo
+    assessment_data: Dict[str, Any]
+   
 
 
 class RiskResponse(BaseModel):
@@ -22,6 +53,8 @@ class AllFlowsResult(BaseModel):
     """Response model for all flows classification"""
     results: Dict[str, RiskResponse]
     errors: Optional[Dict[str, str]] = None
+
+
 
 
 class LogData(BaseModel):

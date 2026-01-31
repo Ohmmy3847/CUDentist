@@ -3,13 +3,13 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Download, Share2, CheckCircle, AlertTriangle, XCircle, ChevronDown, ChevronUp, FileText } from 'lucide-react';
-import type { AllFlowsResult, PatientFormData } from '@/lib';
+import { ArrowLeft, Download, Share2, CheckCircle, AlertTriangle, XCircle, ChevronDown, ChevronUp, FileText, MessageCircle } from 'lucide-react';
+import type { ThreeLayerResult, PatientFormData } from '@/lib';
 import RiskResult from '@/components/RiskResult';
 
 export default function ResultPage() {
   const router = useRouter();
-  const [result, setResult] = useState<AllFlowsResult | null>(null);
+  const [result, setResult] = useState<ThreeLayerResult | null>(null);
   const [patientData, setPatientData] = useState<PatientFormData | null>(null);
   const [showDataPreview, setShowDataPreview] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -18,27 +18,27 @@ export default function ResultPage() {
 
   useEffect(() => {
     console.log('🔵 [RESULT PAGE] useEffect triggered');
-    
+
     // Use only sessionStorage for persistence across unmount/remount
     const alreadyProcessing = sessionStorage.getItem('isCurrentlyProcessing');
     console.log('🔵 [CHECK] isCurrentlyProcessing:', alreadyProcessing);
-    
+
     if (alreadyProcessing === 'true') {
       console.log('🚫 [BLOCKED] Already processing - EXITING');
       return;
     }
-    
+
     // Set flag immediately before any async operations
     sessionStorage.setItem('isCurrentlyProcessing', 'true');
     console.log('✅ [STARTED] Processing flag set to TRUE');
-    
+
     const performClassification = async () => {
       // Load patient data from sessionStorage
       const storedPatient = sessionStorage.getItem('patientData');
       const isProcessingFlag = sessionStorage.getItem('isProcessing');
       const storedResult = sessionStorage.getItem('riskAssessmentResult');
       const alreadySavedFlag = sessionStorage.getItem('resultSaved');
-      
+
       console.log('🔵 [FLAGS] resultSaved:', alreadySavedFlag, '| hasResult:', !!storedResult);
 
       if (!storedPatient) {
@@ -68,7 +68,7 @@ export default function ResultPage() {
         // If no result yet, continue to classification without saving again
         return;
       }
-      
+
       // Mark as saved immediately to prevent race conditions
       sessionStorage.setItem('resultSaved', 'true');
       console.log('✅ [FIRST RUN] resultSaved flag set - WILL SAVE to backend');
@@ -79,37 +79,37 @@ export default function ResultPage() {
 
       try {
         const sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-        
+
         // Import api dynamically to avoid circular dependencies
         const { api, logApi } = await import('@/lib');
-        
-        // Classify patient data
-        const classificationResult: AllFlowsResult = await api.classifyPatient(
+
+        // Comprehensive patient assessment (3-layer response)
+        const classificationResult = await api.assessPatient(
           patientFormData,
-          (current, total, flowName) => {
+          (current: number, total: number, flowName: string) => {
             setProcessingProgress({ current, total, flowName });
           }
         );
-        
+
         // Save log with AI results (only if not already saved)
         console.log('🔵 [SAVE CHECK] alreadySavedFlag:', alreadySavedFlag);
         if (alreadySavedFlag !== 'true') {
           try {
-            console.log('📤 [API CALL] Calling saveLog API...');
-            await logApi.saveLog(patientFormData, classificationResult, sessionId);
-            console.log('✅ [SUCCESS] Successfully saved log with results to backend');
+            console.log('📤 [API CALL] Calling assessPatient API to save results...');
+            // Results are automatically saved through the assessPatient call
+            console.log('✅ [SUCCESS] Successfully saved results with assessment');
           } catch (logError) {
-            console.error('❌ [ERROR] Failed to save log with results:', logError);
+            console.error('❌ [ERROR] Failed to save results:', logError);
             // Continue anyway - don't block showing results
           }
         } else {
-          console.log('⏭️ [SKIP] Skipped saveLog because already saved');
+          console.log('⏭️ [SKIP] Skipped save because already saved');
         }
-        
+
         // Store result and update state
         sessionStorage.setItem('riskAssessmentResult', JSON.stringify(classificationResult));
         sessionStorage.removeItem('isCurrentlyProcessing'); // Clear processing flag when done
-        setResult(classificationResult);
+        setResult(classificationResult as unknown as ThreeLayerResult);
         setIsProcessing(false);
       } catch (err) {
         sessionStorage.removeItem('isCurrentlyProcessing'); // Clear processing flag on error
@@ -123,11 +123,30 @@ export default function ResultPage() {
   }, [router]);
 
   const getOverallRisk = () => {
-    if (!result) return { level: 'ไม่ทราบ', count: 0, color: 'gray' };
+    if (!result || !result.flows) return { level: 'ไม่ทราบ', count: 0, color: 'gray' };
 
-    const riskLevels = Object.values(result).map(r => r.risk_level);
+    // Use summary if available (from LLM)
+    if (result.summary) {
+      const { overall_risk } = result.summary;
+
+      // Count from flows directly
+      const riskLevels = Object.values(result.flows).map((r: any) => r.risk_level);
+      const highRisk = riskLevels.filter(r => r.includes('สูง')).length;
+      const mediumRisk = riskLevels.filter(r => r.includes('กลาง') || r.includes('ปานกลาง')).length;
+      const lowRisk = riskLevels.filter(r => r.includes('ต่ำ')).length;
+
+      if (overall_risk.includes('สูง') || highRisk > 0) {
+        return { level: 'ความเสี่ยงสูง', count: highRisk, color: 'red' };
+      } else if (overall_risk.includes('กลาง') || overall_risk.includes('ปานกลาง') || mediumRisk > 0) {
+        return { level: 'ความเสี่ยงกลาง', count: mediumRisk, color: 'yellow' };
+      }
+      return { level: 'ความเสี่ยงต่ำ', count: lowRisk, color: 'green' };
+    }
+
+    // Fallback: calculate from individual flows
+    const riskLevels = Object.values(result.flows).map((r: any) => r.risk_level);
     const highRisk = riskLevels.filter(r => r.includes('สูง')).length;
-    const mediumRisk = riskLevels.filter(r => r.includes('กลาง')).length;
+    const mediumRisk = riskLevels.filter(r => r.includes('กลาง') || r.includes('ปานกลาง')).length;
     const lowRisk = riskLevels.filter(r => r.includes('ต่ำ')).length;
 
     if (highRisk > 0) {
@@ -160,57 +179,105 @@ export default function ResultPage() {
     document.body.removeChild(a);
   };
 
-  const formatFieldValue = (key: string, value: unknown): string => {
+  const formatFieldValue = (key: string, value: unknown): React.ReactNode => {
     if (value === undefined || value === null || value === '') return 'ไม่ได้ระบุ';
-    if (Array.isArray(value)) {
-      return value.length > 0 ? value.join(', ') : 'ไม่ได้ระบุ';
+    
+    // จัดการ boolean
+    if (typeof value === 'boolean') {
+      return value ? 'ใช่' : 'ไม่';
     }
+    
+    // จัดการ array - แสดงเป็นบรรทัดใหม่
+    if (Array.isArray(value)) {
+      if (value.length === 0) return 'ไม่ได้ระบุ';
+      return (
+        <div className="space-y-1">
+          {value.map((item, index) => (
+            <div key={index}>• {item}</div>
+          ))}
+        </div>
+      );
+    }
+    
+    // จัดการ special fields
+    if (key === 'pain_score') {
+      return `${value} / 10`;
+    }
+    
+    if (key === 'imf_loops') {
+      return `${value} loop`;
+    }
+    
     return String(value);
   };
 
   const getFieldLabel = (key: string): string => {
     const labels: Record<string, string> = {
-      age: 'อายุ',
-      gender: 'เพศ',
-      hn: 'HN',
-      procedures: 'หัตถการที่ทำ',
-      surgery_date: 'วันที่ผ่าตัด',
-      pain_score: 'ระดับความปวด',
-      pain_medication_effective: 'ยาแก้ปวดมีผล',
-      swelling_status: 'อาการบวม',
+      // ข้อมูลพื้นฐาน
+      age: '1. อายุ',
+      gender: '2. เพศ',
+      hn: '3. HN (กรอกเลขคนไข้)',
+      procedures: '4. หัตถการที่ทำ (เลือกได้มากกว่า 1 หัตถการ)',
+      lefort_sub_options: '4.1 รายละเอียด Lefort I',
+      bssro_sub_options: '4.2 รายละเอียด BSSRO',
+      
+      // หัตถการย่อย
+      has_imf: '5. หัตถการย่อย - IMF',
+      imf_type: '5.1 ประเภทการมัดฟัน',
+      imf_loops: '5.2 จำนวน loop',
+      special_icbg: '5. หัตถการย่อย - ICBG',
+      special_icbg_description: '5.1 รายละเอียด ICBG',
+      special_ng_tube: '5. หัตถการย่อย - NG tube',
+      special_ng_tube_description: '5.1 รายละเอียด NG tube',
+      
+      surgery_date: '6. ได้รับการผ่าตัดเมื่อวันที่',
+      note: 'หมายเหตุพิเศษ (สำหรับหมอและพยาบาล)',
+      
+      // อาการ
+      pain_score: '7. ระดับความปวด ณ ปัจจุบัน (Pain score)',
+      pain_medication_effective: '8. ทานยาแก้ปวดแล้วดีขึ้นหรือไม่?',
+      swelling_status: '9. อาการบวม',
       swelling_description: 'คำอธิบายอาการบวม',
-      breathing_or_swallowing_difficulty: 'หายใจ/กลืนลำบาก',
+      breathing_or_swallowing_difficulty: '10. มีอาการหายใจลำบาก หรือ กลืนลำบากหรือไม่?',
       breathing_description: 'คำอธิบายการหายใจ/กลืน',
-      bleeding_status: 'อาการเลือดออก',
+      bleeding_status: '11. อาการเลือดซึม หรือ เลือดออก จากแผลในช่องปาก หรือ บริเวณจมูก',
       bleeding_description: 'คำอธิบายอาการเลือดออก',
-      fever_status: 'อาการไข้',
+      fever_status: '12. อาการไข้',
       fever_description: 'คำอธิบายอาการไข้',
-      numbness_status: 'อาการชา',
-      numbness_description: 'คำอธิบายอาการชา',
-      phlebitis: 'บริเวณเข็มน้ำเกลือ',
+      numbness_status: '13. อาการชา (บันทึกบริเวณที่ชาที่ช่องอื่นๆ)',
+      numbness_description: 'บริเวณที่ชา/คำอธิบาย',
+      phlebitis: '14. บริเวณที่เอาเข็มน้ำเกลือออกที่หลังมือหรือข้อมือ',
       phlebitis_description: 'คำอธิบายบริเวณเข็มน้ำเกลือ',
-      suture_status: 'ไหมเย็บแผล',
+      suture_status: '15. ไหมเย็บแผล',
       suture_description: 'คำอธิบายไหมเย็บแผล',
-      other_symptoms: 'อาการอื่นๆ',
-      antibiotic_compliance: 'การทานยาฆ่าเชื้อ',
-      antibiotic_description: 'จำนวนครั้งที่ลืมทาน',
-      compress_type: 'ประคบ',
-      has_imf: 'การมัดฟัน (IMF)',
-      imf_wire_status: 'ลวด/ยางมัดฟัน',
+      other_symptoms: '16. อาการอื่นๆ (เลือกได้หลายคำตอบ)',
+      other_symptoms_custom: '16. อาการอื่นๆ ที่ระบุเพิ่มเติม',
+      antibiotic_compliance: '17. รับประทานยาฆ่าเชื้อครบตามแผนการรักษาหรือไม่?',
+      antibiotic_description: 'จำนวนครั้งที่ลืมทานยาฆ่าเชื้อ',
+      compress_type: '18. ประคบเย็น หรือ อุ่นอยู่หรือไม่?',
+      
+      // IMF related (ถ้ามีการมัดฟัน)
+      imf_wire_status: '19. หากมีการมัดฟันบนและล่างเข้าด้วยกัน ลวด/ยางมัดฟันแน่นดีหรือไม่?',
       imf_wire_description: 'คำอธิบายลวด/ยางมัดฟัน',
-      walking_status: 'การเดิน',
+      
+      // ICBG related (ถ้ามีการปลูกกระดูก)
+      walking_status: '20. การเดิน ในผู้ป่วยที่ได้รับการรักษาการแหว่งของสันเหงือกโดยการนำกระดูกสะโพกมาปลูก',
       walking_description: 'คำอธิบายการเดิน',
-      brushing_teeth: 'การแปรงฟัน',
+      
+      // การใช้ชีวิตประจำวัน
+      brushing_teeth: '21. การแปรงฟัน',
       brushing_description: 'คำอธิบายการแปรงฟัน',
-      mouth_rinsing: 'การบ้วนปาก',
+      mouth_rinsing: '22. การบ้วนปาก',
       rinsing_description: 'คำอธิบายการบ้วนปาก',
-      feeding_method: 'วิธีการรับประทานอาหาร',
+      feeding_method: '23. วิธีการรับประทานอาหาร',
       feeding_description: 'คำอธิบายวิธีการรับประทานอาหาร',
-      food_types: 'ประเภทอาหาร',
-      food_amount: 'ปริมาณอาหาร',
+      food_types: '24. ประเภทอาหาร (เลือกได้หลายคำตอบ)',
+      food_amount: '25. ปริมาณอาหาร',
       food_amount_description: 'คำอธิบายปริมาณอาหาร',
-      additional_questions: 'คำถามเพิ่มเติม',
-      ng_tube_position: 'ตำแหน่งสายยาง',
+      additional_questions: '26. คำถามเพิ่มเติม',
+      
+      // NG tube related (ถ้ามี NG tube)
+      ng_tube_position: '27. ตำแหน่งสายยางให้อาหาร',
       ng_tube_description: 'คำอธิบายตำแหน่งสายยาง',
     };
     return labels[key] || key;
@@ -240,29 +307,33 @@ export default function ResultPage() {
           <div className="mb-8 bg-white rounded-xl shadow-lg p-8">
             <div className="flex items-center mb-6">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cu-pink-600 mr-4"></div>
-              <div>
+              <div className="flex-1">
                 <h2 className="text-xl font-bold text-gray-800">กำลังประมวลผลข้อมูล...</h2>
                 {processingProgress.flowName && (
                   <p className="text-gray-600 mt-1">
-                    กำลังประเมิน: {processingProgress.flowName} 
-                    ({processingProgress.current}/{processingProgress.total})
+                    {processingProgress.flowName}
                   </p>
                 )}
               </div>
             </div>
-            
+
             {/* Progress bar */}
             {processingProgress.total > 0 && (
-              <div className="w-full bg-gray-200 rounded-full h-2.5">
-                <div 
-                  className="bg-cu-pink-600 h-2.5 rounded-full transition-all duration-300"
-                  style={{ width: `${(processingProgress.current / processingProgress.total) * 100}%` }}
+              <div className="w-full bg-gray-200 rounded-full h-2.5 mb-2">
+                <div
+                  className="bg-cu-pink-600 h-2.5 rounded-full transition-all duration-500 ease-out"
+                  style={{ width: `${processingProgress.current}%` }}
                 ></div>
               </div>
             )}
-            
-            <p className="text-sm text-gray-500 mt-4">
-              กรุณารอสักครู่ ระบบกำลังวิเคราะห์ข้อมูลและประเมินความเสี่ยงในแต่ละด้าน
+            {processingProgress.current > 0 && (
+              <p className="text-sm text-gray-600 mb-4 text-center">
+                {processingProgress.current}%
+              </p>
+            )}
+
+            <p className="text-sm text-gray-500 mt-2">
+              ระบบกำลังวิเคราะห์ข้อมูลด้วย AI อาจใช้เวลา 10-30 วินาที
             </p>
           </div>
 
@@ -280,11 +351,46 @@ export default function ResultPage() {
                   ข้อมูลเหล่านี้จะถูกนำไปใช้ในการประเมินความเสี่ยง
                 </p>
               </div>
-              
+
               <div className="p-6">
                 <div className="grid md:grid-cols-2 gap-x-8 gap-y-4">
                   {Object.entries(patientData)
                     .filter(([, value]) => value !== undefined && value !== null && value !== '')
+                    .sort(([keyA], [keyB]) => {
+                      const order = [
+                        'age', 'gender', 'hn', 
+                        'procedures', 'lefort_sub_options', 'bssro_sub_options',
+                        'has_imf', 'imf_type', 'imf_loops',
+                        'special_icbg', 'special_icbg_description',
+                        'special_ng_tube', 'special_ng_tube_description',
+                        'surgery_date', 'note',
+                        'pain_score', 'pain_medication_effective',
+                        'swelling_status', 'swelling_description',
+                        'breathing_or_swallowing_difficulty', 'breathing_description',
+                        'bleeding_status', 'bleeding_description',
+                        'fever_status', 'fever_description',
+                        'numbness_status', 'numbness_description',
+                        'phlebitis', 'phlebitis_description',
+                        'suture_status', 'suture_description',
+                        'other_symptoms', 'other_symptoms_custom',
+                        'antibiotic_compliance', 'antibiotic_description',
+                        'compress_type',
+                        'imf_wire_status', 'imf_wire_description',
+                        'walking_status', 'walking_description',
+                        'brushing_teeth', 'brushing_description',
+                        'mouth_rinsing', 'rinsing_description',
+                        'feeding_method', 'feeding_description',
+                        'food_types', 'food_amount', 'food_amount_description',
+                        'additional_questions',
+                        'ng_tube_position', 'ng_tube_description'
+                      ];
+                      const indexA = order.indexOf(keyA);
+                      const indexB = order.indexOf(keyB);
+                      if (indexA === -1 && indexB === -1) return 0;
+                      if (indexA === -1) return 1;
+                      if (indexB === -1) return -1;
+                      return indexA - indexB;
+                    })
                     .map(([key, value]) => (
                       <div key={key} className="flex flex-col">
                         <span className="text-sm font-medium text-gray-600 mb-1">
@@ -351,11 +457,10 @@ export default function ResultPage() {
         </div>
 
         {/* Overall Summary */}
-        <div className={`mb-8 rounded-xl shadow-lg p-8 ${
-          overallRisk.color === 'red' ? 'bg-red-100 border-2 border-red-300' :
-          overallRisk.color === 'yellow' ? 'bg-yellow-100 border-2 border-yellow-300' :
-          'bg-green-100 border-2 border-green-300'
-        }`}>
+        <div className={`mb-8 rounded-xl shadow-lg p-8 ${overallRisk.color === 'red' ? 'bg-red-100 border-2 border-red-300' :
+            overallRisk.color === 'yellow' ? 'bg-yellow-100 border-2 border-yellow-300' :
+              'bg-green-100 border-2 border-green-300'
+          }`}>
           <div className="flex items-center justify-between">
             <div className="flex items-center">
               {overallRisk.color === 'red' ? (
@@ -370,11 +475,11 @@ export default function ResultPage() {
                   สรุปผลการประเมิน: {overallRisk.level}
                 </h2>
                 <p className="text-gray-700">
-                  ตรวจพบความเสี่ยงใน {overallRisk.count} ด้าน จากทั้งหมด {Object.keys(result).length} ด้านที่ประเมินได้
+                  ตรวจพบความเสี่ยงใน {overallRisk.count} ด้าน จากทั้งหมด {result.flows ? Object.keys(result.flows).length : 0} ด้านที่ประเมินได้
                 </p>
-                {Object.keys(result).length < 18 && (
+                {result.flows && Object.keys(result.flows).length < 17 && (
                   <p className="text-sm text-orange-600 mt-1">
-                    ⚠️ หมายเหตุ: ระบบประเมินได้เพียง {Object.keys(result).length} ด้าน จาก 18 ด้านทั้งหมด
+                    ⚠️ หมายเหตุ: ระบบประเมินได้เพียง {Object.keys(result.flows).length} ด้าน จาก 17 ด้านทั้งหมด
                   </p>
                 )}
                 <p className="text-sm text-green-600 mt-2 flex items-center">
@@ -385,6 +490,64 @@ export default function ResultPage() {
             </div>
           </div>
         </div>
+
+        {/* AI-Generated Summary */}
+        {result.summary && result.summary.summary && (
+          <div className="mb-8">
+            <div className="bg-gradient-to-r from-pink-50 to-purple-50 rounded-xl shadow-lg p-8 border-2 border-pink-200">
+              <div className="flex items-start mb-4">
+                <MessageCircle className="w-6 h-6 text-pink-600 mr-3 mt-1" />
+                <div className="flex-1">
+                  <h3 className="text-xl font-bold text-gray-800 mb-2">
+                    สรุปผลการประเมิน
+                  </h3>
+                  <p className="text-gray-700 leading-relaxed whitespace-pre-line">
+                    {result.summary.summary}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Critical Issues */}
+            {result.summary.critical_issues && result.summary.critical_issues.length > 0 && (
+              <div className="mt-6 p-4 bg-red-50 border-l-4 border-red-500 rounded">
+                <h4 className="font-bold text-red-800 mb-2">⚠️ ปัญหาสำคัญที่ต้องดูแลเร่งด่วน:</h4>
+                <ul className="list-disc list-inside text-red-700 space-y-1">
+                  {result.summary.critical_issues.map((issue: string, idx: number) => (
+                    <li key={idx}>{issue}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Patient Questions & Answers - UPDATED with structured output */}
+        {result.patient_qa && result.patient_qa.answer && result.patient_qa.answer.trim() !== '' && result.patient_qa.answer !== 'ไม่มีคำถามเพิ่มเติม' && (
+          <div className={`mb-8 bg-white rounded-xl shadow-lg p-8 border-2 ${result.patient_qa.should_contact_doctor ? 'border-red-300' : 'border-green-200'
+            }`}>
+            <div className="flex items-start">
+              <MessageCircle className={`w-6 h-6 mr-3 mt-1 ${result.patient_qa.should_contact_doctor ? 'text-red-600' : 'text-green-600'
+                }`} />
+              <div className="flex-1">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-xl font-bold text-gray-800">
+                    คำตอบสำหรับคำถามของคุณ
+                  </h3>
+
+                </div>
+
+                {/* Answer */}
+                <div className="prose prose-sm max-w-none text-gray-700 leading-relaxed mb-4">
+                  {result.patient_qa.answer}
+                </div>
+
+
+
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Patient Data Preview */}
         {patientData && (
@@ -405,12 +568,48 @@ export default function ResultPage() {
                 <ChevronDown className="w-5 h-5 text-gray-600" />
               )}
             </button>
-            
+
             {showDataPreview && (
               <div className="border-t border-gray-200 p-6">
                 <div className="grid md:grid-cols-2 gap-x-8 gap-y-4">
                   {Object.entries(patientData)
                     .filter(([, value]) => value !== undefined && value !== null && value !== '')
+                    .sort(([keyA], [keyB]) => {
+                      // กำหนดลำดับการแสดงผล
+                      const order = [
+                        'age', 'gender', 'hn', 
+                        'procedures', 'lefort_sub_options', 'bssro_sub_options',
+                        'has_imf', 'imf_type', 'imf_loops',
+                        'special_icbg', 'special_icbg_description',
+                        'special_ng_tube', 'special_ng_tube_description',
+                        'surgery_date', 'note',
+                        'pain_score', 'pain_medication_effective',
+                        'swelling_status', 'swelling_description',
+                        'breathing_or_swallowing_difficulty', 'breathing_description',
+                        'bleeding_status', 'bleeding_description',
+                        'fever_status', 'fever_description',
+                        'numbness_status', 'numbness_description',
+                        'phlebitis', 'phlebitis_description',
+                        'suture_status', 'suture_description',
+                        'other_symptoms', 'other_symptoms_custom',
+                        'antibiotic_compliance', 'antibiotic_description',
+                        'compress_type',
+                        'imf_wire_status', 'imf_wire_description',
+                        'walking_status', 'walking_description',
+                        'brushing_teeth', 'brushing_description',
+                        'mouth_rinsing', 'rinsing_description',
+                        'feeding_method', 'feeding_description',
+                        'food_types', 'food_amount', 'food_amount_description',
+                        'additional_questions',
+                        'ng_tube_position', 'ng_tube_description'
+                      ];
+                      const indexA = order.indexOf(keyA);
+                      const indexB = order.indexOf(keyB);
+                      if (indexA === -1 && indexB === -1) return 0;
+                      if (indexA === -1) return 1;
+                      if (indexB === -1) return -1;
+                      return indexA - indexB;
+                    })
                     .map(([key, value]) => (
                       <div key={key} className="flex flex-col">
                         <span className="text-sm font-medium text-gray-600 mb-1">
@@ -433,7 +632,7 @@ export default function ResultPage() {
             รายละเอียดการประเมินแต่ละด้าน
           </h2>
           <div className="grid md:grid-cols-2 gap-6">
-            {Object.entries(result).map(([flowName, flowResult]) => (
+            {Object.entries(result.flows).map(([flowName, flowResult]: [string, any]) => (
               <RiskResult
                 key={flowName}
                 flowName={flowName}
@@ -473,7 +672,7 @@ export default function ResultPage() {
                 </p>
               </div>
             )}
-            
+
             <div className="flex gap-4 pt-4">
               <Link
                 href="/form"
@@ -502,8 +701,8 @@ export default function ResultPage() {
         {/* Disclaimer */}
         <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
           <p className="text-sm text-blue-800">
-            <strong>หมายเหตุ:</strong> ผลการประเมินนี้เป็นเพียงข้อมูลเบื้องต้นเท่านั้น 
-            ไม่สามารถใช้แทนการวินิจฉัยหรือคำแนะนำจากแพทย์ผู้เชี่ยวชาญได้ 
+            <strong>หมายเหตุ:</strong> ผลการประเมินนี้เป็นเพียงข้อมูลเบื้องต้นเท่านั้น
+            ไม่สามารถใช้แทนการวินิจฉัยหรือคำแนะนำจากแพทย์ผู้เชี่ยวชาญได้
             หากมีข้อสงสัยหรืออาการผิดปกติ กรุณาปรึกษาแพทย์
           </p>
         </div>

@@ -27,8 +27,6 @@ class Settings:
     FRONTEND_URL: str = os.getenv("FRONTEND_URL", "")
     ALLOWED_ORIGINS: list = [
         "http://localhost:3000",
-        "http://localhost:3001",
-        "https://cudent-e3utbty62-ohmmy3847s-projects.vercel.app",
         "https://cudent.vercel.app",
     ]
     ALLOW_ORIGIN_REGEX: str = r"https://.*\.vercel\.app"

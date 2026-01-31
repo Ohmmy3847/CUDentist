@@ -10,6 +10,8 @@ export type {
 export {
   GENDER_OPTIONS,
   PROCEDURE_OPTIONS,
+  LEFORT_SUB_OPTIONS,
+  BSSRO_SUB_OPTIONS,
   PAIN_MEDICATION_OPTIONS,
   SWELLING_OPTIONS,
   BLEEDING_OPTIONS,
@@ -23,6 +25,7 @@ export {
   IMF_WIRE_OPTIONS,
   WALKING_OPTIONS,
   FEEDING_METHOD_OPTIONS,
+  FOOD_TYPE_OPTIONS,
   FOOD_AMOUNT_OPTIONS,
   NG_TUBE_OPTIONS,
 } from './form.types';
@@ -30,8 +33,9 @@ export {
 // API types
 export type {
   RiskAssessmentResult,
-  AllFlowsResult,
+  DescriptionAnalysis,
+  RiskSummary,
+  ThreeLayerResult,
   ApiError,
   ProgressCallback,
-  UploadProgressCallback,
 } from './api.types';
