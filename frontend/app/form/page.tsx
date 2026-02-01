@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, ArrowRight, CheckCircle, Loader2, Trash2 } from 'lucide-react';
 import type { PatientFormData } from '@/lib';
-import { logApi } from '@/lib';
 
 // Import form part components
 import BasicInfoForm from '@/components/forms/BasicInfoForm';
@@ -12,9 +11,9 @@ import SymptomsForm from '@/components/forms/SymptomsForm';
 import DailyLifeForm from '@/components/forms/DailyLifeForm';
 
 const STEPS = [
-  { id: 1, title: 'ข้อมูลพื้นฐาน', description: 'ข้อ 1-5' },
-  { id: 2, title: 'อาการ', description: 'ข้อ 6-20' },
-  { id: 3, title: 'การใช้ชีวิตประจำวัน', description: 'ข้อ 21-27' },
+  { id: 1, title: 'ข้อมูลพื้นฐาน', description: 'ข้อ 1-13' },
+  { id: 2, title: 'อาการ', description: 'ข้อ 14-27' },
+  { id: 3, title: 'การใช้ชีวิตประจำวัน', description: 'ข้อ 28-34' },
 ];
 
 const FORM_STORAGE_KEY = 'patientFormDraft';
@@ -32,13 +31,13 @@ export default function PatientFormPage() {
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    
+
     // Clear result page flags when starting new form
     sessionStorage.removeItem('resultSaved');
-    
+
     const savedData = localStorage.getItem(FORM_STORAGE_KEY);
     const savedStep = localStorage.getItem(STEP_STORAGE_KEY);
-    
+
     if (savedData) {
       try {
         const parsed = JSON.parse(savedData);
@@ -48,7 +47,7 @@ export default function PatientFormPage() {
         console.error('Failed to load saved form data:', e);
       }
     }
-    
+
     if (savedStep) {
       try {
         const step = parseInt(savedStep, 10);
@@ -57,7 +56,7 @@ export default function PatientFormPage() {
         console.error('Failed to load saved step:', e);
       }
     }
-    
+
     setIsLoaded(true);
   }, []);
 
@@ -98,28 +97,19 @@ export default function PatientFormPage() {
     setError(null);
 
     try {
-      // บันทึก raw input ลง Google Sheet ก่อน
-      try {
-        await logApi.saveRawInput(formData);
-        console.log('Successfully saved raw input to Google Sheets');
-      } catch (logError) {
-        console.error('Failed to save raw input:', logError);
-        // Continue anyway - don't block navigation
-      }
-      
       // Clear previous result flags to allow new submission
       console.log('=== Form Submit: Clearing flags ===');
       sessionStorage.removeItem('resultSaved');
       sessionStorage.removeItem('riskAssessmentResult');
       sessionStorage.removeItem('isCurrentlyProcessing'); // Also clear processing flag
-      
+
       // บันทึกข้อมูลลง sessionStorage เพื่อส่งไปหน้า result
       sessionStorage.setItem('patientData', JSON.stringify(formData));
       sessionStorage.setItem('isProcessing', 'true');
-      
+
       localStorage.removeItem(FORM_STORAGE_KEY);
       localStorage.removeItem(STEP_STORAGE_KEY);
-      
+
       router.push('/result');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'เกิดข้อผิดพลาดในการบันทึกข้อมูล');
@@ -154,14 +144,26 @@ export default function PatientFormPage() {
             data={formData}
             onChange={handleFormDataChange}
             onValidationChange={setIsCurrentStepValid}
+            startingQuestionNumber={13}
           />
         );
       case 3:
+        // คำนวณจำนวนข้อใน SymptomsForm เพื่อหาเลขเริ่มต้นของ DailyLifeForm
+        let symptomsCount = 11; // Base questions (pain, swelling, breathing, bleeding, fever, numbness, phlebitis, suture, other, antibiotic, compress)
+
+        // Conditional questions in SymptomsForm
+        if ((formData.pain_score || 0) > 0) symptomsCount++; // Pain medication
+        if (formData.has_imf === 'มีการมัดฟัน') symptomsCount++; // IMF wire
+        if (formData.special_icbg === 'มี') symptomsCount++; // Walking
+
+        const dailyLifeStartNum = 13 + symptomsCount;
+
         return (
           <DailyLifeForm
             data={formData}
             onChange={handleFormDataChange}
             onValidationChange={setIsCurrentStepValid}
+            startingQuestionNumber={dailyLifeStartNum}
           />
         );
       default:

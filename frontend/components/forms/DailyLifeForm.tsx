@@ -10,6 +10,7 @@ interface DailyLifeFormProps {
   data: PatientFormData;
   onChange: (data: Partial<PatientFormData>) => void;
   onValidationChange?: (isValid: boolean) => void;
+  startingQuestionNumber?: number;
 }
 
 export function validateDailyLife(data: PatientFormData): boolean {
@@ -25,11 +26,11 @@ export function validateDailyLife(data: PatientFormData): boolean {
   // );
 }
 
-export default function DailyLifeForm({ data, onChange, onValidationChange }: DailyLifeFormProps) {
+export default function DailyLifeForm({ data, onChange, onValidationChange, startingQuestionNumber = 20 }: DailyLifeFormProps) {
   // Clear conditional description fields when parent field changes
   React.useEffect(() => {
     const updates: Partial<PatientFormData> = {};
-    
+
     // ล้าง description fields เมื่อ main field เป็น undefined
     if (!data.brushing_teeth && data.brushing_description) {
       updates.brushing_description = undefined;
@@ -46,7 +47,7 @@ export default function DailyLifeForm({ data, onChange, onValidationChange }: Da
     if (!data.ng_tube_position && data.ng_tube_description) {
       updates.ng_tube_description = undefined;
     }
-    
+
     if (Object.keys(updates).length > 0) {
       onChange(updates);
     }
@@ -79,7 +80,21 @@ export default function DailyLifeForm({ data, onChange, onValidationChange }: Da
     'อาหารปกติแต่เว้นอาหารรสจัด เผ็ด ร้อน แข็ง เหนียว',
   ];
 
-  let qNum = 20; // เริ่มจาก 21 (20+1)
+  // คำนวณเลขข้อคำถามแบบ dynamic ตามคำถามที่แสดงจริง
+  const questionNumbers = React.useMemo(() => {
+    let num = startingQuestionNumber;
+    const numbers: Record<string, number> = {};
+
+    numbers.brushing = ++num; // Brushing teeth (always)
+    numbers.rinsing = ++num; // Mouth rinsing (always)
+    numbers.feeding = ++num; // Feeding method (always)
+    numbers.foodTypes = ++num; // Food types (always)
+    numbers.foodAmount = ++num; // Food amount (always)
+    numbers.questions = ++num; // Additional questions (always)
+    if (data.special_ng_tube === 'มี') numbers.ngTube = ++num; // NG tube (conditional)
+
+    return numbers;
+  }, [startingQuestionNumber, data.special_ng_tube]);
 
   return (
     <div className="space-y-6">
@@ -87,10 +102,10 @@ export default function DailyLifeForm({ data, onChange, onValidationChange }: Da
         ส่วนที่ 3: การใช้ชีวิตประจำวัน
       </h2>
 
-      {/* 21. การแปรงฟัน */}
+      {/* การแปรงฟัน */}
       <div>
         <label className="block text-gray-700 font-medium mb-2">
-          {++qNum}. การแปรงฟัน <span className="text-red-500">*</span>
+          {questionNumbers.brushing}. การแปรงฟัน <span className="text-red-500">*</span>
         </label>
         <div className="space-y-2">
           <label className="flex items-center">
@@ -108,12 +123,12 @@ export default function DailyLifeForm({ data, onChange, onValidationChange }: Da
             <input
               type="radio"
               name="brushing"
-              value="แปรงฟันไม่ได้"
-              checked={data.brushing_teeth === 'แปรงฟันไม่ได้'}
+              value="แปรงฟันไม่ถนัด"
+              checked={data.brushing_teeth === 'แปรงฟันไม่ถนัด'}
               onChange={(e) => onChange({ brushing_teeth: e.target.value })}
               className="w-4 h-4 text-blue-600"
             />
-            <span className="ml-2 text-gray-700">แปรงฟันไม่ได้</span>
+            <span className="ml-2 text-gray-700">แปรงฟันไม่ถนัด</span>
           </label>
         </div>
         {data.brushing_teeth && (
@@ -135,7 +150,7 @@ export default function DailyLifeForm({ data, onChange, onValidationChange }: Da
       {/* 22. การบ้วนปาก */}
       <div>
         <label className="block text-gray-700 font-medium mb-2">
-          {++qNum}. การบ้วนปากด้วยน้ำยาบ้วนปาก <span className="text-red-500">*</span>
+          {questionNumbers.rinsing}. การบ้วนปากด้วยน้ำยาบ้วนปาก <span className="text-red-500">*</span>
         </label>
         <div className="space-y-2">
           <label className="flex items-center">
@@ -180,7 +195,7 @@ export default function DailyLifeForm({ data, onChange, onValidationChange }: Da
       {/* 23. วิธีการรับประทานอาหาร */}
       <div>
         <label className="block text-gray-700 font-medium mb-2">
-          {++qNum}. วิธีการรับประทานอาหาร <span className="text-red-500">*</span>
+          {questionNumbers.feeding}. วิธีการรับประทานอาหาร <span className="text-red-500">*</span>
         </label>
         <div className="space-y-2">
           {FEEDING_METHOD_OPTIONS.map(option => (
@@ -190,7 +205,7 @@ export default function DailyLifeForm({ data, onChange, onValidationChange }: Da
                 name="feeding_method"
                 value={option}
                 checked={data.feeding_method === option}
-                onChange={(e) => onChange({ feeding_method: e.target.value as typeof data.feeding_method })}
+                onChange={(e) => onChange({ feeding_method: e.target.value })}
                 className="w-4 h-4 text-blue-600"
               />
               <span className="ml-2 text-gray-700">{option}</span>
@@ -206,7 +221,7 @@ export default function DailyLifeForm({ data, onChange, onValidationChange }: Da
               value={data.feeding_description || ''}
               onChange={(e) => onChange({ feeding_description: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="เช่น ทานเองบ้าง, ใช้หลอดบ้าง"
+              placeholder=" "
               rows={1}
             />
           </div>
@@ -216,7 +231,7 @@ export default function DailyLifeForm({ data, onChange, onValidationChange }: Da
       {/* 24. ประเภทอาหาร */}
       <div>
         <label className="block text-gray-700 font-medium mb-2">
-          {++qNum}. ประเภทอาหารที่ทาน (สามารถเลือกได้หลายคำตอบ) <span className="text-red-500">*</span>
+          {questionNumbers.foodTypes}. ประเภทอาหารที่ทาน (สามารถเลือกได้หลายคำตอบ) <span className="text-red-500">*</span>
         </label>
         <div className="space-y-2 border border-gray-200 rounded-lg p-4">
           {FOOD_TYPE_OPTIONS.map((option) => (
@@ -272,7 +287,7 @@ export default function DailyLifeForm({ data, onChange, onValidationChange }: Da
       {/* 25. ปริมาณอาหาร */}
       <div>
         <label className="block text-gray-700 font-medium mb-2">
-          {++qNum}. ปริมาณอาหารที่ทาน <span className="text-red-500">*</span>
+          {questionNumbers.foodAmount}. ปริมาณอาหารที่ทาน <span className="text-red-500">*</span>
         </label>
         <div className="space-y-2">
           {FOOD_AMOUNT_OPTIONS.map(option => (
@@ -308,7 +323,7 @@ export default function DailyLifeForm({ data, onChange, onValidationChange }: Da
       {/* 26. คำถามเพิ่มเติม */}
       <div>
         <label className="block text-gray-700 font-medium mb-2">
-          {++qNum}. ผู้ป่วยมีคำถามที่จะสอบถามพยาบาลเพิ่มเติมหรือไม่?
+          {questionNumbers.questions}. ผู้ป่วยมีคำถามที่จะสอบถามพยาบาลเพิ่มเติมหรือไม่?
         </label>
         <textarea
           value={data.additional_questions || ''}
@@ -323,37 +338,37 @@ export default function DailyLifeForm({ data, onChange, onValidationChange }: Da
       {data.special_ng_tube === 'มี' && (
         <div>
           <label className="block text-gray-700 font-medium mb-2">
-            {++qNum}. ตำแหน่งสายยางให้อาหาร <span className="text-red-500">*</span>
+            {questionNumbers.ngTube}. ตำแหน่งสายยางให้อาหาร <span className="text-red-500">*</span>
           </label>
-        <div className="space-y-2">
-          {NG_TUBE_OPTIONS.map(option => (
-            <label key={option} className="flex items-center">
-              <input
-                type="radio"
-                name="ng_tube"
-                value={option}
-                checked={data.ng_tube_position === option}
-                onChange={(e) => onChange({ ng_tube_position: e.target.value as typeof data.ng_tube_position })}
-                className="w-4 h-4 text-blue-600"
-              />
-              <span className="ml-2 text-gray-700">{option}</span>
-            </label>
-          ))}
-        </div>
-        {data.ng_tube_position && (
-          <div className="mt-3 ml-6">
-            <label className="block text-gray-600 text-sm mb-1">
-              คำอธิบายเพิ่มเติม (ไม่บังคับ)
-            </label>
-            <textarea
-              value={data.ng_tube_description || ''}
-              onChange={(e) => onChange({ ng_tube_description: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="เช่น สายเลื่อนออกมาประมาณเท่าไร"
-              rows={1}
-            />
+          <div className="space-y-2">
+            {NG_TUBE_OPTIONS.map(option => (
+              <label key={option} className="flex items-center">
+                <input
+                  type="radio"
+                  name="ng_tube"
+                  value={option}
+                  checked={data.ng_tube_position === option}
+                  onChange={(e) => onChange({ ng_tube_position: e.target.value as typeof data.ng_tube_position })}
+                  className="w-4 h-4 text-blue-600"
+                />
+                <span className="ml-2 text-gray-700">{option}</span>
+              </label>
+            ))}
           </div>
-        )}
+          {data.ng_tube_position && (
+            <div className="mt-3 ml-6">
+              <label className="block text-gray-600 text-sm mb-1">
+                คำอธิบายเพิ่มเติม (ไม่บังคับ)
+              </label>
+              <textarea
+                value={data.ng_tube_description || ''}
+                onChange={(e) => onChange({ ng_tube_description: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="เช่น สายเลื่อนออกมาประมาณเท่าไร"
+                rows={1}
+              />
+            </div>
+          )}
         </div>
       )}
 

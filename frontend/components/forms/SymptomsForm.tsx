@@ -19,13 +19,14 @@ interface SymptomsFormProps {
   data: PatientFormData;
   onChange: (data: Partial<PatientFormData>) => void;
   onValidationChange?: (isValid: boolean) => void;
+  startingQuestionNumber?: number;
 }
 
 export function validateSymptoms(data: PatientFormData): boolean {
   const hasIMF = data.has_imf === 'มีการมัดฟัน';
   const hasPain = (data.pain_score || 0) > 0;
   const forgotAntibiotic = data.antibiotic_compliance === 'ลืมทานบางครั้ง';
-  
+
   const isValid = !!(
     data.pain_score !== undefined &&
     (!hasPain || data.pain_medication_effect) &&
@@ -42,7 +43,7 @@ export function validateSymptoms(data: PatientFormData): boolean {
     (!hasIMF || data.imf_wire_status) &&
     data.walking_status
   );
-  
+
   console.log('SymptomsForm Validation:', {
     isValid,
     pain_score: data.pain_score,
@@ -68,9 +69,9 @@ export function validateSymptoms(data: PatientFormData): boolean {
   // return isValid;
 }
 
-export default function SymptomsForm({ data, onChange, onValidationChange }: SymptomsFormProps) {
-  const [customSymptoms, setCustomSymptoms] = React.useState<Array<{name: string, description: string}>>([]);
-  
+export default function SymptomsForm({ data, onChange, onValidationChange, startingQuestionNumber = 5 }: SymptomsFormProps) {
+  const [customSymptoms, setCustomSymptoms] = React.useState<Array<{ name: string, description: string }>>([]);
+
   // Sync customSymptoms from data.other_symptoms_custom when component mounts or data changes
   React.useEffect(() => {
     if (data.other_symptoms_custom && data.other_symptoms_custom.length > 0 && customSymptoms.length === 0) {
@@ -86,31 +87,31 @@ export default function SymptomsForm({ data, onChange, onValidationChange }: Sym
       setCustomSymptoms(parsed);
     }
   }, [data.other_symptoms_custom]);
-  
+
   // Clear conditional fields when parent field changes
   React.useEffect(() => {
     const hasPain = (data.pain_score || 0) > 0;
     const hasIMF = data.has_imf === 'มีการมัดฟัน';
     const forgotAntibiotic = data.antibiotic_compliance === 'ลืมทานบางครั้ง';
-    
+
     const updates: Partial<PatientFormData> = {};
-    
+
     // ถ้า pain_score = 0 ให้ล้าง pain_medication_effect
     if (!hasPain && data.pain_medication_effect) {
       updates.pain_medication_effect = undefined;
     }
-    
+
     // ถ้าไม่มีการมัดฟัน ให้ล้าง imf_wire_status และ description
     if (!hasIMF && (data.imf_wire_status || data.imf_wire_description)) {
       updates.imf_wire_status = undefined;
       updates.imf_wire_description = undefined;
     }
-    
+
     // ถ้าไม่ได้ลืมทานยา ให้ล้าง antibiotic_description
     if (!forgotAntibiotic && data.antibiotic_description) {
       updates.antibiotic_description = undefined;
     }
-    
+
     // ล้าง description fields เมื่อ main field เป็น undefined
     if (!data.swelling_status && data.swelling_description) {
       updates.swelling_description = undefined;
@@ -136,7 +137,7 @@ export default function SymptomsForm({ data, onChange, onValidationChange }: Sym
     if (!data.walking_status && data.walking_description) {
       updates.walking_description = undefined;
     }
-    
+
     if (Object.keys(updates).length > 0) {
       onChange(updates);
     }
@@ -167,30 +168,30 @@ export default function SymptomsForm({ data, onChange, onValidationChange }: Sym
       : current.filter(s => s !== symptom);
     onChange({ other_symptoms: updated });
   };
-  
+
   const handleAddSymptomField = () => {
     // ตรวจสอบว่าช่องสุดท้ายมีค่าหรือยัง
     if (customSymptoms.length === 0 || (customSymptoms[customSymptoms.length - 1].name.trim() !== '' || customSymptoms[customSymptoms.length - 1].description.trim() !== '')) {
       setCustomSymptoms([...customSymptoms, { name: '', description: '' }]);
     }
   };
-  
+
   const handleRemoveSymptomField = (index: number) => {
     const updated = customSymptoms.filter((_, i) => i !== index);
     setCustomSymptoms(updated);
-    
+
     // Update other_symptoms_custom array
     const customArray = updated
       .filter(s => s.name.trim() || s.description.trim())
       .map(s => s.name && s.description ? `${s.name}: ${s.description}` : s.name || s.description);
     onChange({ other_symptoms_custom: customArray });
   };
-  
+
   const handleCustomSymptomChange = (index: number, field: 'name' | 'description', value: string) => {
     const updatedCustom = [...customSymptoms];
     updatedCustom[index] = { ...updatedCustom[index], [field]: value };
     setCustomSymptoms(updatedCustom);
-    
+
     // Update other_symptoms_custom array - combine name and description
     const customArray = updatedCustom
       .filter(s => s.name.trim() || s.description.trim())
@@ -198,7 +199,29 @@ export default function SymptomsForm({ data, onChange, onValidationChange }: Sym
     onChange({ other_symptoms_custom: customArray });
   };
 
-  let qNum = 5; // เริ่มจาก 6 (5+1)
+  // คำนวณเลขข้อคำถามแบบ dynamic ตามคำถามที่แสดงจริง
+  const questionNumbers = React.useMemo(() => {
+    let num = startingQuestionNumber;
+    const numbers: Record<string, number> = {};
+
+    numbers.pain = ++num; // Pain score (always)
+    if ((data.pain_score || 0) > 0) numbers.painMed = ++num; // Pain medication (conditional)
+    numbers.swelling = ++num; // Swelling (always)
+    numbers.breathing = ++num; // Breathing (always)
+    numbers.bleeding = ++num; // Bleeding (always)
+    numbers.fever = ++num; // Fever (always)
+    numbers.numbness = ++num; // Numbness (always)
+    numbers.phlebitis = ++num; // Phlebitis (always)
+    numbers.suture = ++num; // Suture (always)
+    numbers.otherSymptoms = ++num; // Other symptoms (always)
+    numbers.antibiotic = ++num; // Antibiotic (always)
+    numbers.compress = ++num;// Compress (always)
+
+    if (data.has_imf === 'มีการมัดฟัน') numbers.imfWire = ++num; // IMF wire (conditional)
+    if (data.special_icbg === 'มี') numbers.walking = ++num; // Walking (conditional)
+
+    return numbers;
+  }, [startingQuestionNumber, data.pain_score, data.has_imf, data.special_icbg]);
 
   return (
     <div className="space-y-6">
@@ -206,10 +229,11 @@ export default function SymptomsForm({ data, onChange, onValidationChange }: Sym
         ส่วนที่ 2: อาการ
       </h2>
 
-      {/* 6. ระดับความปวด */}
+
+      {/* ระดับความปวด */}
       <div>
         <label className="block text-gray-700 font-medium mb-3">
-          {++qNum}. ระดับความปวด ณ ปัจจุบัน (Pain score) <span className="text-red-500">*</span>
+          {questionNumbers.pain}. ระดับความปวด ณ ปัจจุบัน (Pain score) <span className="text-red-500">*</span>
         </label>
         <div className="space-y-3">
           <div className="flex items-center justify-between text-xs sm:text-sm text-gray-600 mb-2">
@@ -251,7 +275,7 @@ export default function SymptomsForm({ data, onChange, onValidationChange }: Sym
       {(data.pain_score || 0) > 0 && (
         <div>
           <label className="block text-gray-700 font-medium mb-2">
-            {++qNum}. ทานยาแก้ปวดแล้วดีขึ้นหรือไม่? <span className="text-red-500">*</span>
+            {questionNumbers.painMed}. ทานยาแก้ปวดแล้วดีขึ้นหรือไม่? <span className="text-red-500">*</span>
           </label>
           <div className="space-y-2">
             {PAIN_MEDICATION_OPTIONS.map(option => (
@@ -268,13 +292,26 @@ export default function SymptomsForm({ data, onChange, onValidationChange }: Sym
               </label>
             ))}
           </div>
+          {/* เพิ่มช่องอธิบายเมื่อ pain > 0 */}
+          <div className="mt-3 ml-6">
+            <label className="block text-gray-600 text-sm mb-1">
+              คำอธิบายเพิ่มเติมสำหรับอาการปวด (ไม่บังคับ)
+            </label>
+            <textarea
+              value={data.pain_description || ''}
+              onChange={(e) => onChange({ pain_description: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="เช่น ลักษณะ/ตำแหน่ง/ระยะเวลาที่ปวด"
+              rows={1}
+            />
+          </div>
         </div>
       )}
 
       {/* 8. อาการบวม */}
       <div>
         <label className="block text-gray-700 font-medium mb-2">
-          {++qNum}. อาการบวม <span className="text-red-500">*</span>
+          {questionNumbers.swelling}. อาการบวม <span className="text-red-500">*</span>
         </label>
         <div className="space-y-2">
           {SWELLING_OPTIONS.map(option => (
@@ -300,7 +337,7 @@ export default function SymptomsForm({ data, onChange, onValidationChange }: Sym
               value={data.swelling_description || ''}
               onChange={(e) => onChange({ swelling_description: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="เช่น บวมบริเวณใด, บวมมากน้อยแค่ไหน"
+              placeholder=" "
               rows={1}
             />
           </div>
@@ -310,7 +347,7 @@ export default function SymptomsForm({ data, onChange, onValidationChange }: Sym
       {/* 9. หายใจ/กลืนลำบาก */}
       <div>
         <label className="block text-gray-700 font-medium mb-2">
-          {++qNum}. มีอาการหายใจลำบาก หรือ กลืนลำบากหรือไม่? <span className="text-red-500">*</span>
+          {questionNumbers.breathing}. มีอาการหายใจลำบาก หรือ กลืนลำบากหรือไม่? <span className="text-red-500">*</span>
         </label>
         <div className="space-y-2">
           <label className="flex items-center">
@@ -345,7 +382,7 @@ export default function SymptomsForm({ data, onChange, onValidationChange }: Sym
               value={data.breathing_description || ''}
               onChange={(e) => onChange({ breathing_description: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="เช่น หายใจลำบากเมื่อนอน, กลืนลำบากเฉพาะของแข็ง"
+              placeholder=" "
               rows={1}
             />
           </div>
@@ -355,7 +392,7 @@ export default function SymptomsForm({ data, onChange, onValidationChange }: Sym
       {/* 10. เลือดออก */}
       <div>
         <label className="block text-gray-700 font-medium mb-2">
-          {++qNum}. อาการเลือดซึม หรือ เลือดออก จากแผลในช่องปาก หรือ บริเวณจมูก <span className="text-red-500">*</span>
+          {questionNumbers.bleeding}. อาการเลือดซึม หรือ เลือดออก จากแผลในช่องปาก หรือ บริเวณจมูก <span className="text-red-500">*</span>
         </label>
         <div className="space-y-2">
           {BLEEDING_OPTIONS.map(option => (
@@ -381,7 +418,7 @@ export default function SymptomsForm({ data, onChange, onValidationChange }: Sym
               value={data.bleeding_description || ''}
               onChange={(e) => onChange({ bleeding_description: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="เช่น เลือดซึมบริเวณใด, เป็นเลือดสดหรือเลือดคั่ง"
+              placeholder=" "
               rows={1}
             />
           </div>
@@ -391,7 +428,7 @@ export default function SymptomsForm({ data, onChange, onValidationChange }: Sym
       {/* 11. ไข้ */}
       <div>
         <label className="block text-gray-700 font-medium mb-2">
-          {++qNum}. อาการไข้  <span className="text-red-500">*</span>
+          {questionNumbers.fever}. อาการไข้  <span className="text-red-500">*</span>
         </label>
         <div className="space-y-2">
           <label className="flex items-center">
@@ -436,7 +473,7 @@ export default function SymptomsForm({ data, onChange, onValidationChange }: Sym
       {/* 12. อาการชา */}
       <div>
         <label className="block text-gray-700 font-medium mb-2">
-          {++qNum}. อาการชา (บันทึกบริเวณที่ชาที่ช่องอื่นๆ) <span className="text-red-500">*</span>
+          {questionNumbers.numbness}. อาการชา (บันทึกบริเวณที่ชาที่ช่องอื่นๆ) <span className="text-red-500">*</span>
         </label>
         <div className="space-y-2">
           {NUMBNESS_OPTIONS.map(option => (
@@ -472,7 +509,7 @@ export default function SymptomsForm({ data, onChange, onValidationChange }: Sym
       {/* 13. Phlebitis */}
       <div>
         <label className="block text-gray-700 font-medium mb-2">
-          {++qNum}. บริเวณที่เอาเข็มน้ำเกลือออกที่หลังมือหรือข้อมือ <span className="text-red-500">*</span>
+          {questionNumbers.phlebitis}. บริเวณที่เอาเข็มน้ำเกลือออกที่หลังมือหรือข้อมือ <span className="text-red-500">*</span>
         </label>
         <div className="space-y-2">
           {PHLEBITIS_OPTIONS.map(option => (
@@ -498,7 +535,7 @@ export default function SymptomsForm({ data, onChange, onValidationChange }: Sym
               value={data.phlebitis_description || ''}
               onChange={(e) => onChange({ phlebitis_description: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="เช่น บริเวณหลังมือมีอาการเจ็บเล็กน้อย"
+              placeholder=" "
               rows={1}
             />
           </div>
@@ -508,7 +545,7 @@ export default function SymptomsForm({ data, onChange, onValidationChange }: Sym
       {/* 14. ไหมเย็บแผล */}
       <div>
         <label className="block text-gray-700 font-medium mb-2">
-          {++qNum}. ไหมเย็บแผล <span className="text-red-500">*</span>
+          {questionNumbers.suture}. ไหมเย็บแผล <span className="text-red-500">*</span>
         </label>
         <div className="space-y-2">
           {SUTURE_OPTIONS.map(option => (
@@ -534,7 +571,7 @@ export default function SymptomsForm({ data, onChange, onValidationChange }: Sym
               value={data.suture_description || ''}
               onChange={(e) => onChange({ suture_description: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="เช่น ไหมเย็บหลุดบริเวณใด, หลุดกี่เส้น"
+              placeholder=" "
               rows={1}
             />
           </div>
@@ -544,10 +581,10 @@ export default function SymptomsForm({ data, onChange, onValidationChange }: Sym
       {/* 15. อาการอื่นๆ (multiple) */}
       <div>
         <label className="block text-gray-700 font-medium mb-2">
-          {++qNum}. อาการอื่นๆ (เลือกได้หลายคำตอบ)
+          {questionNumbers.otherSymptoms}. อาการอื่นๆ (เลือกได้หลายคำตอบ)
         </label>
         <div className="space-y-3 border border-gray-200 rounded-lg p-4">
-          {OTHER_SYMPTOMS_OPTIONS.map(symptom => (
+          {OTHER_SYMPTOMS_OPTIONS.filter(symptom => symptom !== 'เวียนหัว' && symptom !== 'ช้ำบริเวณแผลผ่าตัด').map(symptom => (
             <label key={symptom} className="flex items-start">
               <input
                 type="checkbox"
@@ -558,7 +595,7 @@ export default function SymptomsForm({ data, onChange, onValidationChange }: Sym
               <span className="ml-2 text-gray-700">{symptom}</span>
             </label>
           ))}
-          
+
           {/* อาการอื่นๆ - แบบหลายช่อง */}
           <div className="mt-4 pt-4 border-t border-gray-200">
             <label className="block text-gray-700 font-medium mb-3">อาการอื่นๆ ที่ต้องการระบุเพิ่มเติม:</label>
@@ -575,18 +612,16 @@ export default function SymptomsForm({ data, onChange, onValidationChange }: Sym
                       placeholder="ชื่ออาการ"
                     />
                   </div>
-                  
-                  {/* ช่องคำอธิบาย (ยาว ขวา) */}
                   <div className="flex-1">
                     <input
                       type="text"
                       value={symptom.description || ''}
                       onChange={(e) => handleCustomSymptomChange(index, 'description', e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="คำอธิบายอาการ เช่น บริเวณที่เป็น ระยะเวลาที่เกิด"
+                      placeholder="ลักษณะอาการ"
                     />
                   </div>
-                  
+
                   <button
                     type="button"
                     onClick={() => handleRemoveSymptomField(index)}
@@ -616,7 +651,7 @@ export default function SymptomsForm({ data, onChange, onValidationChange }: Sym
       {/* 16. ยาฆ่าเชื้อ */}
       <div>
         <label className="block text-gray-700 font-medium mb-2">
-          {++qNum}. รับประทานยาฆ่าเชื้อครบตามแผนการรักษาหรือไม่? <span className="text-red-500">*</span>
+          {questionNumbers.antibiotic}. รับประทานยาฆ่าเชื้อครบตามแผนการรักษาหรือไม่? <span className="text-red-500">*</span>
         </label>
         <div className="space-y-2">
           {ANTIBIOTIC_OPTIONS.map(option => (
@@ -633,7 +668,7 @@ export default function SymptomsForm({ data, onChange, onValidationChange }: Sym
             </label>
           ))}
         </div>
-        
+
         {/* แสดงช่องกรอกจำนวนครั้งเฉพาะเมื่อเลือก "ลืมทานบางครั้ง" */}
         {data.antibiotic_compliance === 'ลืมทานบางครั้ง' && (
           <div className="mt-3 ml-6">
@@ -653,10 +688,10 @@ export default function SymptomsForm({ data, onChange, onValidationChange }: Sym
         )}
       </div>
 
-      {/* 17. ประคบ */}
+      {/* 17. ประคบเย็น หรือ อุ่นอยู่หรือไม่? */}
       <div>
         <label className="block text-gray-700 font-medium mb-2">
-          {++qNum}. ประคบเย็น หรือ อุ่นอยู่หรือไม่? <span className="text-red-500">*</span>
+          {questionNumbers.compress}. ประคบเย็น หรือ อุ่นอยู่หรือไม่? <span className="text-red-500">*</span>
         </label>
         <div className="space-y-2">
           {COMPRESS_OPTIONS.map(option => (
@@ -675,11 +710,11 @@ export default function SymptomsForm({ data, onChange, onValidationChange }: Sym
         </div>
       </div>
 
-      {/* 19. ลวดมัดฟัน (แสดงถ้าเลือก IMF) */}
+      {/* ลวดมัดฟัน (แสดงถ้าเลือก IMF) */}
       {data.has_imf === 'มีการมัดฟัน' && (
         <div>
           <label className="block text-gray-700 font-medium mb-2">
-            {++qNum}. หากมีการมัดฟันบนและล่างเข้าด้วยกัน ลวด/ยางมัดฟันแน่นดีหรือไม่? <span className="text-red-500">*</span>
+            {questionNumbers.imfWire}. หากมีการมัดฟันบนและล่างเข้าด้วยกัน ลวด/ยางมัดฟันแน่นดีหรือไม่? <span className="text-red-500">*</span>
           </label>
           <div className="space-y-2">
             {IMF_WIRE_OPTIONS.map(option => (
@@ -696,56 +731,56 @@ export default function SymptomsForm({ data, onChange, onValidationChange }: Sym
               </label>
             ))}
           </div>
-        {data.imf_wire_status && (
-          <div className="mt-3 ml-6">
-            <label className="block text-gray-600 text-sm mb-1">
-              คำอธิบายเพิ่มเติมสำหรับอาการ (ไม่บังคับ)
-            </label>
-            <textarea
-              value={data.imf_wire_description || ''}
-              onChange={(e) => onChange({ imf_wire_description: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="เช่น ลวดหลวมบ้างหรือไม่, ยางขาดหรือไม่"
-              rows={1}
-            />
-          </div>
-        )}      </div>
+          {data.imf_wire_status && (
+            <div className="mt-3 ml-6">
+              <label className="block text-gray-600 text-sm mb-1">
+                คำอธิบายเพิ่มเติมสำหรับอาการ (ไม่บังคับ)
+              </label>
+              <textarea
+                value={data.imf_wire_description || ''}
+                onChange={(e) => onChange({ imf_wire_description: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="เช่น ลวดหลวมบ้างหรือไม่, ยางขาดหรือไม่"
+                rows={1}
+              />
+            </div>
+          )}      </div>
       )}
-      {/* 20. การเดิน (แสดงถ้าเลือก ICBG) */}
+      {/*  การเดิน (แสดงถ้าเลือก ICBG) */}
       {data.special_icbg === 'มี' && (
         <div>
           <label className="block text-gray-700 font-medium mb-2">
-            {++qNum}. การเดิน ในผู้ป่วยที่ได้รับการรักษาการแหว่งของสันเหงือกโดยการนำกระดูกสะโพกมาปลูก <span className="text-red-500">*</span>
+            {questionNumbers.walking}. การเดิน ในผู้ป่วยที่ได้รับการปลูกถ่ายกระดูกจากสันกระดูกเชิงกราน <span className="text-red-500">*</span>
           </label>
-        <div className="space-y-2">
-          {WALKING_OPTIONS.map(option => (
-            <label key={option} className="flex items-center">
-              <input
-                type="radio"
-                name="walking"
-                value={option}
-                checked={data.walking_status === option}
-                onChange={(e) => onChange({ walking_status: e.target.value as typeof data.walking_status })}
-                className="w-4 h-4 text-blue-600"
-              />
-              <span className="ml-2 text-gray-700">{option}</span>
-            </label>
-          ))}
-        </div>
-        {data.walking_status && (
-          <div className="mt-3 ml-6">
-            <label className="block text-gray-600 text-sm mb-1">
-              คำอธิบายเพิ่มเติมสำหรับอาการ (ไม่บังคับ)
-            </label>
-            <textarea
-              value={data.walking_description || ''}
-              onChange={(e) => onChange({ walking_description: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="เช่น เดินลำบาก, มีอาการปวดบริเวณสะโพก"
-              rows={1}
-            />
+          <div className="space-y-2">
+            {WALKING_OPTIONS.map(option => (
+              <label key={option} className="flex items-center">
+                <input
+                  type="radio"
+                  name="walking"
+                  value={option}
+                  checked={data.walking_status === option}
+                  onChange={(e) => onChange({ walking_status: e.target.value as typeof data.walking_status })}
+                  className="w-4 h-4 text-blue-600"
+                />
+                <span className="ml-2 text-gray-700">{option}</span>
+              </label>
+            ))}
           </div>
-        )}
+          {data.walking_status && (
+            <div className="mt-3 ml-6">
+              <label className="block text-gray-600 text-sm mb-1">
+                คำอธิบายเพิ่มเติมสำหรับอาการ (ไม่บังคับ)
+              </label>
+              <textarea
+                value={data.walking_description || ''}
+                onChange={(e) => onChange({ walking_description: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder=" "
+                rows={1}
+              />
+            </div>
+          )}
         </div>
       )}
     </div>

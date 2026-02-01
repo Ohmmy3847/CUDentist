@@ -32,8 +32,7 @@ app.add_middleware(
 )
 
 # Initialize LLM
-# Initialize LLM
-llm = build_llm(settings.GOOGLE_API_KEY, settings.MODEL_NAME)
+llm = build_llm(settings.DEEPSEEK_API_KEY, settings.MODEL_NAME)
 logger.info(f"Initialized LLM with model: {settings.MODEL_NAME}")
 
 

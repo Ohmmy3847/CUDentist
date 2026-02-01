@@ -15,9 +15,10 @@ class Settings:
     API_TITLE: str = "Risk Classification API"
     API_VERSION: str = "1.0.0"
     
-    # Google API
+    # API Keys
     GOOGLE_API_KEY: str = os.getenv("GOOGLE_API_KEY", "")
-    MODEL_NAME: str = os.getenv("MODEL_NAME", "gemini-2.0-flash-lite")
+    DEEPSEEK_API_KEY: str = os.getenv("DEEPSEEK_API_KEY", "")
+    MODEL_NAME: str = os.getenv("MODEL_NAME", "deepseek-chat")
     
     # Google Sheets
     GOOGLE_SERVICE_ACCOUNT_JSON: str = os.getenv("GOOGLE_SERVICE_ACCOUNT_JSON", "")

@@ -10,7 +10,7 @@ export interface PatientFormData {
   email?: string;
   phone?: string;
   birth_year?: number;
-  
+
   // 1. อายุ
   age?: number;
 
@@ -29,21 +29,32 @@ export interface PatientFormData {
   // 4.2 Sub-options สำหรับ BSSRO
   bssro_sub_options?: string[];  // setback, advancement, rotation
 
+  // 4.3 หมายเลขซี่ฟันสำหรับผ่าตัดถอนฟัน
+  surgical_tooth_numbers?: string;
+
+  // 4.4 หมายเลขซี่ฟันสำหรับถอนฟัน
+  extraction_tooth_numbers?: string;
+
+  // 4.5 Sub-options สำหรับ Biopsy
+  biopsy_sub_options?: string[];  // excisional, incisional, enucleation
+
   // 5. วันที่ผ่าตัด
   surgery_date?: string;
-  
+
   // 5.1 วันที่ discharge
   discharge_date?: string;
 
-  
+
   // 6. Special Procedures (หัตถการย่อยที่ทำ)
   has_imf?: 'มีการมัดฟัน' | 'ไม่มีการมัดฟัน';
   imf_type?: 'มัดลวด' | 'มัดยาง';
+  imf_wire?: boolean;  // IMF มัดลวด
+  imf_elastic?: boolean;  // IMF มัดยาง
   imf_loops?: number;
-  
+
   special_icbg?: 'มี' | 'ไม่ทำ';
   special_icbg_description?: string;
-  
+
   special_ng_tube?: 'มี' | 'ไม่ทำ';
   special_ng_tube_description?: string;
 
@@ -52,6 +63,7 @@ export interface PatientFormData {
 
   // 6. ระดับความปวด (0-10)
   pain_score?: number;
+  pain_description?: string;
   pain_score_description?: string;
 
   // 7. ทานยาแก้ปวดแล้วดีขึ้นหรือไม่
@@ -101,11 +113,11 @@ export interface PatientFormData {
   imf_wire_description?: string;
 
   // 20. การเดิน (iliac crest bone graft)
-  walking_status?: 'ไม่ได้ทำหัตถการ การรักษาการแหว่งของสันเหงือกโดยการนำกระดูกสะโพกมาปลูก' | 'เดินได้ปกติ' | 'เดินไม่ถนัด' | string;
+  walking_status?: 'เดินได้ปกติ' | 'เดินไม่ถนัด' | string;
   walking_description?: string;
 
   // 21. การแปรงฟัน
-  brushing_teeth?: 'แปรงฟันได้' | 'แปรงฟันไม่ได้' | string;
+  brushing_teeth?: 'แปรงฟันได้' | 'แปรงฟันไม่ถนัด' | string;
   brushing_description?: string;
 
   // 22. การบ้วนปาก
@@ -221,7 +233,6 @@ export const IMF_WIRE_OPTIONS = [
 ] as const;
 
 export const WALKING_OPTIONS = [
-  'ไม่ได้ทำหัตถการ การรักษาการแหว่งของสันเหงือกโดยการนำกระดูกสะโพกมาปลูก',
   'เดินได้ปกติ',
   'เดินไม่ถนัด',
 ] as const;
@@ -252,7 +263,7 @@ export const NG_TUBE_OPTIONS = [
 // Procedure Sub-options
 export const LEFORT_SUB_OPTIONS = [
   'advancement',
-  'setback', 
+  'setback',
   'osteotomy',
   '2pieces',
   'impaction',

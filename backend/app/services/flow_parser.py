@@ -8,6 +8,13 @@ from enum import Enum
 
 
 class RiskLevel(Enum):
+    """
+    ลำดับความสำคัญของความเสี่ยง (จากมากไปน้อย):
+    1. HIGH (ความเสี่ยงสูง)
+    2. MEDIUM (ความเสี่ยงปานกลาง)
+    3. COMPLICATED (ซับซ้อน - เกิดเมื่อผู้ป่วยระบุอาการเพิ่มเติมที่ไม่อยู่ในรายการมาตรฐาน)
+    4. LOW (ความเสี่ยงต่ำ)
+    """
     LOW = "ความเสี่ยงต่ำ"
     MEDIUM = "ความเสี่ยงปานกลาง"
     HIGH = "ความเสี่ยงสูง"
@@ -327,27 +334,42 @@ class RuleEngine:
         อาการอื่นๆ (เลือกได้หลายคำตอบ)
         ตาม flowchart: แต่ละอาการมีระดับความเสี่ยงและคำแนะนำเฉพาะ
         
-        COMPLICATED = เสี่ยงต่ำแต่มีอาการอื่นๆที่ผู้ป่วยระบุเพิ่มเติม (other_symptoms_custom)
+        COMPLICATED = เกิดเมื่อผู้ป่วยกรอกอาการเพิ่มเติม (Add Another) ที่ไม่อยู่ในรายการมาตรฐาน
+                      ผ่าน other_symptoms_custom field
+        ลำดับความสำคัญ: HIGH > MEDIUM > COMPLICATED > LOW
         """
         symptoms = data.get('other_symptoms', [])
         if isinstance(symptoms, str):
             symptoms = [symptoms]
         
+        # DEBUG: Print other_symptoms_custom
+        print(f"🔍 DEBUG other_symptoms_custom RAW: {data.get('other_symptoms_custom')}")
+        print(f"🔍 DEBUG other_symptoms: {symptoms}")
+        
+        # ตรวจสอบว่ามี custom symptoms หรือไม่ (ต้องเช็คก่อนเสมอ)
+        custom_symptoms = data.get('other_symptoms_custom', '')
+        # แปลง list เป็น string
+        if isinstance(custom_symptoms, list):
+            custom_symptoms = ', '.join(str(item) for item in custom_symptoms if item)
+        custom_symptoms = str(custom_symptoms).strip()
+        print(f"🔍 DEBUG custom_symptoms PROCESSED: '{custom_symptoms}'")
+        
+        # ถ้ามี custom symptoms = COMPLICATED ทันที (ไม่ว่าจะมี standard symptoms หรือไม่)
+        if custom_symptoms:
+            symptoms_str = ', '.join(symptoms) if symptoms and len(symptoms) > 0 else ''
+            if symptoms_str:
+                reason = f'มีอาการ: {symptoms_str} และมีอาการอื่นๆที่ผู้ป่วยระบุเพิ่มเติม: {custom_symptoms}'
+            else:
+                reason = f'มีอาการอื่นๆที่ผู้ป่วยระบุเพิ่มเติม: {custom_symptoms}'
+            
+            return {
+                'risk_level': RiskLevel.COMPLICATED.value,
+                'reason': reason,
+                'recommendation': 'ควรปรึกษาพยาบาลหรือทันตแพทย์เพื่อประเมินอาการเพิ่มเติม'
+            }
+        
         # No symptoms
         if not symptoms or len(symptoms) == 0:
-            # ตรวจสอบว่ามีการระบุอาการอื่นๆเพิ่มเติมหรือไม่
-            custom_symptoms = data.get('other_symptoms_custom', '')
-            # แปลง list เป็น string
-            if isinstance(custom_symptoms, list):
-                custom_symptoms = ', '.join(str(item) for item in custom_symptoms if item)
-            custom_symptoms = str(custom_symptoms).strip()
-            
-            if custom_symptoms:
-                return {
-                    'risk_level': RiskLevel.COMPLICATED.value,
-                    'reason': f'มีอาการอื่นๆที่ผู้ป่วยระบุเพิ่มเติม: {custom_symptoms}',
-                    'recommendation': 'ควรปรึกษาพยาบาลหรือทันตแพทย์เพื่อประเมินอาการเพิ่มเติม'
-                }
             return {
                 'risk_level': RiskLevel.LOW.value,
                 'reason': 'ไม่มีอาการอื่นๆ',
@@ -435,24 +457,8 @@ class RuleEngine:
             }
         
         # อาการทั่วไปอื่นๆ (ไม่อยู่ใน list) -> เป็น LOW
-        # แต่ถ้ามี other_symptoms_custom ด้วย -> เปลี่ยนเป็น COMPLICATED
-        custom_symptoms = data.get('other_symptoms_custom', '')
-        # แปลง list เป็น string
-        if isinstance(custom_symptoms, list):
-            custom_symptoms = ', '.join(str(item) for item in custom_symptoms if item)
-        custom_symptoms = str(custom_symptoms).strip()
-        
+        # (custom_symptoms ถูกเช็คไปแล้วข้างบน)
         symptoms_str = ', '.join(symptoms)
-        
-        if custom_symptoms:
-            # มีอาการที่ไม่รู้จัก + มีการระบุเพิ่มเติม = COMPLICATED
-            return {
-                'risk_level': RiskLevel.COMPLICATED.value,
-                'reason': f'มีอาการ: {symptoms_str} และมีอาการอื่นๆที่ผู้ป่วยระบุเพิ่มเติม: {custom_symptoms}',
-                'recommendation': 'ควรปรึกษาพยาบาลหรือทันตแพทย์เพื่อประเมินอาการเพิ่มเติม'
-            }
-        
-        # มีอาการที่ไม่รู้จัก แต่ไม่มีการระบุเพิ่มเติม = LOW
         return {
             'risk_level': RiskLevel.LOW.value,
             'reason': f'มีอาการ: {symptoms_str}',
@@ -555,16 +561,24 @@ class RuleEngine:
         has_imf = data.get('has_imf', '')
         wire_status = data.get('imf_wire_status', '')
         
-        # ถ้าไม่มี IMF
-        if 'ไม่มี' in has_imf or has_imf == 'ไม่':
+        # ถ้าไม่มี IMF (เช็คหลายรูปแบบ)
+        if not has_imf or has_imf == False or 'ไม่มี' in str(has_imf) or has_imf == 'ไม่':
             return {
                 'risk_level': RiskLevel.LOW.value,
                 'reason': 'ไม่มีการมัดฟัน',
                 'recommendation': ''
             }
         
+        # ถ้ามี IMF แต่ไม่มีข้อมูล wire_status
+        if not wire_status or wire_status.strip() == '':
+            return {
+                'risk_level': RiskLevel.UNKNOWN.value,
+                'reason': 'ไม่สามารถประเมิน IMF ได้ (ไม่มีข้อมูลสถานะลวด/ยาง)',
+                'recommendation': ''
+            }
+        
         # ถ้ามี IMF ให้เช็คสถานะลวด
-        if 'แน่นดี' in wire_status:
+        if 'แน่นดี' in wire_status or 'แน่น' in wire_status or 'ดี' in wire_status:
             return {
                 'risk_level': RiskLevel.LOW.value,
                 'reason': 'ลวด/ยางมัดฟันแน่นดี',
@@ -595,16 +609,11 @@ class RuleEngine:
         การเดิน (สำหรับผู้ป่วยที่ได้รับการรักษาโดยการนำกระดูกสะโพกมาปลูก)
         ถ้าไม่ได้ทำหัตถการนี้ให้ข้าม
         """
-        # ตรวจสอบว่าทำหัตถการนี้หรือไม่
-        procedures = data.get('procedures', [])
-        if isinstance(procedures, str):
-            procedures = [procedures]
+        # ตรวจสอบว่าทำหัตถการนี้หรือไม่จาก special_icbg field
+        special_icbg = data.get('special_icbg', '')
         
-        # ถ้าไม่ได้ทำ Iliac crest bone graft ก็ไม่ต้องประเมิน
-        has_bone_graft = any('Iliac' in str(proc) or 'สะโพก' in str(proc) or 'กระดูกสะโพก' in str(proc) 
-                            for proc in procedures)
-        
-        if not has_bone_graft:
+        # ถ้าไม่มีหรือเป็น 'ไม่มี' ก็ไม่ต้องประเมิน
+        if not special_icbg or 'ไม่มี' in str(special_icbg) or special_icbg == 'ไม่':
             return {
                 'risk_level': RiskLevel.NOT_APPLICABLE.value,
                 'reason': 'ไม่ได้ทำหัตถการนำกระดูกสะโพกมาปลูก',
@@ -636,20 +645,38 @@ class RuleEngine:
     def evaluate_brushing(data: Dict[str, Any]) -> Dict[str, str]:
         """
         การแปรงฟัน
+        ตัวเลือก: "แปรงฟันได้" หรือ "แปรงฟันไม่ถนัด"
         """
         brushing = data.get('brushing_teeth', '')
         
-        if 'แปรงได้' in brushing or 'ได้' in brushing:
+        if not brushing or brushing.strip() == '':
+            return {
+                'risk_level': RiskLevel.UNKNOWN.value,
+                'reason': 'ไม่ระบุการแปรงฟัน',
+                'recommendation': ''
+            }
+        
+        # แปรงได้แต่ไม่ถนัด
+        if 'ไม่ถนัด' in brushing or 'แปรงไม่ถนัด' in brushing or 'แปรงฟันไม่ถนัด' in brushing:
+            return {
+                'risk_level': RiskLevel.LOW.value,
+                'reason': 'แปรงฟันไม่ถนัด',
+                'recommendation': 'ใช้แปรงหัวเล็กขนนุ่ม + ยาสีฟันไม่แสบ แปรงเบาๆ หลีกเลี่ยงเหงือกที่มีแผล'
+            }
+        # แปรงได้
+        elif 'แปรงได้' in brushing or 'แปรงฟันได้' in brushing or 'ได้' in brushing:
             return {
                 'risk_level': RiskLevel.LOW.value,
                 'reason': 'แปรงฟันได้',
                 'recommendation': ''
             }
-        elif 'แปรงไม่ได้' in brushing or 'ไม่ได้' in brushing:
+        
+        # Fallback - ถ้ามีคำว่า "แปรง" ก็ถือว่าแปรงได้
+        if 'แปรง' in brushing:
             return {
                 'risk_level': RiskLevel.LOW.value,
-                'reason': 'แปรงฟันไม่ได้',
-                'recommendation': 'ใช้แปรงหัวเล็กขนนุ่ม + ยาสีฟันไม่แสบ แปรงเบาๆ หลีกเลี่ยงเหงือกที่มีแผล'
+                'reason': 'แปรงฟันได้',
+                'recommendation': ''
             }
         
         return {
@@ -665,23 +692,34 @@ class RuleEngine:
         """
         rinsing = data.get('mouth_rinsing', '')
         
-        if 'บ้วนปากได้' in rinsing or 'บ้วนได้' in rinsing:
+        if not rinsing or rinsing.strip() == '':
+            return {
+                'risk_level': RiskLevel.UNKNOWN.value,
+                'reason': 'ไม่ระบุการบ้วนปาก',
+                'recommendation': ''
+            }
+        
+        # เช็คว่าบ้วนไม่ได้ก่อน
+        if 'บ้วนปากไม่ได้' in rinsing or 'บ้วนไม่ได้' in rinsing or 'ไม่ได้บ้วนปาก' in rinsing or 'ไม่ได้บ้วน' in rinsing:
+            return {
+                'risk_level': RiskLevel.LOW.value,
+                'reason': 'บ้วนปากไม่ได้',
+                'recommendation': 'บ้วนปากเบาๆด้วยน้ำเปล่าหรือน้ำยาบ้วนปาก ทุกครั้งหลังทานอาหาร'
+            }
+        # บ้วนได้
+        elif 'บ้วนปากได้' in rinsing or 'บ้วนได้' in rinsing or 'ได้บ้วน' in rinsing:
             return {
                 'risk_level': RiskLevel.LOW.value,
                 'reason': 'บ้วนปากได้',
                 'recommendation': ''
             }
-        elif 'บ้วนปากไม่ได้' in rinsing or 'บ้วนไม่ได้' in rinsing or 'ไม่ได้บ้วนปาก' in rinsing:
+        
+        # ถ้ามีคำว่า "บ้วน" แต่ไม่มี "ไม่ได้" ก็ถือว่าบ้วนได้
+        if 'บ้วน' in rinsing and 'ไม่' not in rinsing:
             return {
                 'risk_level': RiskLevel.LOW.value,
-                'reason': 'บ้วนปากไม่ได้',
-                'recommendation': ''    
-                }
-        elif 'ไม่ได้บ้วน' in rinsing:
-            return {
-                'risk_level': RiskLevel.LOW.value,
-                'reason': 'ไม่ได้บ้วนปาก',
-                'recommendation': 'บ้วนปากเบาๆด้วยน้ำเปล่าหรือน้ำยาบ้วนปาก ทุกครั้งหลังทานอาหาร'
+                'reason': 'บ้วนปากได้',
+                'recommendation': ''
             }
         
         return {
@@ -697,19 +735,26 @@ class RuleEngine:
         """
         feeding = data.get('feeding_method', '')
         
-        if 'syringe' in feeding or 'กระบอกฉีด' in feeding:
+        if not feeding or feeding.strip() == '':
+            return {
+                'risk_level': RiskLevel.UNKNOWN.value,
+                'reason': 'ไม่ระบุวิธีการรับประทานอาหาร',
+                'recommendation': ''
+            }
+        
+        if 'syringe' in feeding.lower() or 'กระบอกฉีด' in feeding or 'ฉีด' in feeding:
             return {
                 'risk_level': RiskLevel.LOW.value,
                 'reason': 'รับประทานอาหารผ่าน syringe',
                 'recommendation': ''
             }
-        elif 'nasogastric' in feeding or 'สายยาง' in feeding or 'NG' in feeding:
+        elif 'nasogastric' in feeding.lower() or 'สายยาง' in feeding or 'ng' in feeding.lower() or 'NG' in feeding:
             return {
                 'risk_level': RiskLevel.LOW.value,
                 'reason': 'รับประทานอาหารผ่าน NG tube',
                 'recommendation': ''
             }
-        elif 'ปกติ' in feeding:
+        elif 'ปกติ' in feeding or 'ได้' in feeding or 'ทาน' in feeding:
             return {
                 'risk_level': RiskLevel.LOW.value,
                 'reason': 'รับประทานอาหารได้ปกติ',
@@ -808,18 +853,28 @@ class RuleEngine:
             'อาการเลือดออก': self.evaluate_bleeding,
             'อาการไข้': self.evaluate_fever,
             'ชา': self.evaluate_numbness,
+            'อาการชา': self.evaluate_numbness,
             'บริเวณที่เอาเข็มน้ำเกลือออกที่หลังมือหรือข้อมือ (phlebitis)': self.evaluate_phlebitis,
             'ไหมเย็บแผล': self.evaluate_suture,
             'อาการอื่นๆ (เลือกได้หลายคำตอบ)': self.evaluate_other_symptoms,
+            'การอื่นๆ': self.evaluate_other_symptoms,  # alias
             'รับประทานยาฆ่าเชื้อครบตามแผนการรักษาหรือไม่?': self.evaluate_antibiotic,
+            'การรับประทานยาเชื้อ': self.evaluate_antibiotic,  # alias
+            'การรับประทานยาฆ่าเชื้อ': self.evaluate_antibiotic,  # alias
             'ประคบเย็น หรือ อุ่นอยู่หรือไม่?': self.evaluate_compress,
+            'การประคบ': self.evaluate_compress,  # alias
             'หากมีการมัดฟันบนและล่างเข้าด้วยกัน ลวดมัดฟันแน่นดีหรือไม่?': self.evaluate_imf,
             'IMF': self.evaluate_imf,
+            'สถานะลวดมัดฟัน (IMF)': self.evaluate_imf,  # alias
             'การเดิน: การรักษาการแหว่งของสันเหงือกโดยการนำกระดูกสะโพกมาปลูก': self.evaluate_walking,
+            'การเดิน': self.evaluate_walking,  # alias
             'ตำแหน่งสายยางให้อาหาร: กรณีในผู้ป่วยที่รับประทานอาหารผ่านทางสายยาง (on NG-nasogastric tube)': self.evaluate_ng_tube,
+            'คำถามสายยาง (NG tube)': self.evaluate_ng_tube,  # alias
             'การแปรงฟัน': self.evaluate_brushing,
             'การบ้วนปาก': self.evaluate_rinsing,
+            'การรับประทานยาเชื้อ': self.evaluate_antibiotic,  # alias duplicate but keep for clarity
             'วิธีการรับประทานอาหาร': self.evaluate_feeding,
+            'การรับประทานอาหาร': self.evaluate_feeding,  # alias
             'ประเภทอาหารที่ทาน (สามารถเลือกได้หลายคำตอบ)': self.evaluate_food_types,
             'ปริมาณอาหารที่ทาน': self.evaluate_food_amount,
         }
