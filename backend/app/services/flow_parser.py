@@ -700,7 +700,7 @@ class RuleEngine:
             }
         
         # 1. บ้วนปากได้ -> ความเสี่ยงต่ำ (ไม่มีคำแนะนำ)
-        if 'บ้วนปากได้' in rinsing or 'บ้วนได้' in rinsing or 'ได้บ้วน' in rinsing:
+        if 'บ้วนปากได้' in rinsing or 'บ้วนได้' in rinsing:
             return {
                 'risk_level': RiskLevel.LOW.value,
                 'reason': 'บ้วนปากได้',
