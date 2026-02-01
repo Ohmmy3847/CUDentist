@@ -1,7 +1,7 @@
 import React from 'react';
 import { Plus, X } from 'lucide-react';
 import type { PatientFormData } from '@/lib';
-import { GENDER_OPTIONS, PROCEDURE_OPTIONS, LEFORT_SUB_OPTIONS, BSSRO_SUB_OPTIONS } from '@/lib';
+import { GENDER_OPTIONS, PROCEDURE_OPTIONS } from '@/lib';
 
 interface BasicInfoFormProps {
   data: PatientFormData;
@@ -9,8 +9,8 @@ interface BasicInfoFormProps {
   onValidationChange?: (isValid: boolean) => void;
 }
 
-export function validateBasicInfo(data: PatientFormData): boolean {
-  // // Validate personal information
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export function validateBasicInfo(_data: PatientFormData): boolean {
   // if (!data.first_name || data.first_name.trim() === '') return false;
   // if (!data.last_name || data.last_name.trim() === '') return false;
 
@@ -46,7 +46,6 @@ export default function BasicInfoForm({ data, onChange, onValidationChange }: Ba
   // Check if specific procedures are selected
   const hasLefortI = data.procedures?.some(p => p.includes('Lefort I')) || false;
   const hasBSSRO = data.procedures?.some(p => p.includes('BSSRO')) || false;
-  const hasExtraction = data.procedures?.some(p => p.includes('ถอนฟัน')) || false;
   const hasBiopsy = data.procedures?.some(p => p.includes('Biopsy')) || false;
 
   // Sync customProcedures from data.procedures when component mounts or data changes
@@ -58,7 +57,7 @@ export default function BasicInfoForm({ data, onChange, onValidationChange }: Ba
     if (customProcs.length > 0 && customProcedures.length === 0) {
       setCustomProcedures(customProcs);
     }
-  }, [data.procedures]);
+  }, [data.procedures, customProcedures.length]);
 
   React.useEffect(() => {
     const isValid = validateBasicInfo(data);

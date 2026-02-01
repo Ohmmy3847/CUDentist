@@ -56,7 +56,13 @@ export default function DailyLifeForm({ data, onChange, onValidationChange, star
     data.mouth_rinsing,
     data.feeding_method,
     data.food_amount,
-    data.ng_tube_position
+    data.ng_tube_position,
+    data.brushing_description,
+    data.rinsing_description,
+    data.feeding_description,
+    data.food_amount_description,
+    data.ng_tube_description,
+    onChange
   ]);
 
   React.useEffect(() => {

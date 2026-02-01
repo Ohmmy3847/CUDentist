@@ -86,7 +86,7 @@ export default function SymptomsForm({ data, onChange, onValidationChange, start
       });
       setCustomSymptoms(parsed);
     }
-  }, [data.other_symptoms_custom]);
+  }, [data.other_symptoms_custom, customSymptoms.length]);
 
   // Clear conditional fields when parent field changes
   React.useEffect(() => {
@@ -152,7 +152,20 @@ export default function SymptomsForm({ data, onChange, onValidationChange, start
     data.numbness_status,
     data.phlebitis,
     data.suture_status,
-    data.walking_status
+    data.walking_status,
+    data.antibiotic_description,
+    data.bleeding_description,
+    data.breathing_description,
+    data.fever_description,
+    data.imf_wire_description,
+    data.imf_wire_status,
+    data.numbness_description,
+    data.pain_medication_effect,
+    data.phlebitis_description,
+    data.suture_description,
+    data.swelling_description,
+    data.walking_description,
+    onChange
   ]);
 
   React.useEffect(() => {
