@@ -699,29 +699,32 @@ class RuleEngine:
                 'recommendation': ''
             }
         
-        # เช็คว่าบ้วนไม่ได้ก่อน
-        if 'บ้วนปากไม่ได้' in rinsing or 'บ้วนไม่ได้' in rinsing or 'ไม่ได้บ้วนปาก' in rinsing or 'ไม่ได้บ้วน' in rinsing:
+        # 1. บ้วนปากได้ -> ความเสี่ยงต่ำ (ไม่มีคำแนะนำ)
+        if 'บ้วนปากได้' in rinsing or 'บ้วนได้' in rinsing or 'ได้บ้วน' in rinsing:
+            return {
+                'risk_level': RiskLevel.LOW.value,
+                'reason': 'บ้วนปากได้',
+                'recommendation': ''
+            }
+            
+        # 2. บ้วนปากไม่ได้ -> ความเสี่ยงต่ำ (ไม่มีคำแนะนำ ตาม Flowchart D2)
+        if 'บ้วนปากไม่ได้' in rinsing or 'บ้วนไม่ได้' in rinsing:
             return {
                 'risk_level': RiskLevel.LOW.value,
                 'reason': 'บ้วนปากไม่ได้',
-                'recommendation': 'บ้วนปากเบาๆด้วยน้ำเปล่าหรือน้ำยาบ้วนปาก ทุกครั้งหลังทานอาหาร'
-            }
-        # บ้วนได้
-        elif 'บ้วนปากได้' in rinsing or 'บ้วนได้' in rinsing or 'ได้บ้วน' in rinsing:
-            return {
-                'risk_level': RiskLevel.LOW.value,
-                'reason': 'บ้วนปากได้',
                 'recommendation': ''
             }
-        
-        # ถ้ามีคำว่า "บ้วน" แต่ไม่มี "ไม่ได้" ก็ถือว่าบ้วนได้
-        if 'บ้วน' in rinsing and 'ไม่' not in rinsing:
+            
+        # 3. ไม่ได้บ้วนปาก -> ความเสี่ยงต่ำ (มีคำแนะนำ ตาม Flowchart D3)
+        # Note: Frontend อาจจะยังไม่มีตัวเลือกนี้ แต่ใส่ Logic รองรับไว้
+        if 'ไม่ได้บ้วนปาก' in rinsing or 'ไม่ได้บ้วน' in rinsing:
             return {
                 'risk_level': RiskLevel.LOW.value,
-                'reason': 'บ้วนปากได้',
-                'recommendation': ''
+                'reason': 'ไม่ได้บ้วนปาก',
+                'recommendation': 'บ้วนปากเบาๆด้วยน้ำเปล่าจามด้วยน้ำยาบ้วนปาก ทุกครั้งหลังทานอาหาร'
             }
         
+        # Fallback
         return {
             'risk_level': RiskLevel.UNKNOWN.value,
             'reason': 'ไม่ระบุการบ้วนปาก',

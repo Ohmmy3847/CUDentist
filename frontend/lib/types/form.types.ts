@@ -278,3 +278,14 @@ export const BSSRO_SUB_OPTIONS = [
   'advancement',
   'rotation',
 ] as const;
+
+export const BRUSHING_TEETH_OPTIONS = [
+  'แปรงฟันได้',
+  'แปรงฟันไม่ถนัด',
+] as const;
+
+export const MOUTH_RINSING_OPTIONS = [
+  'บ้วนปากได้',
+  'บ้วนปากไม่ได้',
+  'ไม่ได้บ้วนปาก',
+] as const;

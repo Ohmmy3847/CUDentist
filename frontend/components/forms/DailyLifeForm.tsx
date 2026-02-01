@@ -3,6 +3,8 @@ import type { PatientFormData } from '@/lib';
 import {
   FOOD_AMOUNT_OPTIONS,
   NG_TUBE_OPTIONS,
+  BRUSHING_TEETH_OPTIONS,
+  MOUTH_RINSING_OPTIONS,
 } from '@/lib';
 
 interface DailyLifeFormProps {
@@ -108,28 +110,19 @@ export default function DailyLifeForm({ data, onChange, onValidationChange, star
           {questionNumbers.brushing}. การแปรงฟัน <span className="text-red-500">*</span>
         </label>
         <div className="space-y-2">
-          <label className="flex items-center">
-            <input
-              type="radio"
-              name="brushing"
-              value="แปรงฟันได้"
-              checked={data.brushing_teeth === 'แปรงฟันได้'}
-              onChange={(e) => onChange({ brushing_teeth: e.target.value })}
-              className="w-4 h-4 text-blue-600"
-            />
-            <span className="ml-2 text-gray-700">แปรงฟันได้</span>
-          </label>
-          <label className="flex items-center">
-            <input
-              type="radio"
-              name="brushing"
-              value="แปรงฟันไม่ถนัด"
-              checked={data.brushing_teeth === 'แปรงฟันไม่ถนัด'}
-              onChange={(e) => onChange({ brushing_teeth: e.target.value })}
-              className="w-4 h-4 text-blue-600"
-            />
-            <span className="ml-2 text-gray-700">แปรงฟันไม่ถนัด</span>
-          </label>
+          {BRUSHING_TEETH_OPTIONS.map(option => (
+            <label key={option} className="flex items-center">
+              <input
+                type="radio"
+                name="brushing"
+                value={option}
+                checked={data.brushing_teeth === option}
+                onChange={(e) => onChange({ brushing_teeth: e.target.value })}
+                className="w-4 h-4 text-blue-600"
+              />
+              <span className="ml-2 text-gray-700">{option}</span>
+            </label>
+          ))}
         </div>
         {data.brushing_teeth && (
           <div className="mt-3 ml-6">
@@ -140,7 +133,7 @@ export default function DailyLifeForm({ data, onChange, onValidationChange, star
               value={data.brushing_description || ''}
               onChange={(e) => onChange({ brushing_description: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="เช่น แปรงบ้างส่วน, ปวดเมื่อแปรง"
+              placeholder=""
               rows={1}
             />
           </div>
@@ -153,28 +146,19 @@ export default function DailyLifeForm({ data, onChange, onValidationChange, star
           {questionNumbers.rinsing}. การบ้วนปากด้วยน้ำยาบ้วนปาก <span className="text-red-500">*</span>
         </label>
         <div className="space-y-2">
-          <label className="flex items-center">
-            <input
-              type="radio"
-              name="rinsing"
-              value="บ้วนปากได้"
-              checked={data.mouth_rinsing === 'บ้วนปากได้'}
-              onChange={(e) => onChange({ mouth_rinsing: e.target.value })}
-              className="w-4 h-4 text-blue-600"
-            />
-            <span className="ml-2 text-gray-700">บ้วนปากได้</span>
-          </label>
-          <label className="flex items-center">
-            <input
-              type="radio"
-              name="rinsing"
-              value="บ้วนปากไม่ได้"
-              checked={data.mouth_rinsing === 'บ้วนปากไม่ได้'}
-              onChange={(e) => onChange({ mouth_rinsing: e.target.value })}
-              className="w-4 h-4 text-blue-600"
-            />
-            <span className="ml-2 text-gray-700">บ้วนปากไม่ได้</span>
-          </label>
+          {MOUTH_RINSING_OPTIONS.map(option => (
+            <label key={option} className="flex items-center">
+              <input
+                type="radio"
+                name="rinsing"
+                value={option}
+                checked={data.mouth_rinsing === option}
+                onChange={(e) => onChange({ mouth_rinsing: e.target.value })}
+                className="w-4 h-4 text-blue-600"
+              />
+              <span className="ml-2 text-gray-700">{option}</span>
+            </label>
+          ))}
         </div>
         {data.mouth_rinsing && (
           <div className="mt-3 ml-6">
