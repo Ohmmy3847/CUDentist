@@ -50,7 +50,9 @@ export interface PatientFormData {
   imf_type?: 'มัดลวด' | 'มัดยาง';
   imf_wire?: boolean;  // IMF มัดลวด
   imf_elastic?: boolean;  // IMF มัดยาง
-  imf_loops?: number;
+  imf_loops?: number;     // Legacy/Combined
+  imf_wire_loops?: number; // จำนวน Loop ของลวด
+  imf_elastic_loops?: number; // จำนวน Loop ของยาง
 
   special_icbg?: 'มี' | 'ไม่ทำ';
   special_icbg_description?: string;

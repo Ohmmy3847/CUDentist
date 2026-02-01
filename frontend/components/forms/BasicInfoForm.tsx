@@ -454,7 +454,7 @@ export default function BasicInfoForm({ data, onChange, onValidationChange }: Ba
                   onChange={(e) => {
                     onChange({ imf_wire: e.target.checked });
                     if (!e.target.checked && !data.imf_elastic) {
-                      onChange({ has_imf: 'ไม่มีการมัดฟัน', imf_loops: undefined });
+                      onChange({ has_imf: 'ไม่มีการมัดฟัน', imf_loops: undefined, imf_wire_loops: undefined });
                     } else if (e.target.checked) {
                       onChange({ has_imf: 'มีการมัดฟัน' });
                     }
@@ -471,8 +471,8 @@ export default function BasicInfoForm({ data, onChange, onValidationChange }: Ba
                   type="number"
                   min="1"
                   max="20"
-                  value={data.imf_loops || ''}
-                  onChange={(e) => onChange({ imf_loops: e.target.value ? parseInt(e.target.value) : undefined })}
+                  value={data.imf_wire_loops || ''}
+                  onChange={(e) => onChange({ imf_wire_loops: e.target.value ? parseInt(e.target.value) : undefined, imf_loops: e.target.value ? parseInt(e.target.value) : undefined })}
                   className="w-32 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 text-sm"
                   placeholder="กรอกจำนวน"
                 />
@@ -490,7 +490,7 @@ export default function BasicInfoForm({ data, onChange, onValidationChange }: Ba
                   onChange={(e) => {
                     onChange({ imf_elastic: e.target.checked });
                     if (!e.target.checked && !data.imf_wire) {
-                      onChange({ has_imf: 'ไม่มีการมัดฟัน', imf_loops: undefined });
+                      onChange({ has_imf: 'ไม่มีการมัดฟัน', imf_loops: undefined, imf_elastic_loops: undefined });
                     } else if (e.target.checked) {
                       onChange({ has_imf: 'มีการมัดฟัน' });
                     }
@@ -507,8 +507,8 @@ export default function BasicInfoForm({ data, onChange, onValidationChange }: Ba
                   type="number"
                   min="1"
                   max="20"
-                  value={data.imf_loops || ''}
-                  onChange={(e) => onChange({ imf_loops: e.target.value ? parseInt(e.target.value) : undefined })}
+                  value={data.imf_elastic_loops || ''}
+                  onChange={(e) => onChange({ imf_elastic_loops: e.target.value ? parseInt(e.target.value) : undefined, imf_loops: e.target.value ? parseInt(e.target.value) : undefined })}
                   className="w-32 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 text-sm"
                   placeholder="กรอกจำนวน"
                 />
