@@ -134,14 +134,12 @@ export default function BasicInfoForm({ data, onChange, onValidationChange }: Ba
         ส่วนที่ 1: ข้อมูลพื้นฐาน
       </h2>
 
-      {/* ข้อมูลส่วนตัว */}
-      <div className="bg-blue-50 p-4 rounded-lg space-y-4">
-        <h3 className="text-lg font-semibold text-gray-800 mb-3">ข้อมูลส่วนตัว</h3>
-        
-        {/* ชื่อจริง */}
+      {/* ข้อมูลส่วนตัว (แยกข้อและใส่เลขข้อ) */}
+      <div className="space-y-4">
+        {/* 1. ชื่อจริง */}
         <div>
           <label className="block text-gray-700 font-medium mb-2">
-            ชื่อจริง <span className="text-red-500">*</span>
+            {++qNum}. ชื่อจริง <span className="text-red-500">*</span>
           </label>
           <input
             type="text"
@@ -152,10 +150,10 @@ export default function BasicInfoForm({ data, onChange, onValidationChange }: Ba
           />
         </div>
 
-        {/* นามสกุล */}
+        {/* 2. นามสกุล */}
         <div>
           <label className="block text-gray-700 font-medium mb-2">
-            นามสกุล <span className="text-red-500">*</span>
+            {++qNum}. นามสกุล <span className="text-red-500">*</span>
           </label>
           <input
             type="text"
@@ -166,10 +164,10 @@ export default function BasicInfoForm({ data, onChange, onValidationChange }: Ba
           />
         </div>
 
-        {/* อีเมล */}
+        {/* 3. อีเมล */}
         <div>
           <label className="block text-gray-700 font-medium mb-2">
-            อีเมล <span className="text-red-500">*</span>
+            {++qNum}. อีเมล <span className="text-red-500">*</span>
           </label>
           <input
             type="email"
@@ -180,10 +178,10 @@ export default function BasicInfoForm({ data, onChange, onValidationChange }: Ba
           />
         </div>
 
-        {/* เบอร์โทร */}
+        {/* 4. เบอร์โทร */}
         <div>
           <label className="block text-gray-700 font-medium mb-2">
-            เบอร์โทรศัพท์ <span className="text-red-500">*</span>
+            {++qNum}. เบอร์โทรศัพท์ <span className="text-red-500">*</span>
           </label>
           <input
             type="tel"
@@ -194,10 +192,10 @@ export default function BasicInfoForm({ data, onChange, onValidationChange }: Ba
           />
         </div>
 
-        {/* ปีเกิด */}
+        {/* 5. ปีเกิด */}
         <div>
           <label className="block text-gray-700 font-medium mb-2">
-            ปีเกิด (พ.ศ.) <span className="text-red-500">*</span>
+            {++qNum}. ปีเกิด (พ.ศ.) <span className="text-red-500">*</span>
           </label>
           <input
             type="text"
@@ -393,12 +391,11 @@ export default function BasicInfoForm({ data, onChange, onValidationChange }: Ba
         </div>
       </div>
 
-      {/* 5. Special Procedures Panel */}
-      <div className="bg-purple-50 border-2 border-purple-200 rounded-lg p-6">
+      {/* Special Procedures Panel (no background) */}
+      <div className="mt-8">
         <label className="block text-gray-800 font-bold text-lg mb-4">
-          {++qNum}. หัตถการย่อยที่ทำ (เลือกได้หลายหัตการ):
+          {++qNum}. หัตถการย่อยที่ทำ (เลือกได้หลายหัตถการ):
         </label>
-
         <div className="space-y-4">
           {/* IMF */}
           <div className="bg-white rounded-lg p-4 border border-purple-200">
@@ -425,7 +422,7 @@ export default function BasicInfoForm({ data, onChange, onValidationChange }: Ba
             </div>
             
             {data.has_imf === 'มีการมัดฟัน' && (
-              <div className="ml-6 space-y-3 p-3 bg-purple-50 rounded">
+              <div className="ml-6 space-y-3 p-3  rounded">
                 <div>
                   <p className="text-sm text-gray-600 mb-2">ประเภท:</p>
                   <div className="flex gap-4">
@@ -560,9 +557,9 @@ export default function BasicInfoForm({ data, onChange, onValidationChange }: Ba
       </div>
 
       {/* Note - หมายเหตุสำหรับหมอและพยาบาล */}
-      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+      <div className="border rounded-lg p-4">
         <label className="block text-gray-700 font-medium mb-2">
-          <span className="text-yellow-700">📋</span> หมายเหตุพิเศษ (สำหรับหมอและพยาบาล)
+           หมายเหตุพิเศษ (สำหรับหมอและพยาบาล)
         </label>
 
         <textarea

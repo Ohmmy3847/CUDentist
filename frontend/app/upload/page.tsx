@@ -3,16 +3,12 @@
 import { useState, useRef } from 'react';
 // import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Upload, FileText, Download, Loader2, CheckCircle, XCircle } from 'lucide-react';
-import { api } from '@/lib';
+import { ArrowLeft, Upload, FileText, Download, CheckCircle, XCircle } from 'lucide-react';
 
 export default function UploadPage() {
   // const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const [processingProgress, setProcessingProgress] = useState({ current: 0, total: 0 });
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [maxConcurrent, setMaxConcurrent] = useState(10);
@@ -49,51 +45,9 @@ export default function UploadPage() {
     e.preventDefault();
   };
 
-  const handleUpload = async () => {
-    if (!file) {
-      setError('กรุณาเลือกไฟล์');
-      return;
-    }
-
-    setIsUploading(true);
-    setError(null);
-    setUploadProgress(0);
-    setProcessingProgress({ current: 0, total: 0 });
-
-    try {
-      const resultBlob = await api.uploadCSV(
-        file, 
-        maxConcurrent, 
-        (uploadPercent, processedRows, totalRows) => {
-          setUploadProgress(uploadPercent);
-          if (processedRows !== undefined && totalRows !== undefined) {
-            setProcessingProgress({ current: processedRows, total: totalRows });
-          }
-        }
-      );
-
-      // Download the result file
-      const url = window.URL.createObjectURL(resultBlob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `risk_assessment_${Date.now()}.csv`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-
-      setSuccess(true);
-      setFile(null);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'เกิดข้อผิดพลาดในการประมวลผล');
-    } finally {
-      setIsUploading(false);
-      setUploadProgress(0);
-      setProcessingProgress({ current: 0, total: 0 });
-    }
+  // Upload functionality removed as requested
+  const handleUpload = () => {
+    setError('ฟีเจอร์อัปโหลด CSV ถูกปิดใช้งาน');
   };
 
   return (
@@ -188,53 +142,7 @@ export default function UploadPage() {
             </p>
           </div>
 
-          {/* Upload Progress */}
-          {isUploading && (
-            <div className="mt-6 space-y-4">
-              {/* Upload Progress */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-gray-700">
-                    {uploadProgress < 100 ? 'กำลังอัปโหลด...' : 'อัปโหลดเสร็จสิ้น'}
-                  </span>
-                  <span className="text-sm font-medium text-cu-pink-600">
-                    {uploadProgress}%
-                  </span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div
-                    className="bg-cu-pink-600 h-2 rounded-full transition-all duration-300"
-                    style={{ width: `${uploadProgress}%` }}
-                  />
-                </div>
-              </div>
 
-              {/* Processing Progress */}
-              {processingProgress.total > 0 && (
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium text-gray-700">
-                      กำลังประมวลผล AI...
-                    </span>
-                    <span className="text-sm font-medium text-blue-600">
-                      {processingProgress.current} / {processingProgress.total} รายการ
-                    </span>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div
-                      className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                      style={{ 
-                        width: `${(processingProgress.current / processingProgress.total) * 100}%` 
-                      }}
-                    />
-                  </div>
-                  <p className="text-xs text-gray-500 mt-1">
-                    ใช้เวลาประมาณ {Math.ceil((processingProgress.total - processingProgress.current) / maxConcurrent)} วินาที
-                  </p>
-                </div>
-              )}
-            </div>
-          )}
 
           {/* Error Message */}
           {error && (
@@ -258,23 +166,14 @@ export default function UploadPage() {
             </div>
           )}
 
-          {/* Upload Button */}
+          {/* Upload Button (disabled) */}
           <button
             onClick={handleUpload}
-            disabled={!file || isUploading}
-            className="w-full mt-6 flex items-center justify-center px-6 py-4 bg-cu-pink-600 text-white rounded-lg font-medium hover:bg-cu-pink-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
+            disabled={true}
+            className="w-full mt-6 flex items-center justify-center px-6 py-4 bg-gray-300 text-white rounded-lg font-medium cursor-not-allowed"
           >
-            {isUploading ? (
-              <>
-                <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                กำลังประมวลผล...
-              </>
-            ) : (
-              <>
-                <Upload className="w-5 h-5 mr-2" />
-                อัปโหลดและประเมินความเสี่ยง
-              </>
-            )}
+            <Upload className="w-5 h-5 mr-2" />
+            ฟีเจอร์อัปโหลด CSV ถูกปิดใช้งาน
           </button>
         </div>
 

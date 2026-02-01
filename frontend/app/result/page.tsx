@@ -78,10 +78,9 @@ export default function ResultPage() {
       sessionStorage.removeItem('isProcessing');
 
       try {
-        const sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
         // Import api dynamically to avoid circular dependencies
-        const { api, logApi } = await import('@/lib');
+        const { api } = await import('@/lib');
 
         // Comprehensive patient assessment (3-layer response)
         const classificationResult = await api.assessPatient(
