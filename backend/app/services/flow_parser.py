@@ -234,7 +234,7 @@ class RuleEngine:
             return {
                 'risk_level': RiskLevel.HIGH.value,
                 'reason': 'มีไข้ (มากกว่า 38°C)',
-                'recommendation': 'เช็ดตัว ทานยาลดไข้(พาราเซตามอล)'
+                'recommendation': 'ทานยาลดไข้(พาราเซตามอล)'
             }
         
         return {
@@ -413,7 +413,7 @@ class RuleEngine:
             return {
                 'risk_level': RiskLevel.LOW.value,
                 'reason': 'ช้ำ',
-                'recommendation': 'ประคบเย็นกรณีแผลฟกช้ำสีแดงอมม่วง หรือประคบอุ่นหากแผลฟกช้ำเริ่มเป็นสีเขียว โดยประคบนอกช่องปากบริเวณที่ช้ำ และกลับมาพบทันตแพทย์ทันทีหากมีอาการหายใจลำบาก'
+                'recommendation': 'ประคบเย็นกรณีแผลฟกช้ำสีแดงอมม่วง หรือประคบอุ่นหากแผลฟกช้ำเริ่มเป็นสีเขียว โดยประคบนอกช่องปากบริเวณที่ช้ำ'
             }
         
         # ความเสี่ยงต่ำ: ท้องเสีย
@@ -588,7 +588,7 @@ class RuleEngine:
             return {
                 'risk_level': RiskLevel.HIGH.value,
                 'reason': 'ลวดมัดฟันหลวม อ้าปากได้เล็กน้อย',
-                'recommendation': 'ติดต่อพยาบาลเพื่อทำการนัดหมายกับทันตแพทย์ทันที'
+                'recommendation': ''
             }
         elif 'ยางขาด' in wire_status and 'อ้าปากไม่ได้' in wire_status:
             return {

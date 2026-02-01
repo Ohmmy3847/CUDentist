@@ -1,7 +1,6 @@
 import React from 'react';
 import type { PatientFormData } from '@/lib';
 import {
-  FEEDING_METHOD_OPTIONS,
   FOOD_AMOUNT_OPTIONS,
   NG_TUBE_OPTIONS,
 } from '@/lib';
@@ -38,9 +37,7 @@ export default function DailyLifeForm({ data, onChange, onValidationChange, star
     if (!data.mouth_rinsing && data.rinsing_description) {
       updates.rinsing_description = undefined;
     }
-    if (!data.feeding_method && data.feeding_description) {
-      updates.feeding_description = undefined;
-    }
+
     if (!data.food_amount && data.food_amount_description) {
       updates.food_amount_description = undefined;
     }
@@ -54,12 +51,10 @@ export default function DailyLifeForm({ data, onChange, onValidationChange, star
   }, [
     data.brushing_teeth,
     data.mouth_rinsing,
-    data.feeding_method,
     data.food_amount,
     data.ng_tube_position,
     data.brushing_description,
     data.rinsing_description,
-    data.feeding_description,
     data.food_amount_description,
     data.ng_tube_description,
     onChange
@@ -93,7 +88,6 @@ export default function DailyLifeForm({ data, onChange, onValidationChange, star
 
     numbers.brushing = ++num; // Brushing teeth (always)
     numbers.rinsing = ++num; // Mouth rinsing (always)
-    numbers.feeding = ++num; // Feeding method (always)
     numbers.foodTypes = ++num; // Food types (always)
     numbers.foodAmount = ++num; // Food amount (always)
     numbers.questions = ++num; // Additional questions (always)
@@ -191,48 +185,14 @@ export default function DailyLifeForm({ data, onChange, onValidationChange, star
               value={data.rinsing_description || ''}
               onChange={(e) => onChange({ rinsing_description: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="เช่น บ้วนบ้างส่วน, บ้วนลำบาก"
+              placeholder=""
               rows={1}
             />
           </div>
         )}
       </div>
 
-      {/* 23. วิธีการรับประทานอาหาร */}
-      <div>
-        <label className="block text-gray-700 font-medium mb-2">
-          {questionNumbers.feeding}. วิธีการรับประทานอาหาร <span className="text-red-500">*</span>
-        </label>
-        <div className="space-y-2">
-          {FEEDING_METHOD_OPTIONS.map(option => (
-            <label key={option} className="flex items-center">
-              <input
-                type="radio"
-                name="feeding_method"
-                value={option}
-                checked={data.feeding_method === option}
-                onChange={(e) => onChange({ feeding_method: e.target.value })}
-                className="w-4 h-4 text-blue-600"
-              />
-              <span className="ml-2 text-gray-700">{option}</span>
-            </label>
-          ))}
-        </div>
-        {data.feeding_method && (
-          <div className="mt-3 ml-6">
-            <label className="block text-gray-600 text-sm mb-1">
-              คำอธิบายเพิ่มเติม (ไม่บังคับ)
-            </label>
-            <textarea
-              value={data.feeding_description || ''}
-              onChange={(e) => onChange({ feeding_description: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder=" "
-              rows={1}
-            />
-          </div>
-        )}
-      </div>
+
 
       {/* 24. ประเภทอาหาร */}
       <div>
@@ -284,7 +244,7 @@ export default function DailyLifeForm({ data, onChange, onValidationChange, star
                 }
               }}
               className="ml-2 px-3 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent flex-1"
-              placeholder="ระบุประเภทอาหาร"
+              placeholder=""
             />
           </div>
         </div>
@@ -319,7 +279,7 @@ export default function DailyLifeForm({ data, onChange, onValidationChange, star
               value={data.food_amount_description || ''}
               onChange={(e) => onChange({ food_amount_description: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="เช่น ทานน้อยลงประมาณเท่าไร, ทานวันละ 2-3 คำ"
+              placeholder=""
               rows={1}
             />
           </div>
@@ -370,7 +330,7 @@ export default function DailyLifeForm({ data, onChange, onValidationChange, star
                 value={data.ng_tube_description || ''}
                 onChange={(e) => onChange({ ng_tube_description: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="เช่น สายเลื่อนออกมาประมาณเท่าไร"
+                placeholder=""
                 rows={1}
               />
             </div>

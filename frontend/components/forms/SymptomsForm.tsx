@@ -297,7 +297,7 @@ export default function SymptomsForm({ data, onChange, onValidationChange, start
               value={data.pain_score_description || ''}
               onChange={(e) => onChange({ pain_score_description: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="เช่น ปวดตุ๊บๆ, ปวดจี๊ดๆ, ปวดตลอดเวลา"
+              placeholder=""
               rows={1}
             />
           </div>
@@ -334,7 +334,7 @@ export default function SymptomsForm({ data, onChange, onValidationChange, start
               value={data.pain_description || ''}
               onChange={(e) => onChange({ pain_description: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="เช่น ลักษณะ/ตำแหน่ง/ระยะเวลาที่ปวด"
+              placeholder=""
               rows={1}
             />
           </div>
@@ -371,7 +371,7 @@ export default function SymptomsForm({ data, onChange, onValidationChange, start
               value={data.swelling_description || ''}
               onChange={(e) => onChange({ swelling_description: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder=" "
+              placeholder=""
               rows={1}
             />
           </div>
@@ -452,7 +452,7 @@ export default function SymptomsForm({ data, onChange, onValidationChange, start
               value={data.bleeding_description || ''}
               onChange={(e) => onChange({ bleeding_description: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder=" "
+              placeholder=""
               rows={1}
             />
           </div>
@@ -497,7 +497,7 @@ export default function SymptomsForm({ data, onChange, onValidationChange, start
               value={data.fever_description || ''}
               onChange={(e) => onChange({ fever_description: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="เช่น อุณหภูมิเท่าไร, มีไข้เป็นช่วงๆ"
+              placeholder="บันทึกอุณหภูมิ"
               rows={1}
             />
           </div>
@@ -533,7 +533,7 @@ export default function SymptomsForm({ data, onChange, onValidationChange, start
               value={data.numbness_description || ''}
               onChange={(e) => onChange({ numbness_description: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="ระบุบริเวณที่ชา เช่น ชาบริเวณริมฝีปากล่าง, ชาบริเวณหลังคอ"
+              placeholder="บันทึกบริเวณที่ชา เช่น บริเวณริมฝีปากล่างขวา"
               rows={1}
             />
           </div>
@@ -618,7 +618,7 @@ export default function SymptomsForm({ data, onChange, onValidationChange, start
           {questionNumbers.otherSymptoms}. อาการอื่นๆ (เลือกได้หลายคำตอบ)
         </label>
         <div className="space-y-3 border border-gray-200 rounded-lg p-4">
-          {OTHER_SYMPTOMS_OPTIONS.filter(symptom => symptom !== 'เวียนหัว' && symptom !== 'ช้ำบริเวณแผลผ่าตัด').map(symptom => (
+          {OTHER_SYMPTOMS_OPTIONS.filter(symptom => symptom !== 'เวียนหัว').map(symptom => (
             <label key={symptom} className="flex items-start">
               <input
                 type="checkbox"
@@ -775,7 +775,7 @@ export default function SymptomsForm({ data, onChange, onValidationChange, start
                   value={data.imf_wire_description || ''}
                   onChange={(e) => onChange({ imf_wire_description: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="เช่น ลวดหลวมบ้างหรือไม่, ยางขาดหรือไม่"
+                  placeholder=""
                   rows={1}
                 />
               </div>
@@ -813,7 +813,7 @@ export default function SymptomsForm({ data, onChange, onValidationChange, start
                   value={data.walking_description || ''}
                   onChange={(e) => onChange({ walking_description: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder=" "
+                  placeholder=""
                   rows={1}
                 />
               </div>

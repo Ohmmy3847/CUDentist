@@ -143,9 +143,6 @@ const getDynamicLabels = (data: PatientFormData | null): Record<string, string> 
   addLabel('mouth_rinsing', 'การบ้วนปาก');
   baseLabels['rinsing_description'] = `${qNum}.1 คำอธิบายการบ้วนปาก`;
 
-  addLabel('feeding_method', 'วิธีการรับประทานอาหาร');
-  baseLabels['feeding_description'] = `${qNum}.1 คำอธิบายการทานอาหาร`;
-
   addLabel('food_types', 'ประเภทอาหาร');
   baseLabels['food_types_custom'] = `${qNum}.1 อาหารอื่นๆ`;
 
@@ -575,7 +572,6 @@ export default function ResultPage() {
                         // Daily Life
                         'brushing_teeth', 'brushing_description',
                         'mouth_rinsing', 'rinsing_description',
-                        'feeding_method', 'feeding_description',
                         'food_types', 'food_types_custom', 'food_amount', 'food_amount_description',
                         'additional_questions',
                         'ng_tube_position', 'ng_tube_description'
