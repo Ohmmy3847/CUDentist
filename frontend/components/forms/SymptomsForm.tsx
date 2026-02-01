@@ -101,6 +101,10 @@ export default function SymptomsForm({ data, onChange, onValidationChange, start
       updates.pain_medication_effect = undefined;
     }
 
+    if (data.pain_score === undefined && data.pain_score_description) {
+      updates.pain_score_description = undefined;
+    }
+
     // ถ้าไม่มีการมัดฟัน ให้ล้าง imf_wire_status และ description
     if (!hasIMF && (data.imf_wire_status || data.imf_wire_description)) {
       updates.imf_wire_status = undefined;
@@ -161,6 +165,7 @@ export default function SymptomsForm({ data, onChange, onValidationChange, start
     data.imf_wire_status,
     data.numbness_description,
     data.pain_medication_effect,
+    data.pain_score_description,
     data.phlebitis_description,
     data.suture_description,
     data.swelling_description,
@@ -271,17 +276,32 @@ export default function SymptomsForm({ data, onChange, onValidationChange, start
               </button>
             ))}
           </div>
-          <div className="text-center mt-3">
-            {data.pain_score !== undefined ? (
-              <>
-                <span className="text-3xl font-bold text-blue-600">{data.pain_score}</span>
-                <span className="text-gray-600"> / 10</span>
-              </>
-            ) : (
-              <span className="text-gray-400">กรุณาเลือกระดับความปวด</span>
-            )}
-          </div>
         </div>
+        <div className="text-center mt-3">
+          {data.pain_score !== undefined ? (
+            <>
+              <span className="text-3xl font-bold text-blue-600">{data.pain_score}</span>
+              <span className="text-gray-600"> / 10</span>
+            </>
+          ) : (
+            <span className="text-gray-400">กรุณาเลือกระดับความปวด</span>
+          )}
+        </div>
+
+        {data.pain_score !== undefined && (
+          <div className="mt-3 ml-6">
+            <label className="block text-gray-600 text-sm mb-1">
+              คำอธิบายเพิ่มเติมสำหรับอาการปวด (ไม่บังคับ)
+            </label>
+            <textarea
+              value={data.pain_score_description || ''}
+              onChange={(e) => onChange({ pain_score_description: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="เช่น ปวดตุ๊บๆ, ปวดจี๊ดๆ, ปวดตลอดเวลา"
+              rows={1}
+            />
+          </div>
+        )}
       </div>
 
       {/* 7. ยาแก้ปวดมีผลหรือไม่ - แสดงเฉพาะเมื่อ pain_score > 0 */}
@@ -319,7 +339,8 @@ export default function SymptomsForm({ data, onChange, onValidationChange, start
             />
           </div>
         </div>
-      )}
+      )
+      }
 
       {/* 8. อาการบวม */}
       <div>
@@ -724,78 +745,82 @@ export default function SymptomsForm({ data, onChange, onValidationChange, start
       </div>
 
       {/* ลวดมัดฟัน (แสดงถ้าเลือก IMF) */}
-      {data.has_imf === 'มีการมัดฟัน' && (
-        <div>
-          <label className="block text-gray-700 font-medium mb-2">
-            {questionNumbers.imfWire}. หากมีการมัดฟันบนและล่างเข้าด้วยกัน ลวด/ยางมัดฟันแน่นดีหรือไม่? <span className="text-red-500">*</span>
-          </label>
-          <div className="space-y-2">
-            {IMF_WIRE_OPTIONS.map(option => (
-              <label key={option} className="flex items-center">
-                <input
-                  type="radio"
-                  name="imf_wire"
-                  value={option}
-                  checked={data.imf_wire_status === option}
-                  onChange={(e) => onChange({ imf_wire_status: e.target.value as typeof data.imf_wire_status })}
-                  className="w-4 h-4 text-blue-600"
-                />
-                <span className="ml-2 text-gray-700">{option}</span>
-              </label>
-            ))}
-          </div>
-          {data.imf_wire_status && (
-            <div className="mt-3 ml-6">
-              <label className="block text-gray-600 text-sm mb-1">
-                คำอธิบายเพิ่มเติมสำหรับอาการ (ไม่บังคับ)
-              </label>
-              <textarea
-                value={data.imf_wire_description || ''}
-                onChange={(e) => onChange({ imf_wire_description: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="เช่น ลวดหลวมบ้างหรือไม่, ยางขาดหรือไม่"
-                rows={1}
-              />
+      {
+        data.has_imf === 'มีการมัดฟัน' && (
+          <div>
+            <label className="block text-gray-700 font-medium mb-2">
+              {questionNumbers.imfWire}. หากมีการมัดฟันบนและล่างเข้าด้วยกัน ลวด/ยางมัดฟันแน่นดีหรือไม่? <span className="text-red-500">*</span>
+            </label>
+            <div className="space-y-2">
+              {IMF_WIRE_OPTIONS.map(option => (
+                <label key={option} className="flex items-center">
+                  <input
+                    type="radio"
+                    name="imf_wire"
+                    value={option}
+                    checked={data.imf_wire_status === option}
+                    onChange={(e) => onChange({ imf_wire_status: e.target.value as typeof data.imf_wire_status })}
+                    className="w-4 h-4 text-blue-600"
+                  />
+                  <span className="ml-2 text-gray-700">{option}</span>
+                </label>
+              ))}
             </div>
-          )}      </div>
-      )}
+            {data.imf_wire_status && (
+              <div className="mt-3 ml-6">
+                <label className="block text-gray-600 text-sm mb-1">
+                  คำอธิบายเพิ่มเติมสำหรับอาการ (ไม่บังคับ)
+                </label>
+                <textarea
+                  value={data.imf_wire_description || ''}
+                  onChange={(e) => onChange({ imf_wire_description: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="เช่น ลวดหลวมบ้างหรือไม่, ยางขาดหรือไม่"
+                  rows={1}
+                />
+              </div>
+            )}      </div>
+        )
+      }
       {/*  การเดิน (แสดงถ้าเลือก ICBG) */}
-      {data.special_icbg === 'มี' && (
-        <div>
-          <label className="block text-gray-700 font-medium mb-2">
-            {questionNumbers.walking}. การเดิน ในผู้ป่วยที่ได้รับการปลูกถ่ายกระดูกจากสันกระดูกเชิงกราน <span className="text-red-500">*</span>
-          </label>
-          <div className="space-y-2">
-            {WALKING_OPTIONS.map(option => (
-              <label key={option} className="flex items-center">
-                <input
-                  type="radio"
-                  name="walking"
-                  value={option}
-                  checked={data.walking_status === option}
-                  onChange={(e) => onChange({ walking_status: e.target.value as typeof data.walking_status })}
-                  className="w-4 h-4 text-blue-600"
-                />
-                <span className="ml-2 text-gray-700">{option}</span>
-              </label>
-            ))}
-          </div>
-          {data.walking_status && (
-            <div className="mt-3 ml-6">
-              <label className="block text-gray-600 text-sm mb-1">
-                คำอธิบายเพิ่มเติมสำหรับอาการ (ไม่บังคับ)
-              </label>
-              <textarea
-                value={data.walking_description || ''}
-                onChange={(e) => onChange({ walking_description: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder=" "
-                rows={1}
-              />
+      {
+        data.special_icbg === 'มี' && (
+          <div>
+            <label className="block text-gray-700 font-medium mb-2">
+              {questionNumbers.walking}. การเดิน ในผู้ป่วยที่ได้รับการปลูกถ่ายกระดูกจากสันกระดูกเชิงกราน <span className="text-red-500">*</span>
+            </label>
+            <div className="space-y-2">
+              {WALKING_OPTIONS.map(option => (
+                <label key={option} className="flex items-center">
+                  <input
+                    type="radio"
+                    name="walking"
+                    value={option}
+                    checked={data.walking_status === option}
+                    onChange={(e) => onChange({ walking_status: e.target.value as typeof data.walking_status })}
+                    className="w-4 h-4 text-blue-600"
+                  />
+                  <span className="ml-2 text-gray-700">{option}</span>
+                </label>
+              ))}
             </div>
-          )}
-        </div>
-      )}
-    </div>
+            {data.walking_status && (
+              <div className="mt-3 ml-6">
+                <label className="block text-gray-600 text-sm mb-1">
+                  คำอธิบายเพิ่มเติมสำหรับอาการ (ไม่บังคับ)
+                </label>
+                <textarea
+                  value={data.walking_description || ''}
+                  onChange={(e) => onChange({ walking_description: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder=" "
+                  rows={1}
+                />
+              </div>
+            )}
+          </div>
+        )
+      }
+    </div >
   );
 }

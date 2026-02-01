@@ -189,7 +189,7 @@ export default function BasicInfoForm({ data, onChange, onValidationChange }: Ba
             value={data.phone || ''}
             onChange={(e) => onChange({ phone: e.target.value })}
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            placeholder="0812345678"
+            placeholder="กรอกเบอร์โทรศัพท์ เช่น 0xx-xxx-xxxx"
           />
         </div>
 
@@ -210,7 +210,7 @@ export default function BasicInfoForm({ data, onChange, onValidationChange }: Ba
               }
             }}
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            placeholder="เช่น 2540"
+            placeholder="กรอกปีเกิด"
           />
         </div>
       </div>
@@ -622,7 +622,7 @@ export default function BasicInfoForm({ data, onChange, onValidationChange }: Ba
           value={data.note || ''}
           onChange={(e) => onChange({ note: e.target.value })}
           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
-          placeholder="เช่น ผู้ป่วยมีอาการแพ้ยา Amoxicillin เกิดผื่นขึ้น, เลือดออกมากหลังผ่าตัด ต้องให้ยาห้ามเลือดเพิ่ม"
+          placeholder=""
           rows={4}
         />
       </div>
