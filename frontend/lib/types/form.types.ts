@@ -126,9 +126,7 @@ export interface PatientFormData {
   mouth_rinsing?: 'บ้วนปากได้' | 'บ้วนปากไม่ได้' | string;
   rinsing_description?: string;
 
-  // 23. วิธีการรับประทานอาหาร
-  feeding_method?: 'รับประทานอาหารผ่านกระบอกฉีดยา (syringe)' | 'รับประทานอาหารผ่านสายยาง (nasogastric tube)' | 'รับประทานอาหารได้ปกติ' | string;
-  feeding_description?: string;
+
 
   // 24. ประเภทอาหาร (multiple choice)
   food_types?: string[];

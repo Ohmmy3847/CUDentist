@@ -4,7 +4,6 @@ from langchain_core.output_parsers import PydanticOutputParser
 import asyncio
 from typing import List, Dict, Any
 
-from app.core.flows import FLOWS
 from app.core.constants import (
     FIELD_LABELS,
     FORM_COLUMNS,
@@ -14,6 +13,14 @@ from app.core.constants import (
     PHONE_NUMBER
 )
 from app.services.flow_parser import RuleEngine
+from app.services.prompts import (
+    build_description_analysis_prompt,
+    build_high_risk_prompt,
+    build_medium_risk_prompt,
+    build_complex_case_prompt,
+    build_low_risk_prompt,
+    build_patient_question_prompt
+)
 
 
 # ------------------------------------------------------------
@@ -106,24 +113,17 @@ def analyze_description_field(
     from langchain_core.output_parsers import PydanticOutputParser
     parser = PydanticOutputParser(pydantic_object=DescriptionAnalysisOutput)
     
-    # สร้าง prompt แบบมี condition
-    role = "คุณเป็นพยาบาลหญิงที่วิเคราะห์อาการผู้ป่วย"
-    if proc_str:
-        role += f"หลัง{proc_str}"
+    # สร้าง prompt
+    prompt = build_description_analysis_prompt(
+        main_field_label=main_field_label,
+        desc_field_label=desc_field_label,
+        description=description,
+        main_value=main_value,
+        proc_str=proc_str,
+        format_instructions=parser.get_format_instructions()
+    )
     
-    prompt = f"""
-{role}
-
-【 Section: {main_field_label} 】
-- คำตอบหลัก: {main_value}
-- {desc_field_label}: "{description}"
-{f'- หัตถการที่ทำ: {proc_str}' if proc_str else ''}
-
-งาน: วิเคราะห์คำอธิบายเพิ่มเติมว่ามีสัญญาณเสี่ยงที่ต้องระวังหรือไม่
-
-{parser.get_format_instructions()}
-"""
-     # 👇 เพิ่ม logging
+    # 👇 เพิ่ม logging
     print("\n" + "="*80)
     print(f"📝 PROMPT: analyze_description_field ({main_field_label})")
     print("="*80)
@@ -352,15 +352,7 @@ def _generate_patient_summary(
     Returns:
         str: Summary text สำหรับผู้ป่วย ตาม format ที่กำหนด
     """
-    # แปลง procedures
-    if procedures and procedures != 'ไม่ระบุ':
-        if isinstance(procedures, list):
-            proc_list = [str(p) for p in procedures if p]
-            procedures_text = ', '.join(proc_list) if proc_list else ""
-        else:
-            procedures_text = str(procedures)
-    else:
-        procedures_text = ""
+
     
     # เตรียมข้อมูลสำหรับ prompt
     name_text = f"คุณ{patient_name}" if patient_name else ""
@@ -375,19 +367,19 @@ def _generate_patient_summary(
     
     # เลือก prompt ตามระดับความเสี่ยง
     if is_complex or has_complicated:
-        prompt = _build_complex_case_prompt(
+        prompt = build_complex_case_prompt(
             name_text, all_risk_items, recommendations_context
         )
     elif 'สูง' in overall_risk:
-        prompt = _build_high_risk_prompt(
+        prompt = build_high_risk_prompt(
             name_text, high_risk, medium_risk, low_risk, recommendations_context
         )
     elif 'กลาง' in overall_risk or 'ปานกลาง' in overall_risk:
-        prompt = _build_medium_risk_prompt(
+        prompt = build_medium_risk_prompt(
             name_text, high_risk, medium_risk, low_risk, recommendations_context
         )
     else:  # ความเสี่ยงต่ำ
-        prompt = _build_low_risk_prompt(
+        prompt = build_low_risk_prompt(
             name_text, all_risk_items, recommendations_context
         )
     
@@ -403,220 +395,6 @@ def _generate_patient_summary(
     except Exception as e:
         print(f"Error generating patient summary: {e}")
         return _generate_fallback_summary_text(overall_risk, name_text)
-
-
-def _build_high_risk_prompt(
-    name_text: str,
-    high_risk: List[str],
-    medium_risk: List[str],
-    low_risk: List[str],
-    recommendations_context: str
-) -> str:
-    """สร้าง prompt สำหรับกรณีเสี่ยงสูง"""
-    return f"""คุณเป็นพยาบาลที่สื่อสารกับผู้ป่วยผ่าน LINE
-
-รายละเอียดความเสี่ยงสูง:
-{chr(10).join(f'{i+1}. {item}' for i, item in enumerate(high_risk)) if high_risk else '- ไม่มี'}
-
-รายละเอียดความเสี่ยงปานกลาง:
-{chr(10).join(f'{i+1}. {item}' for i, item in enumerate(medium_risk)) if medium_risk else '- ไม่มี'}
-
-รายละเอียดความเสี่ยงต่ำ:
-{chr(10).join(f'{i+1}. {item}' for i, item in enumerate(low_risk)) if low_risk else '- ไม่มี'}
-{recommendations_context}
-
-งาน: สร้างข้อความตาม FORMAT ด้านล่างนี้ให้ตรงทุกรายละเอียด
-
-**FORMAT ที่ต้องการ:**
-
-จากการประเมิน พบว่า{name_text} มีความเสี่ยงต่อการเกิดภาวะแทรกซ้อนหลังการผ่าตัดในช่องปากในระดับสูง
-เนื่องจาก [สรุปสาเหตุหลักจากรายละเอียดความเสี่ยงสูง]
-
-แนะนำ:
-• [หัวข้อสั้นๆ 3-5 คำ]: [คำแนะนำเต็มจาก recommendations_context]
-• [หัวข้อสั้นๆ 3-5 คำ]: [คำแนะนำเต็มจาก recommendations_context]
-แนะนำให้ติดต่อพยาบาลโดยเร็ว โทร {PHONE_NUMBER} เพื่อรับการประเมินอาการหรือนัดหมายเป็นกรณีพิเศษ
-
-คำแนะนำเพิ่มเติมตามอาการ
-• [หัวข้อสั้นๆ 3-5 คำ]: [คำแนะนำเต็มจาก recommendations_context]
-• [หัวข้อสั้นๆ 3-5 คำ]: [คำแนะนำเต็มจาก recommendations_context]
-
-**กฎที่ต้องปฏิบัติอย่างเคร่งครัด:**
-
-1. **ห้ามใช้ markdown** (**, *, -, #) และ **ห้ามใช้ emoji** ทุกชนิด
-2. ใช้ข้อความ plain text เท่านั้น
-3. **ห้ามใส่วงเล็บ ()** ในทุกส่วน - ห้ามใส่คำอธิบายหรืออาการในวงเล็บ
-4. **หัวข้ออาการ:**
-   - ย่อให้สั้น 3-5 คำเท่านั้น จับคีย์เวิร์ดสำคัญ
-   - ห้ามใช้ "อาการอื่นๆ" - ต้องระบุอาการชัดเจน
-   - ตัวอย่างที่ถูก: "ปวดหัว", "ยาฆ่าเชื้อ", "การประคบ", "การเดิน"
-   - ตัวอย่างที่ผิด: "อาการปวดหัว (ที่ยาแก้ไม่หาย)", "อาการอื่นๆ"
-5. **คำแนะนำ:**
-   - คัดลอกคำแนะนำเต็มจาก recommendations_context ทุกคำ
-   - ห้ามขึ้นต้นด้วย "แนะนำ" - เริ่มจากการกระทำเลย
-   - ตัดคำว่า "พบแพทย์", "พบพยาบาล", "ติดต่อแพทย์", "ติดต่อพยาบาล" ออก
-   - ถ้าคำแนะนำมีแค่ "ติดต่อพยาบาล/แพทย์" อย่างเดียว → ข้าม ไม่แสดง
-6. **ตัวอย่างที่ถูกต้อง:**
-   • ปวดหัว: ทานยาแก้ปวดตามทันตแพทย์สั่ง
-   • ยาฆ่าเชื้อ: รีบทานทันทีที่นึกได้ หากใกล้เวลามื้อถัดไปให้ข้ามมื้อที่ลืม
-   • การประคบ: เปลี่ยนเป็นประคบเย็น
-   • การเดิน: ใช้เวลา ค่อยๆ หายเอง
-7. **ส่วน "แนะนำ:"** = อาการเสี่ยงสูงเท่านั้น
-8. **ส่วน "คำแนะนำเพิ่มเติมตามอาการ"** = อาการเสี่ยงปานกลางและต่ำเท่านั้น (ถ้าไม่มีให้ตัดส่วนนี้ออก)
-"""
-
-
-def _build_medium_risk_prompt(
-    name_text: str,
-    high_risk: List[str],
-    medium_risk: List[str],
-    low_risk: List[str],
-    recommendations_context: str
-) -> str:
-    """สร้าง prompt สำหรับกรณีเสี่ยงกลาง"""
-    return f"""คุณเป็นพยาบาลที่สื่อสารกับผู้ป่วยผ่าน LINE
-
-รายละเอียดความเสี่ยงปานกลาง:
-{chr(10).join(f'{i+1}. {item}' for i, item in enumerate(medium_risk)) if medium_risk else '- ไม่มี'}
-
-รายละเอียดความเสี่ยงต่ำ:
-{chr(10).join(f'{i+1}. {item}' for i, item in enumerate(low_risk)) if low_risk else '- ไม่มี'}
-{recommendations_context}
-
-งาน: สร้างข้อความตาม FORMAT ด้านล่างนี้ให้ตรงทุกรายละเอียด
-
-**FORMAT ที่ต้องการ:**
-
-จากการประเมิน พบว่า{name_text} มีความเสี่ยงต่อการเกิดภาวะแทรกซ้อนหลังการผ่าตัดในช่องปากระดับปานกลาง
-เนื่องจาก [สรุปสาเหตุหลักจากรายละเอียดความเสี่ยงปานกลาง]
-
-แนะนำ:
-• [หัวข้อสั้นๆ 3-5 คำ]: [คำแนะนำเต็มจาก recommendations_context]
-• [หัวข้อสั้นๆ 3-5 คำ]: [คำแนะนำเต็มจาก recommendations_context]
-ทีมพยาบาลจะติดต่อกลับเพื่อประเมินอาการเพิ่มเติม สอบถามเพิ่มเติม โทร {PHONE_NUMBER}
-
-คำแนะนำเพิ่มเติมตามอาการ
-• [หัวข้อสั้นๆ 3-5 คำ]: [คำแนะนำเต็มจาก recommendations_context]
-• [หัวข้อสั้นๆ 3-5 คำ]: [คำแนะนำเต็มจาก recommendations_context]
-
-**กฎที่ต้องปฏิบัติอย่างเคร่งครัด:**
-
-1. **ห้ามใช้ markdown** (**, *, -, #) และ **ห้ามใช้ emoji** ทุกชนิด
-2. ใช้ข้อความ plain text เท่านั้น
-3. **ห้ามใส่วงเล็บ ()** ในทุกส่วน - ห้ามใส่คำอธิบายหรืออาการในวงเล็บ
-4. **หัวข้ออาการ:**
-   - ย่อให้สั้น 3-5 คำเท่านั้น จับคีย์เวิร์ดสำคัญ
-   - ห้ามใช้ "อาการอื่นๆ" - ต้องระบุอาการชัดเจน
-   - ตัวอย่างที่ถูก: "อาการบวม", "การแปรงฟัน", "การบ้วนปาก"
-   - ตัวอย่างที่ผิด: "อาการบวม (ที่ทำให้หายใจลำบาก)", "อาการอื่นๆ"
-5. **คำแนะนำ:**
-   - คัดลอกคำแนะนำเต็มจาก recommendations_context ทุกคำ
-   - ห้ามขึ้นต้นด้วย "แนะนำ" - เริ่มจากการกระทำเลย
-   - ตัดคำว่า "พบแพทย์", "พบพยาบาล", "ติดต่อแพทย์", "ติดต่อพยาบาล" ออก
-   - ถ้าคำแนะนำมีแค่ "ติดต่อพยาบาล/แพทย์" อย่างเดียว → ข้าม ไม่แสดง
-6. **ตัวอย่างที่ถูกต้อง:**
-   • อาการบวม: ประคบอุ่นนอกช่องปาก และนอนยกศีรษะสูง 30 องศา
-   • การแปรงฟัน: ใช้แปรงหัวเล็กขนนุ่ม + ยาสีฟันไม่แสบ แปรงเบาๆ หลีกเลี่ยงเหงือกที่มีแผล
-   • การบ้วนปาก: บ้วนปากเบาๆด้วยน้ำเปล่าหรือน้ำยาบ้วนปาก ทุกครั้งหลังทานอาหาร
-7. **ส่วน "แนะนำ:"** = อาการเสี่ยงปานกลางเท่านั้น
-8. **ส่วน "คำแนะนำเพิ่มเติมตามอาการ"** = อาการเสี่ยงต่ำเท่านั้น (ถ้าไม่มีให้ตัดส่วนนี้ออก)
-"""
-
-
-def _build_complex_case_prompt(
-    name_text: str,
-    all_risk_items: List[str],
-    recommendations_context: str
-) -> str:
-    """สร้าง prompt สำหรับกรณีซับซ้อน"""
-    return f"""คุณเป็นพยาบาลที่สื่อสารกับผู้ป่วยผ่าน LINE
-
-รายละเอียดอาการ:
-{chr(10).join(f'{i+1}. {item}' for i, item in enumerate(all_risk_items)) if all_risk_items else '- ไม่มี'}
-{recommendations_context}
-
-งาน: สร้างข้อความตาม FORMAT ด้านล่างนี้ให้ตรงทุกรายละเอียด
-
-**FORMAT ที่ต้องการ:**
-
-จากการประเมินความเสี่ยงในการเกิดภาวะแทรกซ้อนหลังการผ่าตัดในช่องปาก พบว่าไม่สามารถสรุปผลความเสี่ยงได้เนื่องจากอาการมีความซับซ้อน
-ทีมพยาบาลจะติดต่อกลับเพื่อประเมินอาการเพิ่มเติม หากมีข้อสงสัย โทร {PHONE_NUMBER}
-
-คำแนะนำเบื้องต้นตามอาการ
-• [หัวข้อสั้นๆ 3-5 คำ]: [คำแนะนำเต็มจาก recommendations_context]
-• [หัวข้อสั้นๆ 3-5 คำ]: [คำแนะนำเต็มจาก recommendations_context]
-
-**กฎที่ต้องปฏิบัติอย่างเคร่งครัด:**
-
-1. **ห้ามใช้ markdown** (**, *, -, #) และ **ห้ามใช้ emoji** ทุกชนิด
-2. ใช้ข้อความ plain text เท่านั้น
-3. **ห้ามใส่วงเล็บ ()** ในทุกส่วน - ห้ามใส่คำอธิบายหรืออาการในวงเล็บ
-4. **หัวข้ออาการ:**
-   - ย่อให้สั้น 3-5 คำเท่านั้น จับคีย์เวิร์ดสำคัญ
-   - ห้ามใช้ "อาการอื่นๆ" - ต้องระบุอาการชัดเจน
-   - ตัวอย่างที่ถูก: "เลือดออก", "อาการไข้", "ลวดมัดฟัน"
-   - ตัวอย่างที่ผิด: "เลือดออก (จากจมูก)", "อาการอื่นๆ"
-5. **คำแนะนำ:**
-   - คัดลอกคำแนะนำเต็มจาก recommendations_context ทุกคำ
-   - ห้ามขึ้นต้นด้วย "แนะนำ" - เริ่มจากการกระทำเลย
-   - ตัดคำว่า "พบแพทย์", "พบพยาบาล", "ติดต่อแพทย์", "ติดต่อพยาบาล" ออก
-   - ถ้าคำแนะนำมีแค่ "ติดต่อพยาบาล/แพทย์" อย่างเดียว → ข้าม ไม่แสดง
-6. **ตัวอย่างที่ถูกต้อง:**
-   • เลือดออก: กัดผ้าก๊อซให้แน่นหากเลือดออกในช่องปาก หรือก้มหน้าและกดปีกจมูกเข้ากันหากเลือดออกจากจมูก ร่วมกับประคบเย็นนอกช่องปาก
-   • อาการไข้: เช็ดตัว ทานยาลดไข้ พาราเซตามอล
-   • ลวดมัดฟัน: ติดต่อพยาบาลเพื่อทำการนัดหมายกับทันตแพทย์ทันที
-7. ถ้าไม่มีคำแนะนำเพิ่มเติม ให้ตัดส่วน "คำแนะนำเบื้องต้นตามอาการ" ทั้งหมดออก
-
-"""
-
-
-def _build_low_risk_prompt(
-    name_text: str,
-    all_risk_items: List[str],
-    recommendations_context: str
-) -> str:
-    """สร้าง prompt สำหรับกรณีเสี่ยงต่ำ"""
-    return f"""คุณเป็นพยาบาลที่สื่อสารกับผู้ป่วยผ่าน LINE
-
-รายละเอียดอาการ:
-{chr(10).join(f'{i+1}. {item}' for i, item in enumerate(all_risk_items)) if all_risk_items else '- ไม่มี'}
-{recommendations_context}
-
-งาน: สร้างข้อความตาม FORMAT ด้านล่างนี้ให้ตรงทุกรายละเอียด
-
-**FORMAT ที่ต้องการ:**
-
-จากผลประเมินพบว่ามีความเสี่ยงในการเกิดภาวะแทรกซ้อนหลังการผ่าตัดในช่องปาก ระดับต่ำ
-อาการโดยรวมอยู่ในเกณฑ์ปกติ
-
-คำแนะนำเบื้องต้นตามอาการ
-[หัวข้อสั้นๆ 3-5 คำ]: [คำแนะนำเต็มจาก recommendations_context]
-[หัวข้อสั้นๆ 3-5 คำ]: [คำแนะนำเต็มจาก recommendations_context]
-
-หากมีข้อสงสัย โทร {PHONE_NUMBER}
-
-**กฎที่ต้องปฏิบัติอย่างเคร่งครัด:**
-
-1. **ห้ามใช้ markdown** (**, *, -, •, #) และ **ห้ามใช้ emoji** ทุกชนิด
-2. ใช้ข้อความ plain text เท่านั้น
-3. **ห้ามใส่วงเล็บ ()** ในทุกส่วน - ห้ามใส่คำอธิบายหรืออาการในวงเล็บ
-4. **ห้ามใช้ bullet point (•)** - ใช้รูปแบบ "หัวข้อ: คำแนะนำ" เท่านั้น
-5. **หัวข้ออาการ:**
-   - ย่อให้สั้น 3-5 คำเท่านั้น จับคีย์เวิร์ดสำคัญ
-   - ห้ามใช้ "อาการอื่นๆ" - ต้องระบุอาการชัดเจน
-   - ตัวอย่างที่ถูก: "อาการชา", "การแปรงฟัน", "การบ้วนปาก"
-   - ตัวอย่างที่ผิด: "อาการชา (บริเวณริมฝีปาก)", "อาการอื่นๆ"
-6. **คำแนะนำ:**
-   - คัดลอกคำแนะนำเต็มจาก recommendations_context ทุกคำ
-   - ห้ามขึ้นต้นด้วย "แนะนำ" - เริ่มจากการกระทำเลย
-   - ตัดคำว่า "พบแพทย์", "พบพยาบาล", "ติดต่อแพทย์", "ติดต่อพยาบาล" ออก
-   - ถ้าคำแนะนำมีแค่ "ติดต่อพยาบาล/แพทย์" อย่างเดียว → ข้าม ไม่แสดง
-7. **ตัวอย่างที่ถูกต้อง:**
-   อาการชา: สังเกตอาการ หากชานานเกิน 2 สัปดาห์ ควรพบทันตแพทย์
-   การแปรงฟัน: ใช้แปรงหัวเล็กขนนุ่ม + ยาสีฟันไม่แสบ แปรงเบาๆ หลีกเลี่ยงเหงือกที่มีแผล
-   การบ้วนปาก: บ้วนปากเบาๆด้วยน้ำเปล่าหรือน้ำยาบ้วนปาก ทุกครั้งหลังทานอาหาร
-8. ถ้าไม่มีคำแนะนำเพิ่มเติม ให้ตัดส่วน "คำแนะนำเบื้องต้นตามอาการ" ทั้งหมดออก
-"""
 
 
 def _generate_fallback_summary_text(overall_risk: str, name_text: str) -> str:
@@ -839,34 +617,14 @@ def answer_patient_questions(
     parser = PydanticOutputParser(pydantic_object=PatientQuestionAnswer)
     format_instructions = parser.get_format_instructions()
     
-    prompt = f"""
-{role}
-
-{f'ข้อมูลผู้ป่วย: {context_str}' if context_str else ''}{risk_context}
-
-คำถามจากผู้ป่วย:
-"{question}"
-
-งาน: ตอบคำถามสั้นๆ เหมือนส่งผ่าน LINE
-
-**กฎสำคัญ:**
-1. **ตอบสั้นมาก** - เริ่มด้วยคำตอบตรงๆ 
-2. **ไม่ต้องเรียก** "คุณคะ" หรือ "กรุณา" (เป็นกันเองแบบ LINE)
-3. ถ้าเร่งด่วน: ใช้ "แจ้งทันตแพทย์ทันที" (ไม่ต้องพูดยืดยาว)
-4. ถ้าไม่เร่งด่วน: ตอบตรงๆ พร้อมคำแนะนำสั้นๆ
-
-ตัวอย่าง:
-- คำถาม: "หายใจลำบากควรทำอย่างไร?"
-- คำตอบ: "อาการนี้เร่งด่วนมาก แจ้งทันตแพทย์ทันทีนะคะ"
-
-- คำถาม: "ควรประคบนานแค่ไหน?"
-- คำตอบ: "ประคบครั้งละ 15-20 นาที วันละ 3-4 ครั้ง โดยเฉพาะหลังอาหารค่ะ"
-
-- คำถาม: "อาการชาจะหายเมื่อไหร่?"
-- คำตอบ: "ปกติจะค่อยๆ ดีขึ้นใน 2-3 สัปดาห์ ถ้ายังไม่ดีขึ้นให้แจ้งทันตแพทย์นะคะ"
-
-{format_instructions}
-"""
+    prompt = build_patient_question_prompt(
+        question=question,
+        context_str=context_str,
+        risk_context=risk_context,
+        proc_str=proc_str,
+        format_instructions=format_instructions
+    )
+    
     # 👇 เพิ่ม logging
     print("\n" + "="*80)
     print("📝 PROMPT: answer_patient_questions")

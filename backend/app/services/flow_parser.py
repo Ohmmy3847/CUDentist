@@ -48,7 +48,7 @@ class RuleEngine:
             return {
                 'risk_level': RiskLevel.HIGH.value,
                 'reason': f'Pain Score = {pain_score} (≥ 7)',
-                'recommendation': 'ควรติดต่อทันตแพทย์เพื่อประเมินและปรับแผนการรักษา'
+                'recommendation': ''
             }
         
         # Pain Score < 7
@@ -57,7 +57,7 @@ class RuleEngine:
             return {
                 'risk_level': RiskLevel.HIGH.value,
                 'reason': f'Pain Score = {pain_score}, ทานยาแล้วไม่ดีขึ้น',
-                'recommendation': 'ควรติดต่อทันตแพทย์เพื่อประเมินและปรับแผนการรักษา'
+                'recommendation': ''
             }
         elif 'ดีขึ้น' in med_effect:
             return {
@@ -75,7 +75,7 @@ class RuleEngine:
         return {
             'risk_level': RiskLevel.UNKNOWN.value,
             'reason': 'ข้อมูลไม่เพียงพอในการประเมิน',
-            'recommendation': 'กรุณาระบุข้อมูลให้ครบถ้วน'
+            'recommendation': ''
         }
     
     @staticmethod
@@ -120,7 +120,7 @@ class RuleEngine:
             return {
                 'risk_level': RiskLevel.HIGH.value,
                 'reason': 'บวมมากขึ้นมากๆ จนกระทบการใช้ชีวิตประจำวัน',
-                'recommendation': 'ควรติดต่อทันตแพทย์โดยเร็ว'
+                'recommendation': ''
             }
         
         # เช็คว่ามีเลือดออก/รอยช้ำหรือไม่
@@ -182,7 +182,7 @@ class RuleEngine:
         return {
             'risk_level': RiskLevel.UNKNOWN.value,
             'reason': 'ข้อมูลไม่เพียงพอในการประเมิน',
-            'recommendation': 'กรุณาระบุข้อมูลให้ครบถ้วน'
+            'recommendation': ''
         }
     
     @staticmethod
@@ -214,7 +214,7 @@ class RuleEngine:
         return {
             'risk_level': RiskLevel.UNKNOWN.value,
             'reason': 'ข้อมูลไม่เพียงพอในการประเมิน',
-            'recommendation': 'กรุณาระบุข้อมูลให้ครบถ้วน'
+            'recommendation': ''
         }
     
     @staticmethod
@@ -240,7 +240,7 @@ class RuleEngine:
         return {
             'risk_level': RiskLevel.UNKNOWN.value,
             'reason': 'ไม่ระบุอาการไข้',
-            'recommendation': 'กรุณาระบุข้อมูล'
+            'recommendation': ''
         }
     
     @staticmethod
@@ -313,13 +313,13 @@ class RuleEngine:
             return {
                 'risk_level': RiskLevel.LOW.value,
                 'reason': 'ไหมหลุดบางส่วน แต่ไม่มีเลือดไหล',
-                'recommendation': 'ห้ามเขี่ยหรือใช้ลิ้นดุนบริเวณแผล และแจ้งทันตแพทย์หากมีความกังวล'
+                'recommendation': 'ห้ามเขี่ยหรือใช้ลิ้นดุนบริเวณแผล และแจ้งทันแพทย์หากมีความกังวล เช่น แผลแยก'
             }
         elif 'หลุด' in suture and ('เลือด' in suture or 'แดงสด' in suture):
             return {
                 'risk_level': RiskLevel.HIGH.value,
                 'reason': 'ไหมหลุด และมีเลือดสีแดงสดไหล',
-                'recommendation': 'กัดผ้าก๊อซให้แน่น + ประคบเย็น + กลับมาพบทันตแพทย์โดยเร็ว'
+                'recommendation': 'กัดผ้าก๊อซให้แน่นบริเวณที่เลือดไหล ร่วมกับประคบเย็นนอกช่องปาก และกลับมาพบทันตแพทย์โดยเร็ว'
             }
         
         return {
@@ -381,7 +381,7 @@ class RuleEngine:
             return {
                 'risk_level': RiskLevel.HIGH.value,
                 'reason': 'ปวดหน่วงบริเวณหน้าแก้ม ร่วมกับมีน้ำมูกสีเหลือง/เขียว เหม็นลงคอ',
-                'recommendation': 'งดการสั่งน้ำมูกใช้กระดาษทิชชู่ซับแทน + พบแพทย์'
+                'recommendation': 'งดการสั่งน้ำมูกใช้กระดาษทิชชู่ซับแทน'
             }
         
         # ความเสี่ยงกลาง: คลื่นไส้/อาเจียน
@@ -482,7 +482,7 @@ class RuleEngine:
             return {
                 'risk_level': RiskLevel.LOW.value,
                 'reason': 'ลืมทานยาฆ่าเชื้อบางครั้ง',
-                'recommendation': 'รีบทานทันทีที่นึกได้ หากใกล้เวลามื้อถัดไปให้ข้ามมื้อที่ลืม'
+                'recommendation': 'รีบทานทันทีที่นึกได้หากใกล้เวลาของมื้อถัดไปให้ข้ามมื้อที่ลืมและทานยาของมื้อถัดไปตามปกติโดยไม่ต้องเพิ่มขนาดยาเพื่อชดเชย'
             }
         elif 'ไม่ได้ทาน' in antibiotic:
             return {
@@ -632,7 +632,7 @@ class RuleEngine:
             return {
                 'risk_level': RiskLevel.LOW.value,
                 'reason': 'เดินไม่ถนัด',
-                'recommendation': 'ใช้เวลา ค่อยๆ หายเอง'
+                'recommendation': ''
             }
         
         return {
@@ -661,18 +661,10 @@ class RuleEngine:
             return {
                 'risk_level': RiskLevel.LOW.value,
                 'reason': 'แปรงฟันไม่ถนัด',
-                'recommendation': 'ใช้แปรงหัวเล็กขนนุ่ม + ยาสีฟันไม่แสบ แปรงเบาๆ หลีกเลี่ยงเหงือกที่มีแผล'
+                'recommendation': 'ใช้แปรงสีฟันหัวเล็กขนนุ่มร่วมกับยาสีฟันที่ไม่แสบปาก แปรงเบาๆช้าๆและหลีกเลี่ยงการแปรงโดนเหงือกที่มีแผลโดยใช้น้ำเกลือฉีดล้างแทน'
             }
         # แปรงได้
         elif 'แปรงได้' in brushing or 'แปรงฟันได้' in brushing or 'ได้' in brushing:
-            return {
-                'risk_level': RiskLevel.LOW.value,
-                'reason': 'แปรงฟันได้',
-                'recommendation': ''
-            }
-        
-        # Fallback - ถ้ามีคำว่า "แปรง" ก็ถือว่าแปรงได้
-        if 'แปรง' in brushing:
             return {
                 'risk_level': RiskLevel.LOW.value,
                 'reason': 'แปรงฟันได้',
@@ -731,44 +723,6 @@ class RuleEngine:
             'recommendation': ''
         }
     
-    @staticmethod
-    def evaluate_feeding(data: Dict[str, Any]) -> Dict[str, str]:
-        """
-        วิธีการรับประทานอาหาร
-        """
-        feeding = data.get('feeding_method', '')
-        
-        if not feeding or feeding.strip() == '':
-            return {
-                'risk_level': RiskLevel.UNKNOWN.value,
-                'reason': 'ไม่ระบุวิธีการรับประทานอาหาร',
-                'recommendation': ''
-            }
-        
-        if 'syringe' in feeding.lower() or 'กระบอกฉีด' in feeding or 'ฉีด' in feeding:
-            return {
-                'risk_level': RiskLevel.LOW.value,
-                'reason': 'รับประทานอาหารผ่าน syringe',
-                'recommendation': ''
-            }
-        elif 'nasogastric' in feeding.lower() or 'สายยาง' in feeding or 'ng' in feeding.lower() or 'NG' in feeding:
-            return {
-                'risk_level': RiskLevel.LOW.value,
-                'reason': 'รับประทานอาหารผ่าน NG tube',
-                'recommendation': ''
-            }
-        elif 'ปกติ' in feeding or 'ได้' in feeding or 'ทาน' in feeding:
-            return {
-                'risk_level': RiskLevel.LOW.value,
-                'reason': 'รับประทานอาหารได้ปกติ',
-                'recommendation': ''
-            }
-        
-        return {
-            'risk_level': RiskLevel.UNKNOWN.value,
-            'reason': 'ไม่ระบุวิธีการรับประทานอาหาร',
-            'recommendation': ''
-        }
     
     @staticmethod
     def evaluate_food_types(data: Dict[str, Any]) -> Dict[str, str]:
@@ -837,7 +791,7 @@ class RuleEngine:
             return {
                 'risk_level': RiskLevel.HIGH.value,
                 'reason': 'สายยางเลื่อนตำแหน่ง หรือเทปไม่แน่น',
-                'recommendation': 'ติดต่อพยาบาลหรือแพทย์ทันที'
+                'recommendation': ''
             }
         
         return {
@@ -875,9 +829,6 @@ class RuleEngine:
             'คำถามสายยาง (NG tube)': self.evaluate_ng_tube,  # alias
             'การแปรงฟัน': self.evaluate_brushing,
             'การบ้วนปาก': self.evaluate_rinsing,
-            'การรับประทานยาเชื้อ': self.evaluate_antibiotic,  # alias duplicate but keep for clarity
-            'วิธีการรับประทานอาหาร': self.evaluate_feeding,
-            'การรับประทานอาหาร': self.evaluate_feeding,  # alias
             'ประเภทอาหารที่ทาน (สามารถเลือกได้หลายคำตอบ)': self.evaluate_food_types,
             'ปริมาณอาหารที่ทาน': self.evaluate_food_amount,
         }
@@ -892,12 +843,10 @@ class RuleEngine:
         
         return evaluator(data)
     
-    def evaluate_all_flows(self, data: Dict[str, Any]) -> Dict[str, Dict[str, str]]:
-        """Evaluate all available flows"""
-        results = {}
-        
-        # List of all flows to evaluate
-        flow_names = [
+    @staticmethod
+    def get_flow_names() -> list:
+        """Get list of all available flow names"""
+        return [
             'อาการปวด',
             'อาการบวม',
             'อาการเลือดออก',
@@ -913,10 +862,16 @@ class RuleEngine:
             'ตำแหน่งสายยางให้อาหาร: กรณีในผู้ป่วยที่รับประทานอาหารผ่านทางสายยาง (on NG-nasogastric tube)',
             'การแปรงฟัน',
             'การบ้วนปาก',
-            'วิธีการรับประทานอาหาร',
             'ประเภทอาหารที่ทาน (สามารถเลือกได้หลายคำตอบ)',
             'ปริมาณอาหารที่ทาน',
         ]
+    
+    def evaluate_all_flows(self, data: Dict[str, Any]) -> Dict[str, Dict[str, str]]:
+        """Evaluate all available flows"""
+        results = {}
+        
+        # Get all flow names
+        flow_names = self.get_flow_names()
         
         for flow_name in flow_names:
             results[flow_name] = self.evaluate_flow(flow_name, data)

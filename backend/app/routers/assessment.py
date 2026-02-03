@@ -16,8 +16,7 @@ from app.services.risk_service import (
     FIELD_WITH_DESCRIPTION,
     DESCRIPTION_LABELS
 )
-from app.services.log_service import append_with_result
-from app.core.flows import FLOWS
+from app.services.flow_parser import RuleEngine
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
@@ -49,7 +48,7 @@ async def root():
 @router.get("/flows")
 async def get_flows():
     """Get list of available risk classification flows"""
-    return {"flows": list(FLOWS.keys())}
+    return {"flows": RuleEngine.get_flow_names()}
 
 
 @router.post("/patient-assessment")
@@ -256,7 +255,8 @@ async def comprehensive_patient_assessment(patient: PatientData, llm = Depends(l
     try:
         # Phase 1: Rule-based classification (parallel)
         logger.info("Phase 1: Running rule-based classification...")
-        tasks = [process_flow(flow_name, flow) for flow_name, flow in FLOWS.items()]
+        flow_names = RuleEngine.get_flow_names()
+        tasks = [process_flow(flow_name, None) for flow_name in flow_names]
         flow_results = await asyncio.gather(*tasks)
         
         # Collect results and errors
