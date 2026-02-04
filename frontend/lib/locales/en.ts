@@ -75,7 +75,7 @@ export const en = {
                 biopsy: 'Biopsy',
                 cyst: 'Cyst enucleation',
                 incision: 'Incision and drainage',
-                cleftRepair: 'ICBG (Iliac Crest Bone Graft)',
+                cleftRepair: 'Repair of alveolar cleft with iliac crest bone graft)',
                 torectomy: 'Torectomy',
                 plateRemoval: 'Off plates and screws'
             },
