@@ -114,7 +114,7 @@ function FormContent() {
       // Include language preference in form data
       const finalData: PatientFormData = {
         ...formData,
-        // @ts-ignore - adding temporary field for backend
+        // @ts-expect-error - adding temporary field for backend
         _language: lang
       };
 

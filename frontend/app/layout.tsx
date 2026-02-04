@@ -1,10 +1,8 @@
 'use client';
 
-import type { Metadata } from 'next'
 import './globals.css'
 import { useState, useEffect } from 'react'
 import { usePathname } from 'next/navigation'
-import { th, en } from '@/lib/locales'
 
 export default function RootLayout({
   children,
@@ -13,7 +11,6 @@ export default function RootLayout({
 }) {
   const [lang, setLang] = useState<'th' | 'en'>('th');
   const pathname = usePathname();
-  const t = lang === 'th' ? th : en;
 
   // Hide language switcher in form and result pages
   const hideLanguageSwitcher = pathname?.includes('/form') || pathname?.includes('/result');

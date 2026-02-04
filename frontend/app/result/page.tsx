@@ -397,14 +397,14 @@ export default function ResultPage() {
         setIsProcessing(false);
       } catch (err) {
         sessionStorage.removeItem('isCurrentlyProcessing'); // Clear processing flag on error
-        setError(err instanceof Error ? err.message : t.result.error.title);
+        setError(err instanceof Error ? err.message : 'Error occurred during assessment');
         console.error('Classification error:', err);
         setIsProcessing(false);
       }
     };
 
     performClassification();
-  }, [router]); // t is not a dependency as it's derived from state/constant
+  }, [router]);
 
   const getOverallRisk = () => {
     if (!result || !result.flows) return { level: t.common.unknown, count: 0, color: 'gray' };

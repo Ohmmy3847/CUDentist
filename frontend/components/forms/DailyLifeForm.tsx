@@ -17,7 +17,7 @@ interface DailyLifeFormProps {
   lang?: 'th' | 'en';
 }
 
-export function validateDailyLife(data: PatientFormData): boolean {
+export function validateDailyLife(): boolean {
   return true;
 }
 
@@ -32,7 +32,7 @@ export default function DailyLifeForm({
 }: DailyLifeFormProps) {
   const t = lang === 'th' ? th.form.dailyLife : en.form.dailyLife;
 
-  const getOptionLabel = (option: string, _lang?: string): string => {
+  const getOptionLabel = (option: string): string => {
     if (lang === 'th') return option;
 
     const map: Record<string, string> = {
@@ -97,17 +97,9 @@ export default function DailyLifeForm({
 
   React.useEffect(() => {
     if (onValidationChange) {
-      onValidationChange(validateDailyLife(data));
+      onValidationChange(validateDailyLife());
     }
   }, [data, onValidationChange]);
-
-  const handleFoodTypesChange = (type: string, checked: boolean) => {
-    const current = data.food_types || [];
-    const updated = checked
-      ? [...current, type]
-      : current.filter(t => t !== type);
-    onChange({ food_types: updated });
-  };
 
   // Dynamic question numbering
   const questionNumbers = React.useMemo(() => {
@@ -149,7 +141,7 @@ export default function DailyLifeForm({
                 onChange={(e) => onChange({ brushing_teeth: e.target.value })}
                 className="w-4 h-4 text-blue-600"
               />
-              <span className="ml-2 text-gray-700">{getOptionLabel(option, lang)}</span>
+              <span className="ml-2 text-gray-700">{getOptionLabel(option)}</span>
             </label>
           ))}
         </div>
@@ -184,7 +176,7 @@ export default function DailyLifeForm({
                 onChange={(e) => onChange({ mouth_rinsing: e.target.value })}
                 className="w-4 h-4 text-blue-600"
               />
-              <span className="ml-2 text-gray-700">{getOptionLabel(option, lang)}</span>
+              <span className="ml-2 text-gray-700">{getOptionLabel(option)}</span>
             </label>
           ))}
         </div>
@@ -225,7 +217,7 @@ export default function DailyLifeForm({
                 }}
                 className="w-4 h-4 text-blue-600 mt-1"
               />
-              <span className="ml-2 text-gray-700">{getOptionLabel(option, lang)}</span>
+              <span className="ml-2 text-gray-700">{getOptionLabel(option)}</span>
             </label>
           ))}
           <div className="flex items-start">
@@ -282,7 +274,7 @@ export default function DailyLifeForm({
                 onChange={(e) => onChange({ food_amount: e.target.value as typeof data.food_amount })}
                 className="w-4 h-4 text-blue-600"
               />
-              <span className="ml-2 text-gray-700">{getOptionLabel(option, lang)}</span>
+              <span className="ml-2 text-gray-700">{getOptionLabel(option)}</span>
             </label>
           ))}
         </div>
@@ -332,7 +324,7 @@ export default function DailyLifeForm({
                   onChange={(e) => onChange({ ng_tube_position: e.target.value as typeof data.ng_tube_position })}
                   className="w-4 h-4 text-blue-600"
                 />
-                <span className="ml-2 text-gray-700">{getOptionLabel(option, lang)}</span>
+                <span className="ml-2 text-gray-700">{getOptionLabel(option)}</span>
               </label>
             ))}
           </div>

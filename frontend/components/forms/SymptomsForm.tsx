@@ -30,7 +30,7 @@ export function validateSymptoms(data: PatientFormData): boolean {
   const hasPain = (data.pain_score || 0) > 0;
   const forgotAntibiotic = data.antibiotic_compliance === 'ลืมทานบางครั้ง';
 
-  const isValid = !!(
+  return !!(
     data.pain_score !== undefined &&
     (!hasPain || data.pain_medication_effect) &&
     data.swelling_status &&
@@ -46,8 +46,6 @@ export function validateSymptoms(data: PatientFormData): boolean {
     (!hasIMF || data.imf_wire_status) &&
     data.walking_status
   );
-
-  return true; // Keeping the existing loose validation for now as per previous code
 }
 
 // Helper to map Thai values to English display
@@ -62,7 +60,7 @@ export default function SymptomsForm({
 }: SymptomsFormProps) {
   const t = lang === 'th' ? th.form.symptoms : en.form.symptoms;
 
-  const getOptionLabel = (option: string, _lang?: string): string => {
+  const getOptionLabel = (option: string): string => {
     if (lang === 'th') return option;
 
     const map: Record<string, string> = {
@@ -212,15 +210,26 @@ export default function SymptomsForm({
     data.pain_score,
     data.has_imf,
     data.antibiotic_compliance,
+    data.antibiotic_description,
     data.swelling_status,
+    data.swelling_description,
     data.breathing_or_swallowing_difficulty,
+    data.breathing_description,
     data.bleeding_status,
+    data.bleeding_description,
     data.fever_status,
+    data.fever_description,
     data.numbness_status,
+    data.numbness_description,
     data.phlebitis,
+    data.phlebitis_description,
     data.suture_status,
+    data.suture_description,
     data.walking_status,
-    // dependencies for descriptions not strictly needed for clearing logic but good for completeness
+    data.walking_description,
+    data.imf_wire_status,
+    data.imf_wire_description,
+    data.pain_score_description,
     data.pain_medication_effect,
     onChange
   ]);
@@ -368,7 +377,7 @@ export default function SymptomsForm({
                   onChange={(e) => onChange({ pain_medication_effect: e.target.value as typeof data.pain_medication_effect })}
                   className="w-4 h-4 text-blue-600"
                 />
-                <span className="ml-2 text-gray-700">{getOptionLabel(option, lang)}</span>
+                <span className="ml-2 text-gray-700">{getOptionLabel(option)}</span>
               </label>
             ))}
           </div>
@@ -403,7 +412,7 @@ export default function SymptomsForm({
                 onChange={(e) => onChange({ swelling_status: e.target.value as typeof data.swelling_status })}
                 className="w-4 h-4 text-blue-600"
               />
-              <span className="ml-2 text-gray-700">{getOptionLabel(option, lang)}</span>
+              <span className="ml-2 text-gray-700">{getOptionLabel(option)}</span>
             </label>
           ))}
         </div>
@@ -482,7 +491,7 @@ export default function SymptomsForm({
                 onChange={(e) => onChange({ bleeding_status: e.target.value as typeof data.bleeding_status })}
                 className="w-4 h-4 text-blue-600"
               />
-              <span className="ml-2 text-gray-700">{getOptionLabel(option, lang)}</span>
+              <span className="ml-2 text-gray-700">{getOptionLabel(option)}</span>
             </label>
           ))}
         </div>
@@ -561,7 +570,7 @@ export default function SymptomsForm({
                 onChange={(e) => onChange({ numbness_status: e.target.value as typeof data.numbness_status })}
                 className="w-4 h-4 text-blue-600"
               />
-              <span className="ml-2 text-gray-700">{getOptionLabel(option, lang)}</span>
+              <span className="ml-2 text-gray-700">{getOptionLabel(option)}</span>
             </label>
           ))}
         </div>
@@ -597,7 +606,7 @@ export default function SymptomsForm({
                 onChange={(e) => onChange({ phlebitis: e.target.value as typeof data.phlebitis })}
                 className="w-4 h-4 text-blue-600"
               />
-              <span className="ml-2 text-gray-700">{getOptionLabel(option, lang)}</span>
+              <span className="ml-2 text-gray-700">{getOptionLabel(option)}</span>
             </label>
           ))}
         </div>
@@ -632,7 +641,7 @@ export default function SymptomsForm({
                 onChange={(e) => onChange({ suture_status: e.target.value as typeof data.suture_status })}
                 className="w-4 h-4 text-blue-600"
               />
-              <span className="ml-2 text-gray-700">{getOptionLabel(option, lang)}</span>
+              <span className="ml-2 text-gray-700">{getOptionLabel(option)}</span>
             </label>
           ))}
         </div>
@@ -734,7 +743,7 @@ export default function SymptomsForm({
                 onChange={(e) => onChange({ antibiotic_compliance: e.target.value as typeof data.antibiotic_compliance })}
                 className="w-4 h-4 text-blue-600"
               />
-              <span className="ml-2 text-gray-700">{getOptionLabel(option, lang)}</span>
+              <span className="ml-2 text-gray-700">{getOptionLabel(option)}</span>
             </label>
           ))}
         </div>
@@ -772,7 +781,7 @@ export default function SymptomsForm({
                 onChange={(e) => onChange({ compress_type: e.target.value as typeof data.compress_type })}
                 className="w-4 h-4 text-blue-600"
               />
-              <span className="ml-2 text-gray-700">{getOptionLabel(option, lang)}</span>
+              <span className="ml-2 text-gray-700">{getOptionLabel(option)}</span>
             </label>
           ))}
         </div>
@@ -795,7 +804,7 @@ export default function SymptomsForm({
                   onChange={(e) => onChange({ imf_wire_status: e.target.value as typeof data.imf_wire_status })}
                   className="w-4 h-4 text-blue-600"
                 />
-                <span className="ml-2 text-gray-700">{getOptionLabel(option, lang)}</span>
+                <span className="ml-2 text-gray-700">{getOptionLabel(option)}</span>
               </label>
             ))}
           </div>
@@ -832,7 +841,7 @@ export default function SymptomsForm({
                   onChange={(e) => onChange({ walking_status: e.target.value as typeof data.walking_status })}
                   className="w-4 h-4 text-blue-600"
                 />
-                <span className="ml-2 text-gray-700">{getOptionLabel(option, lang)}</span>
+                <span className="ml-2 text-gray-700">{getOptionLabel(option)}</span>
               </label>
             ))}
           </div>

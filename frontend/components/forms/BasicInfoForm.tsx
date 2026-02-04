@@ -11,7 +11,7 @@ interface BasicInfoFormProps {
   lang?: 'th' | 'en';
 }
 
-export function validateBasicInfo(_data: PatientFormData): boolean {
+export function validateBasicInfo(): boolean {
   return true;
 }
 
@@ -20,7 +20,7 @@ export function validateBasicInfo(_data: PatientFormData): boolean {
 export default function BasicInfoForm({ data, onChange, onValidationChange, lang = 'th' }: BasicInfoFormProps) {
   const t = lang === 'th' ? th.form.basicInfo : en.form.basicInfo;
 
-  const getOptionLabel = (option: string, _lang?: string): string => {
+  const getOptionLabel = (option: string): string => {
     if (lang === 'th') return option;
 
     const map: Record<string, string> = {
@@ -63,7 +63,7 @@ export default function BasicInfoForm({ data, onChange, onValidationChange, lang
   }, [data.procedures, customProcedures.length]);
 
   React.useEffect(() => {
-    const isValid = validateBasicInfo(data);
+    const isValid = validateBasicInfo();
     if (onValidationChange) {
       onValidationChange(isValid);
     }
@@ -255,7 +255,7 @@ export default function BasicInfoForm({ data, onChange, onValidationChange, lang
                 onChange={(e) => onChange({ gender: e.target.value })}
                 className="w-4 h-4 text-blue-600"
               />
-              <span className="ml-2 text-gray-700">{getOptionLabel(option, lang)}</span>
+              <span className="ml-2 text-gray-700">{getOptionLabel(option)}</span>
             </label>
           ))}
           <div className="flex items-center">
@@ -313,9 +313,8 @@ export default function BasicInfoForm({ data, onChange, onValidationChange, lang
                   onChange={(e) => handleProcedureChange(procedure, e.target.checked)}
                   className="w-4 h-4 text-blue-600 mt-1"
                 />
-                <span className="ml-2 text-gray-700">{getOptionLabel(procedure, lang)}</span>
+                <span className="ml-2 text-gray-700">{getOptionLabel(procedure)}</span>
               </label>
-
               {/* Sub-options for Lefort I */}
               {procedure.includes('Lefort I') && hasLefortI && (
                 <div className="ml-6 mt-2 p-3 rounded-lg">
