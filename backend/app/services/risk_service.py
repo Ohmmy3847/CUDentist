@@ -23,6 +23,28 @@ from app.services.prompts import (
 )
 
 
+# Translation map for flow names
+FLOW_NAME_TRANSLATIONS = {
+    'อาการปวด': 'Pain',
+    'อาการบวม': 'Swelling',
+    'อาการเลือดออก': 'Bleeding',
+    'อาการไข้': 'Fever',
+    'ชา': 'Numbness',
+    'บริเวณที่เอาเข็มน้ำเกลือออกที่หลังมือหรือข้อมือ (phlebitis)': 'Phlebitis',
+    'ไหมเย็บแผล': 'Suture',
+    'อาการอื่นๆ (เลือกได้หลายคำตอบ)': 'Other Symptoms',
+    'รับประทานยาฆ่าเชื้อครบตามแผนการรักษาหรือไม่?': 'Antibiotic Compliance',
+    'ประคบเย็น หรือ อุ่นอยู่หรือไม่?': 'Cold/Warm Compress',
+    'หากมีการมัดฟันบนและล่างเข้าด้วยกัน ลวดมัดฟันแน่นดีหรือไม่?': 'IMF Wire Status',
+    'การเดิน: การรักษาการแหว่งของสันเหงือกโดยการนำกระดูกสะโพกมาปลูก': 'Walking (Bone Graft)',
+    'ตำแหน่งสายยางให้อาหาร: กรณีในผู้ป่วยที่รับประทานอาหารผ่านทางสายยาง (on NG-nasogastric tube)': 'NG Tube Position',
+    'การแปรงฟัน': 'Brushing',
+    'การบ้วนปาก': 'Rinsing',
+    'ประเภทอาหารที่ทาน (สามารถเลือกได้หลายคำตอบ)': 'Food Type',
+    'ปริมาณอาหารที่ทาน': 'Food Amount'
+}
+
+
 # ------------------------------------------------------------
 # Pydantic Models
 # ------------------------------------------------------------
@@ -61,8 +83,8 @@ def build_llm(api_key: str, model_name: str = "deepseek-chat"):
         model=model_name,
         api_key=api_key,
         base_url="https://api.deepseek.com",
-        temperature=0.2,
-        max_tokens=500
+        temperature=0.1,
+        max_tokens=5000
     )
 
 
@@ -165,18 +187,37 @@ def _categorize_risks_by_level(all_results: Dict[str, Dict[str, str]]) -> tuple:
     
     for flow_name, result in all_results.items():
         risk_level = result['risk_level']
-        if 'สูง' in risk_level:
-            high_risk.append(f"{flow_name}: {result['reason']}")
-            high_risk_flows.append((flow_name, result))
-        elif 'กลาง' in risk_level or 'ปานกลาง' in risk_level:
-            medium_risk.append(f"{flow_name}: {result['reason']}")
-            medium_risk_flows.append((flow_name, result))
-        elif 'ซับซ้อน' in risk_level or 'ไม่สามารถสรุป' in risk_level:
-            complicated_risk.append(f"{flow_name}: {result['reason']}")
-            complicated_risk_flows.append((flow_name, result))
-        elif 'ต่ำ' in risk_level:
-            low_risk.append(f"{flow_name}: {result['reason']}")
-            low_risk_flows.append((flow_name, result))
+        
+        # จัดการ other_symptoms ที่คืนค่าเป็น list
+        if 'reasons' in result and 'recommendations' in result:
+            # other_symptoms: มี reasons (list) และ recommendations (list)
+            reasons_text = ', '.join(result['reasons'])
+            if 'สูง' in risk_level:
+                high_risk.append(f"{flow_name}: {reasons_text}")
+                high_risk_flows.append((flow_name, result))
+            elif 'กลาง' in risk_level or 'ปานกลาง' in risk_level:
+                medium_risk.append(f"{flow_name}: {reasons_text}")
+                medium_risk_flows.append((flow_name, result))
+            elif 'ซับซ้อน' in risk_level or 'ไม่สามารถสรุป' in risk_level:
+                complicated_risk.append(f"{flow_name}: {reasons_text}")
+                complicated_risk_flows.append((flow_name, result))
+            elif 'ต่ำ' in risk_level:
+                low_risk.append(f"{flow_name}: {reasons_text}")
+                low_risk_flows.append((flow_name, result))
+        else:
+            # flow ปกติ: มี reason (string)
+            if 'สูง' in risk_level:
+                high_risk.append(f"{flow_name}: {result['reason']}")
+                high_risk_flows.append((flow_name, result))
+            elif 'กลาง' in risk_level or 'ปานกลาง' in risk_level:
+                medium_risk.append(f"{flow_name}: {result['reason']}")
+                medium_risk_flows.append((flow_name, result))
+            elif 'ซับซ้อน' in risk_level or 'ไม่สามารถสรุป' in risk_level:
+                complicated_risk.append(f"{flow_name}: {result['reason']}")
+                complicated_risk_flows.append((flow_name, result))
+            elif 'ต่ำ' in risk_level:
+                low_risk.append(f"{flow_name}: {result['reason']}")
+                low_risk_flows.append((flow_name, result))
     
     return high_risk, high_risk_flows, medium_risk, medium_risk_flows, low_risk, low_risk_flows, complicated_risk, complicated_risk_flows
 
@@ -265,7 +306,8 @@ def _build_description_context(description_analysis) -> str:
 def _build_recommendations_context(
     high_risk_flows: List[tuple],
     medium_risk_flows: List[tuple],
-    low_risk_flows: List[tuple]
+    low_risk_flows: List[tuple],
+    language: str = 'th'
 ) -> str:
     """
     สร้าง context string จากคำแนะนำของแต่ละ flow
@@ -278,46 +320,94 @@ def _build_recommendations_context(
     Returns:
         str: Context string สำหรับใส่ใน prompt
     """
-    def format_recommendation(name: str, res: dict) -> str:
-        """แปลงชื่อ flow ให้เหมาะสม (แปลง "อาการอื่นๆ" เป็นอาการจริง)"""
+    def format_recommendation(name: str, res: dict) -> list:
+        """แปลงคำแนะนำให้เป็นรูปแบบ list ของ strings สำหรับใส่ใน context
+        
+        Returns:
+            list: รายการคำแนะนำ หรือ [] ถ้าไม่มี
+        """
+        
+        # จัดการกรณี other_symptoms ที่คืนค่าเป็น list
+        if 'reasons' in res and 'recommendations' in res:
+            # other_symptoms: มี reasons (list) และ recommendations (list)
+            reasons = res.get('reasons', [])
+            recommendations = res.get('recommendations', [])
+            
+            if not recommendations or all(not rec for rec in recommendations):
+                return []
+            
+            # สร้าง formatted recommendations โดยจับคู่ reason กับ recommendation
+            formatted_recs = []
+            # ถ้าจำนวนเท่ากัน ให้จับคู่กัน
+            if len(reasons) == len(recommendations):
+                for reason, rec in zip(reasons, recommendations):
+                    if rec:  # ข้ามคำแนะนำที่เป็นค่าว่าง
+                        formatted_recs.append(f"- {reason}: {rec}")
+            else:
+                # ถ้าไม่ match ให้แสดงทุก recommendation แยกกัน
+                for i, rec in enumerate(recommendations):
+                    if rec:
+                        if i < len(reasons):
+                            formatted_recs.append(f"- {reasons[i]}: {rec}")
+                        else:
+                            formatted_recs.append(f"- {rec}")
+            
+            return formatted_recs
+        
+        # flow ปกติ: มี recommendation (string)
         recommendation = res.get('recommendation', '')
         
         if not recommendation:
-            return None
+            return []
         
-        # ถ้าชื่อ flow เป็น "อาการอื่นๆ" ให้ใช้อาการจาก reason แทน
-        if 'อาการอื่นๆ' in name:
+        # ถ้าชื่อ flow เป็น "อาการอื่นๆ" หรือ "Other Symptoms" ให้ใช้อาการจาก reason แทน
+        if 'อาการอื่นๆ' in name or 'Other Symptoms' in name:
             reason = res.get('reason', '')
             # ดึงอาการที่เจาะจงจาก reason
-            if reason and reason != 'ไม่มีอาการอื่นๆ':
+            if reason and reason != 'ไม่มีอาการอื่นๆ' and reason != 'No other symptoms':
                 # ตัดส่วน "มีอาการ: " หรือ "มีอาการอื่นๆที่ผู้ป่วยระบุเพิ่มเติม: " ออก
                 symptom_name = reason.replace('มีอาการ: ', '').replace('มีอาการอื่นๆที่ผู้ป่วยระบุเพิ่มเติม: ', '')
+                # English specific replacements
+                symptom_name = symptom_name.replace('Symptoms: ', '').replace('Other symptoms specified: ', '')
+                
                 # ตัดส่วน "และมีอาการอื่นๆ..." ออก ถ้ามี
                 if ' และมีอาการอื่นๆที่ผู้ป่วยระบุเพิ่มเติม:' in symptom_name:
                     symptom_name = symptom_name.split(' และมีอาการอื่นๆที่ผู้ป่วยระบุเพิ่มเติม:')[0]
                 name = symptom_name
         
-        return f"- {name}: {recommendation}"
+        return [f"- {name}: {recommendation}"]
     
-    high_recs = [format_recommendation(name, res) for name, res in high_risk_flows]
-    high_recs = [r for r in high_recs if r]  # กรองค่า None ออก
+    high_recs = []
+    for name, res in high_risk_flows:
+        high_recs.extend(format_recommendation(name, res))
     
-    medium_recs = [format_recommendation(name, res) for name, res in medium_risk_flows]
-    medium_recs = [r for r in medium_recs if r]
+    medium_recs = []
+    for name, res in medium_risk_flows:
+        medium_recs.extend(format_recommendation(name, res))
     
-    low_recs = [format_recommendation(name, res) for name, res in low_risk_flows]
-    low_recs = [r for r in low_recs if r]
+    low_recs = []
+    for name, res in low_risk_flows:
+        low_recs.extend(format_recommendation(name, res))
     
     if not (high_recs or medium_recs or low_recs):
-        return ""
+        return "\nคำแนะนำจาก Rule-based Assessment: ไม่มีคำแนะนำเพิ่มเติม" if language == 'th' else "\nRule-based Assessment Recommendations: No specific recommendations."
     
-    context = "\n\nคำแนะนำจาก Rule-based Assessment:\n"
+    context = "\n\nคำแนะนำจาก Rule-based Assessment:\n" if language == 'th' else "\nRule-based Assessment Recommendations:\n"
+    context += "ความเสี่ยงสูง:\n" if language == 'th' else "High Risk:\n"
     if high_recs:
-        context += "ความเสี่ยงสูง:\n" + "\n".join(high_recs) + "\n"
+        context += "\n".join(high_recs) + "\n" if language == 'th' else "\n".join(high_recs) + "\n"
+    else:
+        context += "- ไม่มีคำแนะนำ\n" if language == 'th' else "- No recommendations.\n"
+    context += "ความเสี่ยงปานกลาง:\n" if language == 'th' else "Medium Risk:\n"
     if medium_recs:
-        context += "ความเสี่ยงปานกลาง:\n" + "\n".join(medium_recs) + "\n"
+        context += "\n".join(medium_recs) + "\n" if language == 'th' else "\n".join(medium_recs) + "\n"
+    else:
+        context += "- ไม่มีคำแนะนำ\n" if language == 'th' else "- No recommendations.\n"
+    context += "ความเสี่ยงต่ำ:\n" if language == 'th' else "Low Risk:\n"
     if low_recs:
-        context += "ความเสี่ยงต่ำ:\n" + "\n".join(low_recs)
+        context += "\n".join(low_recs) + "\n" if language == 'th' else "\n".join(low_recs) + "\n"
+    else:
+        context += "- ไม่มีคำแนะนำ\n" if language == 'th' else "- No recommendations.\n"
     
     return context
 
@@ -333,7 +423,9 @@ def _generate_patient_summary(
     recommendations_context: str,
     procedures: str,
     patient_name: str,
-    llm
+
+    llm,
+    language: str = 'th'
 ) -> str:
     """
     สร้าง summary สำหรับผู้ป่วย - แยก prompt ตามระดับความเสี่ยง
@@ -348,14 +440,16 @@ def _generate_patient_summary(
         procedures: หัตถการที่ทำ
         patient_name: ชื่อผู้ป่วย
         llm: LLM instance
-    
-    Returns:
-        str: Summary text สำหรับผู้ป่วย ตาม format ที่กำหนด
+        language: ภาษาที่ต้องการ (th/en)
     """
 
     
     # เตรียมข้อมูลสำหรับ prompt
-    name_text = f"คุณ{patient_name}" if patient_name else ""
+    # เตรียมข้อมูลสำหรับ prompt
+    if language == 'en':
+        name_text = f"Patient {patient_name}" if patient_name else "the patient"
+    else:
+        name_text = f"คุณ{patient_name}" if patient_name else ""
     
     # รวม risks ทั้งหมดเพื่อสร้างคำแนะนำ
     all_risk_items = high_risk + medium_risk + low_risk + complicated_risk
@@ -368,19 +462,28 @@ def _generate_patient_summary(
     # เลือก prompt ตามระดับความเสี่ยง
     if is_complex or has_complicated:
         prompt = build_complex_case_prompt(
-            name_text, all_risk_items, recommendations_context
+            all_risk_items, recommendations_context, language
         )
     elif 'สูง' in overall_risk:
         prompt = build_high_risk_prompt(
-            name_text, high_risk, medium_risk, low_risk, recommendations_context
+            high_risk=high_risk,
+            medium_risk=medium_risk,
+            low_risk=low_risk,
+            recommendations_context=recommendations_context,
+            name_text=name_text,
+            language=language
         )
     elif 'กลาง' in overall_risk or 'ปานกลาง' in overall_risk:
         prompt = build_medium_risk_prompt(
-            name_text, high_risk, medium_risk, low_risk, recommendations_context
+            medium_risk=medium_risk,
+            low_risk=low_risk,
+            recommendations_context=recommendations_context,
+            name_text=name_text,
+            language=language
         )
     else:  # ความเสี่ยงต่ำ
         prompt = build_low_risk_prompt(
-            name_text, all_risk_items, recommendations_context
+            name_text, all_risk_items, recommendations_context, language
         )
     
     print("\n" + "="*80)
@@ -394,11 +497,30 @@ def _generate_patient_summary(
         return response.content.strip().replace("*", "")
     except Exception as e:
         print(f"Error generating patient summary: {e}")
-        return _generate_fallback_summary_text(overall_risk, name_text)
+        return _generate_fallback_summary_text(overall_risk, name_text, language)
 
 
-def _generate_fallback_summary_text(overall_risk: str, name_text: str) -> str:
+def _generate_fallback_summary_text(overall_risk: str, name_text: str, language: str = 'th') -> str:
     """สร้าง fallback text เมื่อ LLM error"""
+    if language == 'en':
+        if 'สูง' in overall_risk:
+            return f"""Based on the assessment, {name_text if name_text else 'the patient'} has a HIGH risk of complications.
+
+Recommendation:
+Please contact a nurse immediately at {PHONE_NUMBER}."""
+        elif 'กลาง' in overall_risk or 'ปานกลาง' in overall_risk:
+            return f"""Based on the assessment, {name_text if name_text else 'the patient'} has a MODERATE risk of complications.
+
+Recommendation:
+The nursing team will contact you for further assessment.
+For more information, call {PHONE_NUMBER}"""
+        else:
+            return f"""Based on the assessment, the risk of complications is LOW.
+Overall symptoms are normal.
+
+If you have questions, call {PHONE_NUMBER}"""
+
+    # Thai fallback (existing)
     if 'สูง' in overall_risk:
         return f"""จากการประเมิน พบว่า{name_text}มีความเสี่ยงต่อการเกิดภาวะแทรกซ้อนหลังการผ่าตัดในช่องปากในระดับสูง
 
@@ -429,7 +551,8 @@ def _create_fallback_summary(
     high_risk_flows: List[tuple],
     medium_risk_flows: List[tuple],
     low_risk_flows: List[tuple],
-    critical_issues: List[str]
+    critical_issues: List[str],
+    language: str = 'th'
 ) -> RiskSummaryOutput:
     """
     สร้าง fallback summary เมื่อ LLM ไม่พร้อมใช้งาน
@@ -457,9 +580,9 @@ def _create_fallback_summary(
     if patient_summary_parts:
         summary = " ".join(patient_summary_parts)
         if rec_parts:
-            summary += " คำแนะนำ: " + " ".join(rec_parts[:3])  # Top 3 recommendations
+            summary += (" Recommendation: " if language == 'en' else " คำแนะนำ: ") + " ".join(rec_parts[:3])  # Top 3 recommendations
     else:
-        summary = "อาการอยู่ในเกณฑ์ปกติ ดูแลตามคำแนะนำจากแพทย์"
+        summary = "Symptoms are normal. Follow doctor's advice." if language == 'en' else "อาการอยู่ในเกณฑ์ปกติ ดูแลตามคำแนะนำจากแพทย์"
     
     return RiskSummaryOutput(
         overall_risk=overall_risk,
@@ -477,7 +600,8 @@ def summarize_all_risks(
     llm, 
     patient_data: dict = None,
     description_analysis: Dict[str, Any] = None,
-    procedures: str = None
+    procedures: str = None,
+    language: str = 'th'
 ) -> RiskSummaryOutput:
     """
     สรุปผลการประเมินจากทุก flows โดยใช้ rule-based คำนวณ overall risk 
@@ -493,6 +617,15 @@ def summarize_all_risks(
     Returns:
         RiskSummaryOutput object containing overall_risk, summary, recommendations, critical_issues
     """
+
+    # 0. Translate flow names if language is English
+    if language == 'en':
+        translated_results = {}
+        for flow_name, result in all_results.items():
+            translated_name = FLOW_NAME_TRANSLATIONS.get(flow_name, flow_name)
+            translated_results[translated_name] = result
+        all_results = translated_results
+
     # 1. แยกตามระดับควาวามเสี่ยง
     (high_risk, high_risk_flows, medium_risk, 
      medium_risk_flows, low_risk, low_risk_flows,
@@ -518,13 +651,14 @@ def summarize_all_risks(
         return _create_fallback_summary(
             overall_risk, high_risk, medium_risk, low_risk,
             high_risk_flows, medium_risk_flows, low_risk_flows,
-            critical_issues
+            critical_issues,
+            language
         )
     
     # 6. สร้าง context strings สำหรับ LLM
     description_context = _build_description_context(description_analysis)
     recommendations_context = _build_recommendations_context(
-        high_risk_flows, medium_risk_flows, low_risk_flows
+        high_risk_flows, medium_risk_flows, low_risk_flows, language
     )
     
     # 7. เรียก LLM สร้าง summary สำหรับผู้ป่วย
@@ -532,7 +666,7 @@ def summarize_all_risks(
         # Generate patient summary (easy language + recommendations)
         summary = _generate_patient_summary(
             overall_risk, high_risk, medium_risk, low_risk, complicated_risk,
-            recommendations_context, procedures, patient_name, llm
+            recommendations_context, procedures, patient_name, llm, language
         )
         
         return RiskSummaryOutput(
@@ -545,7 +679,8 @@ def summarize_all_risks(
         return _create_fallback_summary(
             overall_risk, high_risk, medium_risk, low_risk,
             high_risk_flows, medium_risk_flows, low_risk_flows,
-            critical_issues
+            critical_issues,
+            language
         )
 
 
@@ -554,7 +689,8 @@ def answer_patient_questions(
     patient_context: dict, 
     llm,
     risk_results: Dict[str, Dict[str, str]] = None,
-    procedures: str = None
+    procedures: str = None,
+    language: str = 'th'
 ) -> PatientQuestionAnswer:
     """ตอบคำถามผู้ป่วยด้วย LLM"""
     
@@ -622,7 +758,8 @@ def answer_patient_questions(
         context_str=context_str,
         risk_context=risk_context,
         proc_str=proc_str,
-        format_instructions=format_instructions
+        format_instructions=format_instructions,
+        language=language
     )
     
     # 👇 เพิ่ม logging
@@ -649,7 +786,7 @@ def answer_patient_questions(
 # ------------------------------------------------------------
 # Main Risk Classification Functions (Rule-Based)
 # ------------------------------------------------------------
-def classify_risk(input_data: dict, api_key: str = None, flow: str = None, flow_name: str = None, llm=None, max_retries: int = 3):
+def classify_risk(input_data: dict, api_key: str = None, flow: str = None, flow_name: str = None, llm=None, max_retries: int = 3, language: str = 'th'):
     """
     Classify risk using Rule Engine (deterministic)
     Args:
@@ -659,19 +796,20 @@ def classify_risk(input_data: dict, api_key: str = None, flow: str = None, flow_
         flow_name: Name of the flow to evaluate
         llm: Pre-built LLM instance (optional, kept for backward compatibility)
         max_retries: Maximum number of retries (kept for backward compatibility)
+        language: Language for output ('th' or 'en')
     """
     # Use Rule Engine for deterministic classification
     engine = RuleEngine()
     
     try:
         # Rule-based evaluation (deterministic)
-        result = engine.evaluate_flow(flow_name, input_data)
+        result = engine.evaluate_flow(flow_name, input_data, language=language)
         
         # Convert to OutputRiskClassification format
         return OutputRiskClassification(
-            risk_level=result['risk_level'],
-            recommendation=result['recommendation'],
-            reason=result['reason']
+            risk_level=result.get('risk_level', 'ไม่สามารถประเมินได้'),
+            recommendation=result.get('recommendation'),
+            reason=result.get('reason')
         )
         
     except Exception as e:
@@ -679,14 +817,14 @@ def classify_risk(input_data: dict, api_key: str = None, flow: str = None, flow_
         
         # Fallback to default response
         return OutputRiskClassification(
-            risk_level="ไม่สามารถประเมินได้",
-            recommendation="กรุณาติดต่อทีมแพทย์เพื่อประเมินเพิ่มเติม",
-            reason=f"ไม่สามารถประเมินได้: {str(e)[:100]}"
+            risk_level="ไม่สามารถประเมินได้" if language == 'th' else "Cannot assess",
+            recommendation="กรุณาติดต่อทีมแพทย์เพื่อประเมินเพิ่มเติม" if language == 'th' else "Please contact medical team for further assessment",
+            reason=f"ไม่สามารถประเมินได้: {str(e)[:100]}" if language == 'th' else f"Cannot assess: {str(e)[:100]}"
         )
 
 
 # Async version for concurrent processing
-async def classify_risk_async(input_data: dict, llm, flow: str, flow_name: str, semaphore, max_retries: int = 3):
+async def classify_risk_async(input_data: dict, llm, flow: str, flow_name: str, semaphore, max_retries: int = 3, language: str = 'th'):
     """
     Classify risk using Rule Engine (deterministic, async wrapper)
     Note: This function uses async for API compatibility
@@ -700,14 +838,14 @@ async def classify_risk_async(input_data: dict, llm, flow: str, flow_name: str, 
             loop = asyncio.get_event_loop()
             result_dict = await loop.run_in_executor(
                 None,
-                lambda: engine.evaluate_flow(flow_name, input_data)
+                lambda: engine.evaluate_flow(flow_name, input_data, language=language)
             )
             
             # Convert to OutputRiskClassification format
             result = OutputRiskClassification(
-                risk_level=result_dict['risk_level'],
-                recommendation=result_dict['recommendation'],
-                reason=result_dict['reason']
+                risk_level=result_dict.get('risk_level', 'ไม่สามารถประเมินได้'),
+                recommendation=result_dict.get('recommendation'),
+                reason=result_dict.get('reason')
             )
             
             return flow_name, result
@@ -717,9 +855,9 @@ async def classify_risk_async(input_data: dict, llm, flow: str, flow_name: str, 
             
             # Return default safe response
             default_response = OutputRiskClassification(
-                risk_level="ไม่สามารถประเมินได้",
-                recommendation="กรุณาติดต่อทีมแพทย์เพื่อประเมินเพิ่มเติม",
-                reason=f"ไม่สามารถประเมินได้: {str(e)[:100]}"
+                risk_level="ไม่สามารถประเมินได้" if language == 'th' else "Cannot assess",
+                recommendation="กรุณาติดต่อทีมแพทย์เพื่อประเมินเพิ่มเติม" if language == 'th' else "Please contact medical team for further assessment",
+                reason=f"ไม่สามารถประเมินได้: {str(e)[:100]}" if language == 'th' else f"Cannot assess: {str(e)[:100]}"
             )
             return flow_name, default_response
 

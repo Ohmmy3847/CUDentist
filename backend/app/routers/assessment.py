@@ -88,6 +88,7 @@ async def comprehensive_patient_assessment(patient: PatientData, llm = Depends(l
     logger.info(f"Received comprehensive patient assessment request")
     logger.info(f"Basic info: {patient.basic_info.first_name} {patient.basic_info.last_name}, HN: {patient.basic_info.hn}")
     logger.info(f"Assessment data keys: {list(patient.assessment_data.keys())}")
+    logger.info(f"Patient Language: '{patient.language}' (Type: {type(patient.language)})")
     
     # Merge basic_info and assessment_data for processing
     merged_data = {**patient.basic_info.dict(exclude_none=True), **patient.assessment_data}
@@ -100,14 +101,54 @@ async def comprehensive_patient_assessment(patient: PatientData, llm = Depends(l
         """Process a single flow asynchronously with RuleEngine"""
         try:
             logger.info(f"Processing flow: {flow_name}")
-            # Run classify_risk in thread pool since it's synchronous
-            result = await asyncio.to_thread(
-                classify_risk,
-                input_data=merged_data,
-                flow=flow,
-                flow_name=flow_name,
-                llm=llm
-            )
+            
+            # Check if this is a dynamically created symptom flow
+            # (not in original flow_names, meaning it's from other_symptoms expansion)
+            if flow_name not in RuleEngine.get_flow_names():
+                # Check if it's a custom symptom (starts with "อาการที่ผู้ป่วยระบุเพิ่มเติม:")
+                if flow_name.startswith("อาการที่ผู้ป่วยระบุเพิ่มเติม:"):
+                    # Extract the custom symptoms text
+                    custom_text = flow_name.replace("อาการที่ผู้ป่วยระบุเพิ่มเติม:", "").strip()
+                    
+                    # Create temporary data with custom symptoms
+                    temp_data = merged_data.copy()
+                    temp_data['other_symptoms'] = []  # Clear standard symptoms
+                    temp_data['other_symptoms_custom'] = custom_text
+                    
+                    result = await asyncio.to_thread(
+                        classify_risk,
+                        input_data=temp_data,
+                        flow=flow,
+                        flow_name="อาการอื่นๆ (เลือกได้หลายคำตอบ)",  # Use original flow for evaluation
+                        llm=llm,
+                        language=patient.language
+                    )
+                else:
+                    # This is a standard symptom - evaluate using evaluate_other_symptoms logic
+                    # Create temporary data with single symptom
+                    temp_data = merged_data.copy()
+                    temp_data['other_symptoms'] = [flow_name]
+                    temp_data['other_symptoms_custom'] = ''  # Clear custom to avoid COMPLICATED
+                    
+                    result = await asyncio.to_thread(
+                        classify_risk,
+                        input_data=temp_data,
+                        flow=flow,
+                        flow_name="อาการอื่นๆ (เลือกได้หลายคำตอบ)",  # Use original flow for evaluation
+                        llm=llm,
+                        language=patient.language
+                    )
+            else:
+                # Normal flow
+                result = await asyncio.to_thread(
+                    classify_risk,
+                    input_data=merged_data,
+                    flow=flow,
+                    flow_name=flow_name,
+                    llm=llm,
+                    language=patient.language
+                )
+            
             logger.info(f"Successfully processed flow: {flow_name}")
             return flow_name, {
                 "risk_level": result.risk_level,
@@ -256,7 +297,33 @@ async def comprehensive_patient_assessment(patient: PatientData, llm = Depends(l
         # Phase 1: Rule-based classification (parallel)
         logger.info("Phase 1: Running rule-based classification...")
         flow_names = RuleEngine.get_flow_names()
-        tasks = [process_flow(flow_name, None) for flow_name in flow_names]
+        
+        # Auto-expand "อาการอื่นๆ (เลือกได้หลายคำตอบ)" into individual flows
+        expanded_flows = []
+        for flow_name in flow_names:
+            if flow_name == "อาการอื่นๆ (เลือกได้หลายคำตอบ)":
+                # Get selected symptoms from choices
+                other_symptoms = merged_data.get('other_symptoms', [])
+                if isinstance(other_symptoms, list) and other_symptoms:
+                    # Create individual flow for each symptom
+                    for symptom in other_symptoms:
+                        expanded_flows.append(symptom.strip())
+                
+                # Check for custom symptoms (ผู้ป่วยพิมพ์เอง)
+                custom_symptoms = merged_data.get('other_symptoms_custom', '')
+                if isinstance(custom_symptoms, list):
+                    custom_symptoms = ', '.join(str(item) for item in custom_symptoms if item)
+                custom_symptoms = str(custom_symptoms).strip()
+                
+                if custom_symptoms:
+                    # Create special flow for custom symptoms
+                    expanded_flows.append(f"อาการที่ผู้ป่วยระบุเพิ่มเติม: {custom_symptoms}")
+                
+                # Skip the original "อาการอื่นๆ" flow
+            else:
+                expanded_flows.append(flow_name)
+        
+        tasks = [process_flow(flow_name, None) for flow_name in expanded_flows]
         flow_results = await asyncio.gather(*tasks)
         
         # Collect results and errors
@@ -282,11 +349,12 @@ async def comprehensive_patient_assessment(patient: PatientData, llm = Depends(l
         
         summary = await asyncio.to_thread(
             summarize_all_risks,
-            results,
-            llm,
-            patient.basic_info.dict(exclude_none=True),
-            # description_analysis,  # เพิ่ม description analysis context
-            procedures            # เพิ่ม procedures context
+            all_results=results,
+            llm=llm,
+            patient_data=patient.basic_info.dict(exclude_none=True),
+            description_analysis=None,
+            procedures=procedures,
+            language=patient.language
         )
         
         # Phase 4: Answer patient questions (if any)
@@ -300,7 +368,8 @@ async def comprehensive_patient_assessment(patient: PatientData, llm = Depends(l
                 patient.basic_info.dict(exclude_none=True),
                 llm,
                 results,      # เพิ่ม risk results เป็น context
-                procedures    # เพิ่ม procedures context
+                procedures,    # เพิ่ม procedures context
+                patient.language
             )
         
         # Compile final response

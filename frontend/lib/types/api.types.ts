@@ -7,8 +7,8 @@
  */
 export interface RiskAssessmentResult {
   risk_level: string;
-  recommendation: string;
-  reason: string;
+  recommendation?: string;
+  reason?: string;
 }
 
 /**

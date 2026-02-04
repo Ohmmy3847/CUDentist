@@ -39,14 +39,15 @@ class PatientData(BaseModel):
     """Patient data for classification"""
     basic_info: BasicInfo
     assessment_data: Dict[str, Any]
+    language: Optional[str] = 'th'
    
 
 
 class RiskResponse(BaseModel):
     """Response model for single risk classification"""
     risk_level: str
-    recommendation: str
-    reason: str
+    recommendation: str = None
+    reason: str = None
 
 
 class AllFlowsResult(BaseModel):

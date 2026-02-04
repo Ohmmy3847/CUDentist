@@ -14,12 +14,15 @@ import {
   IMF_WIRE_OPTIONS,
   WALKING_OPTIONS,
 } from '@/lib';
+import { getSymptomLabel } from '@/lib/symptomMappings';
+import { th, en } from '@/lib/locales';
 
 interface SymptomsFormProps {
   data: PatientFormData;
   onChange: (data: Partial<PatientFormData>) => void;
   onValidationChange?: (isValid: boolean) => void;
   startingQuestionNumber?: number;
+  lang?: 'th' | 'en';
 }
 
 export function validateSymptoms(data: PatientFormData): boolean {
@@ -44,32 +47,100 @@ export function validateSymptoms(data: PatientFormData): boolean {
     data.walking_status
   );
 
-  console.log('SymptomsForm Validation:', {
-    isValid,
-    pain_score: data.pain_score,
-    hasPain,
-    pain_medication_effect: data.pain_medication_effect,
-    swelling_status: data.swelling_status,
-    breathing_or_swallowing_difficulty: data.breathing_or_swallowing_difficulty,
-    bleeding_status: data.bleeding_status,
-    fever_status: data.fever_status,
-    numbness_status: data.numbness_status,
-    phlebitis: data.phlebitis,
-    suture_status: data.suture_status,
-    antibiotic_compliance: data.antibiotic_compliance,
-    forgotAntibiotic,
-    antibiotic_description: data.antibiotic_description,
-    compress_type: data.compress_type,
-    has_imf: data.has_imf,
-    hasIMF,
-    imf_wire_status: data.imf_wire_status,
-    walking_status: data.walking_status
-  });
-  return true;
-  // return isValid;
+  return true; // Keeping the existing loose validation for now as per previous code
 }
 
-export default function SymptomsForm({ data, onChange, onValidationChange, startingQuestionNumber = 5 }: SymptomsFormProps) {
+// Helper to map Thai values to English display
+
+
+export default function SymptomsForm({
+  data,
+  onChange,
+  onValidationChange,
+  startingQuestionNumber = 5,
+  lang = 'th'
+}: SymptomsFormProps) {
+  const t = lang === 'th' ? th.form.symptoms : en.form.symptoms;
+
+  const getOptionLabel = (option: string, _lang?: string): string => {
+    if (lang === 'th') return option;
+
+    const map: Record<string, string> = {
+      // Pain Med
+      'ดีขึ้น': t.painMed.better,
+      'ไม่ดีขึ้น': t.painMed.notBetter,
+      'ไม่ได้ทานยาแก้ปวด': t.painMed.notTaken,
+
+      // Swelling
+      'ปัจจุบันหายบวมแล้ว': t.swelling.gone,
+      'บวมลดลง': t.swelling.reduced,
+      'บวมเท่าเดิม': t.swelling.noChange,
+      'บวมมากขึ้น': t.swelling.increased,
+      'บวมมากขึ้นมากๆจนกระทบการใช้ชีวิตประจำวัน': t.swelling.severe,
+
+      // Breathing
+      'ไม่มี': t.breathing.no,
+      'มี': t.breathing.yes,
+
+      // Bleeding
+      'ไม่มีเลือดซึมหรือไหลแล้ว': t.bleeding.no,
+      'เลือดซึม แต่หยุดได้เอง': t.bleeding.slight,
+      'เลือดสีแดงสดไหลไม่หยุดปริมาณมาก': t.bleeding.heavy,
+
+      // Fever
+      'ไม่มีไข้': t.fever.no,
+      'มีไข้ (มากกว่า 38 องศาเซลเซียส)': t.fever.yes,
+
+      // Numbness
+      'หายชาแล้วหลังทำหัตถการ': t.numbness.resolved,
+      'ยังชาอยู่แต่ชาน้อยลงเรื่อยๆ': t.numbness.improving,
+      'ยังรู้สึกชาเท่ากับตอนหลังทำหัตถการทันที': t.numbness.unchanged,
+
+      // Phlebitis
+      'ไม่มีอาการปวด/บวม/แดง รอบรอยเข็ม': t.phlebitis.no,
+      'มีอาการปวด/บวม/แดง รอบรอยเข็ม': t.phlebitis.yes,
+
+      // Suture
+      'ไหมแน่นดี / ไม่ได้สังเกต': t.suture.secure,
+      'ไหมหลุดหายไปบางส่วน แต่ไม่มีเลือดไหล': t.suture.loose,
+      'ไหมหลุดหายไปบางส่วน และมีอาการเลือดสีแดงสดไหล': t.suture.bleeding,
+
+      // Antibiotic
+      'ครบตามแพทย์สั่ง': t.antibiotic.all,
+      'ลืมทานบางครั้ง': t.antibiotic.missed,
+      'ไม่ได้ทานเลย': t.antibiotic.none,
+
+      // Compress
+      'ประคบเย็นอยู่': t.compress.cold,
+      'ประคบอุ่นอยู่': t.compress.warm,
+      'ไม่ได้ประคบอะไรเลย': t.compress.none,
+
+      // IMF
+      'ลวด/ยางมัดฟันแน่นดี': t.imfWire.tight,
+      'ลวด/ยางมัดฟันหลวม อ้าปากได้เล็กน้อย': t.imfWire.loose,
+      'ยางมัดฟันขาดไปบางเส้น แต่ยังอ้าปากไม่ได้': t.imfWire.broken,
+
+      // Walking
+      'เดินได้ปกติ': t.walking.normal,
+      'เดินไม่ถนัด': t.walking.difficult,
+
+      // Other Symptoms
+      'ปวดหน่วงบริเวณหน้าแก้ม ร่วมกับมีน้ำมูกสีเหลือง/เขียว เหม็นลงคอ': 'Cheek pain with yellow/green discharge',
+      'คลื่นไส้/อาเจียน': 'Nausea/Vomiting',
+      'ช้ำ': 'Bruising',
+      'ปวดหัว': 'Headache',
+      'เวียนหัว': 'Dizziness',
+      'น้ำหนักลด': 'Weight loss',
+      'ท้องเสีย': 'Diarrhea',
+      'คัดแน่นจมูก': 'Stuffy nose',
+      'มีน้ำมูก': 'Runny nose',
+      'ไอ': 'Cough',
+      'เจ็บคอ': 'Sore throat',
+    };
+
+    return map[option] || option;
+  };
+
   const [customSymptoms, setCustomSymptoms] = React.useState<Array<{ name: string, description: string }>>([]);
 
   // Sync customSymptoms from data.other_symptoms_custom when component mounts or data changes
@@ -96,27 +167,19 @@ export default function SymptomsForm({ data, onChange, onValidationChange, start
 
     const updates: Partial<PatientFormData> = {};
 
-    // ถ้า pain_score = 0 ให้ล้าง pain_medication_effect
     if (!hasPain && data.pain_medication_effect) {
       updates.pain_medication_effect = undefined;
     }
-
     if (data.pain_score === undefined && data.pain_score_description) {
       updates.pain_score_description = undefined;
     }
-
-    // ถ้าไม่มีการมัดฟัน ให้ล้าง imf_wire_status และ description
     if (!hasIMF && (data.imf_wire_status || data.imf_wire_description)) {
       updates.imf_wire_status = undefined;
       updates.imf_wire_description = undefined;
     }
-
-    // ถ้าไม่ได้ลืมทานยา ให้ล้าง antibiotic_description
     if (!forgotAntibiotic && data.antibiotic_description) {
       updates.antibiotic_description = undefined;
     }
-
-    // ล้าง description fields เมื่อ main field เป็น undefined
     if (!data.swelling_status && data.swelling_description) {
       updates.swelling_description = undefined;
     }
@@ -157,19 +220,8 @@ export default function SymptomsForm({ data, onChange, onValidationChange, start
     data.phlebitis,
     data.suture_status,
     data.walking_status,
-    data.antibiotic_description,
-    data.bleeding_description,
-    data.breathing_description,
-    data.fever_description,
-    data.imf_wire_description,
-    data.imf_wire_status,
-    data.numbness_description,
+    // dependencies for descriptions not strictly needed for clearing logic but good for completeness
     data.pain_medication_effect,
-    data.pain_score_description,
-    data.phlebitis_description,
-    data.suture_description,
-    data.swelling_description,
-    data.walking_description,
     onChange
   ]);
 
@@ -188,7 +240,6 @@ export default function SymptomsForm({ data, onChange, onValidationChange, start
   };
 
   const handleAddSymptomField = () => {
-    // ตรวจสอบว่าช่องสุดท้ายมีค่าหรือยัง
     if (customSymptoms.length === 0 || (customSymptoms[customSymptoms.length - 1].name.trim() !== '' || customSymptoms[customSymptoms.length - 1].description.trim() !== '')) {
       setCustomSymptoms([...customSymptoms, { name: '', description: '' }]);
     }
@@ -198,7 +249,6 @@ export default function SymptomsForm({ data, onChange, onValidationChange, start
     const updated = customSymptoms.filter((_, i) => i !== index);
     setCustomSymptoms(updated);
 
-    // Update other_symptoms_custom array
     const customArray = updated
       .filter(s => s.name.trim() || s.description.trim())
       .map(s => s.name && s.description ? `${s.name}: ${s.description}` : s.name || s.description);
@@ -210,33 +260,32 @@ export default function SymptomsForm({ data, onChange, onValidationChange, start
     updatedCustom[index] = { ...updatedCustom[index], [field]: value };
     setCustomSymptoms(updatedCustom);
 
-    // Update other_symptoms_custom array - combine name and description
     const customArray = updatedCustom
       .filter(s => s.name.trim() || s.description.trim())
       .map(s => s.name && s.description ? `${s.name}: ${s.description}` : s.name || s.description);
     onChange({ other_symptoms_custom: customArray });
   };
 
-  // คำนวณเลขข้อคำถามแบบ dynamic ตามคำถามที่แสดงจริง
+  // Dynamic question numbering
   const questionNumbers = React.useMemo(() => {
     let num = startingQuestionNumber;
     const numbers: Record<string, number> = {};
 
-    numbers.pain = ++num; // Pain score (always)
-    if ((data.pain_score || 0) > 0) numbers.painMed = ++num; // Pain medication (conditional)
-    numbers.swelling = ++num; // Swelling (always)
-    numbers.breathing = ++num; // Breathing (always)
-    numbers.bleeding = ++num; // Bleeding (always)
-    numbers.fever = ++num; // Fever (always)
-    numbers.numbness = ++num; // Numbness (always)
-    numbers.phlebitis = ++num; // Phlebitis (always)
-    numbers.suture = ++num; // Suture (always)
-    numbers.otherSymptoms = ++num; // Other symptoms (always)
-    numbers.antibiotic = ++num; // Antibiotic (always)
-    numbers.compress = ++num;// Compress (always)
+    numbers.pain = ++num;
+    if ((data.pain_score || 0) > 0) numbers.painMed = ++num;
+    numbers.swelling = ++num;
+    numbers.breathing = ++num;
+    numbers.bleeding = ++num;
+    numbers.fever = ++num;
+    numbers.numbness = ++num;
+    numbers.phlebitis = ++num;
+    numbers.suture = ++num;
+    numbers.otherSymptoms = ++num;
+    numbers.antibiotic = ++num;
+    numbers.compress = ++num;
 
-    if (data.has_imf === 'มีการมัดฟัน') numbers.imfWire = ++num; // IMF wire (conditional)
-    if (data.special_icbg === 'มี') numbers.walking = ++num; // Walking (conditional)
+    if (data.has_imf === 'มีการมัดฟัน') numbers.imfWire = ++num;
+    if (data.special_icbg === 'มี') numbers.walking = ++num;
 
     return numbers;
   }, [startingQuestionNumber, data.pain_score, data.has_imf, data.special_icbg]);
@@ -244,19 +293,18 @@ export default function SymptomsForm({ data, onChange, onValidationChange, start
   return (
     <div className="space-y-6">
       <h2 className="text-2xl font-bold text-gray-800 mb-6">
-        ส่วนที่ 2: อาการ
+        {t.title}
       </h2>
 
-
-      {/* ระดับความปวด */}
+      {/* Pain Score */}
       <div>
         <label className="block text-gray-700 font-medium mb-3">
-          {questionNumbers.pain}. ระดับความปวด ณ ปัจจุบัน (Pain score) <span className="text-red-500">*</span>
+          {questionNumbers.pain}. {t.pain.label} <span className="text-red-500">*</span>
         </label>
         <div className="space-y-3">
           <div className="flex items-center justify-between text-xs sm:text-sm text-gray-600 mb-2">
-            <span>ไม่ปวดเลย</span>
-            <span className="text-right">ปวดมากที่สุดในชีวิต</span>
+            <span>{t.pain.min}</span>
+            <span className="text-right">{t.pain.max}</span>
           </div>
           <div className="grid grid-cols-11 gap-1 sm:gap-2">
             {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(score => (
@@ -284,35 +332,34 @@ export default function SymptomsForm({ data, onChange, onValidationChange, start
               <span className="text-gray-600"> / 10</span>
             </>
           ) : (
-            <span className="text-gray-400">กรุณาเลือกระดับความปวด</span>
+            <span className="text-gray-400">-</span>
           )}
         </div>
 
         {data.pain_score !== undefined && (
           <div className="mt-3 ml-6">
             <label className="block text-gray-600 text-sm mb-1">
-              คำอธิบายเพิ่มเติมสำหรับอาการปวด (ไม่บังคับ)
+              {t.pain.desc}
             </label>
             <textarea
               value={data.pain_score_description || ''}
               onChange={(e) => onChange({ pain_score_description: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder=""
               rows={1}
             />
           </div>
         )}
       </div>
 
-      {/* 7. ยาแก้ปวดมีผลหรือไม่ - แสดงเฉพาะเมื่อ pain_score > 0 */}
+      {/* Pain Medication Effect (Conditional) */}
       {(data.pain_score || 0) > 0 && (
-        <div>
+        <div className="animate-in fade-in slide-in-from-top-2">
           <label className="block text-gray-700 font-medium mb-2">
-            {questionNumbers.painMed}. ทานยาแก้ปวดแล้วดีขึ้นหรือไม่? <span className="text-red-500">*</span>
+            {questionNumbers.painMed}. {t.painMed.label} <span className="text-red-500">*</span>
           </label>
           <div className="space-y-2">
             {PAIN_MEDICATION_OPTIONS.map(option => (
-              <label key={option} className="flex items-center">
+              <label key={option} className="flex items-center cursor-pointer">
                 <input
                   type="radio"
                   name="pain_medication"
@@ -321,35 +368,33 @@ export default function SymptomsForm({ data, onChange, onValidationChange, start
                   onChange={(e) => onChange({ pain_medication_effect: e.target.value as typeof data.pain_medication_effect })}
                   className="w-4 h-4 text-blue-600"
                 />
-                <span className="ml-2 text-gray-700">{option}</span>
+                <span className="ml-2 text-gray-700">{getOptionLabel(option, lang)}</span>
               </label>
             ))}
           </div>
-          {/* เพิ่มช่องอธิบายเมื่อ pain > 0 */}
+
           <div className="mt-3 ml-6">
             <label className="block text-gray-600 text-sm mb-1">
-              คำอธิบายเพิ่มเติมสำหรับอาการปวด (ไม่บังคับ)
+              {t.pain.desc}
             </label>
             <textarea
               value={data.pain_description || ''}
               onChange={(e) => onChange({ pain_description: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder=""
               rows={1}
             />
           </div>
         </div>
-      )
-      }
+      )}
 
-      {/* 8. อาการบวม */}
+      {/* Swelling */}
       <div>
         <label className="block text-gray-700 font-medium mb-2">
-          {questionNumbers.swelling}. อาการบวม <span className="text-red-500">*</span>
+          {questionNumbers.swelling}. {t.swelling.label} <span className="text-red-500">*</span>
         </label>
         <div className="space-y-2">
           {SWELLING_OPTIONS.map(option => (
-            <label key={option} className="flex items-center">
+            <label key={option} className="flex items-center cursor-pointer">
               <input
                 type="radio"
                 name="swelling"
@@ -358,33 +403,32 @@ export default function SymptomsForm({ data, onChange, onValidationChange, start
                 onChange={(e) => onChange({ swelling_status: e.target.value as typeof data.swelling_status })}
                 className="w-4 h-4 text-blue-600"
               />
-              <span className="ml-2 text-gray-700">{option}</span>
+              <span className="ml-2 text-gray-700">{getOptionLabel(option, lang)}</span>
             </label>
           ))}
         </div>
         {data.swelling_status && (
           <div className="mt-3 ml-6">
             <label className="block text-gray-600 text-sm mb-1">
-              คำอธิบายเพิ่มเติมสำหรับอาการ (ไม่บังคับ)
+              {t.swelling.desc}
             </label>
             <textarea
               value={data.swelling_description || ''}
               onChange={(e) => onChange({ swelling_description: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder=""
               rows={1}
             />
           </div>
         )}
       </div>
 
-      {/* 9. หายใจ/กลืนลำบาก */}
+      {/* Breathing */}
       <div>
         <label className="block text-gray-700 font-medium mb-2">
-          {questionNumbers.breathing}. มีอาการหายใจลำบาก หรือ กลืนลำบากหรือไม่? <span className="text-red-500">*</span>
+          {questionNumbers.breathing}. {t.breathing.label} <span className="text-red-500">*</span>
         </label>
         <div className="space-y-2">
-          <label className="flex items-center">
+          <label className="flex items-center cursor-pointer">
             <input
               type="radio"
               name="breathing"
@@ -393,9 +437,9 @@ export default function SymptomsForm({ data, onChange, onValidationChange, start
               onChange={(e) => onChange({ breathing_or_swallowing_difficulty: e.target.value })}
               className="w-4 h-4 text-blue-600"
             />
-            <span className="ml-2 text-gray-700">ไม่มี</span>
+            <span className="ml-2 text-gray-700">{t.breathing.no}</span>
           </label>
-          <label className="flex items-center">
+          <label className="flex items-center cursor-pointer">
             <input
               type="radio"
               name="breathing"
@@ -404,33 +448,32 @@ export default function SymptomsForm({ data, onChange, onValidationChange, start
               onChange={(e) => onChange({ breathing_or_swallowing_difficulty: e.target.value })}
               className="w-4 h-4 text-blue-600"
             />
-            <span className="ml-2 text-gray-700">มี</span>
+            <span className="ml-2 text-gray-700">{t.breathing.yes}</span>
           </label>
         </div>
         {data.breathing_or_swallowing_difficulty && (
           <div className="mt-3 ml-6">
             <label className="block text-gray-600 text-sm mb-1">
-              คำอธิบายเพิ่มเติมสำหรับอาการ (ไม่บังคับ)
+              {t.swelling.desc}
             </label>
             <textarea
               value={data.breathing_description || ''}
               onChange={(e) => onChange({ breathing_description: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder=" "
               rows={1}
             />
           </div>
         )}
       </div>
 
-      {/* 10. เลือดออก */}
+      {/* Bleeding */}
       <div>
         <label className="block text-gray-700 font-medium mb-2">
-          {questionNumbers.bleeding}. อาการเลือดซึม หรือ เลือดออก จากแผลในช่องปาก หรือ บริเวณจมูก <span className="text-red-500">*</span>
+          {questionNumbers.bleeding}. {t.bleeding.label} <span className="text-red-500">*</span>
         </label>
         <div className="space-y-2">
           {BLEEDING_OPTIONS.map(option => (
-            <label key={option} className="flex items-center">
+            <label key={option} className="flex items-center cursor-pointer">
               <input
                 type="radio"
                 name="bleeding"
@@ -439,33 +482,32 @@ export default function SymptomsForm({ data, onChange, onValidationChange, start
                 onChange={(e) => onChange({ bleeding_status: e.target.value as typeof data.bleeding_status })}
                 className="w-4 h-4 text-blue-600"
               />
-              <span className="ml-2 text-gray-700">{option}</span>
+              <span className="ml-2 text-gray-700">{getOptionLabel(option, lang)}</span>
             </label>
           ))}
         </div>
         {data.bleeding_status && (
           <div className="mt-3 ml-6">
             <label className="block text-gray-600 text-sm mb-1">
-              คำอธิบายเพิ่มเติมสำหรับอาการ (ไม่บังคับ)
+              {t.swelling.desc}
             </label>
             <textarea
               value={data.bleeding_description || ''}
               onChange={(e) => onChange({ bleeding_description: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder=""
               rows={1}
             />
           </div>
         )}
       </div>
 
-      {/* 11. ไข้ */}
+      {/* Fever */}
       <div>
         <label className="block text-gray-700 font-medium mb-2">
-          {questionNumbers.fever}. อาการไข้  <span className="text-red-500">*</span>
+          {questionNumbers.fever}. {t.fever.label} <span className="text-red-500">*</span>
         </label>
         <div className="space-y-2">
-          <label className="flex items-center">
+          <label className="flex items-center cursor-pointer">
             <input
               type="radio"
               name="fever"
@@ -474,9 +516,9 @@ export default function SymptomsForm({ data, onChange, onValidationChange, start
               onChange={(e) => onChange({ fever_status: e.target.value })}
               className="w-4 h-4 text-blue-600"
             />
-            <span className="ml-2 text-gray-700">ไม่มีไข้</span>
+            <span className="ml-2 text-gray-700">{t.fever.no}</span>
           </label>
-          <label className="flex items-center">
+          <label className="flex items-center cursor-pointer">
             <input
               type="radio"
               name="fever"
@@ -485,33 +527,32 @@ export default function SymptomsForm({ data, onChange, onValidationChange, start
               onChange={(e) => onChange({ fever_status: e.target.value })}
               className="w-4 h-4 text-blue-600"
             />
-            <span className="ml-2 text-gray-700">มีไข้ (มากกว่า 38 องศาเซลเซียส)</span>
+            <span className="ml-2 text-gray-700">{t.fever.yes}</span>
           </label>
         </div>
         {data.fever_status && (
           <div className="mt-3 ml-6">
             <label className="block text-gray-600 text-sm mb-1">
-              คำอธิบายเพิ่มเติมสำหรับอาการ (ไม่บังคับ)
+              {t.fever.desc}
             </label>
             <textarea
               value={data.fever_description || ''}
               onChange={(e) => onChange({ fever_description: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="บันทึกอุณหภูมิ"
               rows={1}
             />
           </div>
         )}
       </div>
 
-      {/* 12. อาการชา */}
+      {/* Numbness */}
       <div>
         <label className="block text-gray-700 font-medium mb-2">
-          {questionNumbers.numbness}. อาการชา (บันทึกบริเวณที่ชาที่ช่องอื่นๆ) <span className="text-red-500">*</span>
+          {questionNumbers.numbness}. {t.numbness.label} <span className="text-red-500">*</span>
         </label>
         <div className="space-y-2">
           {NUMBNESS_OPTIONS.map(option => (
-            <label key={option} className="flex items-center">
+            <label key={option} className="flex items-center cursor-pointer">
               <input
                 type="radio"
                 name="numbness"
@@ -520,34 +561,34 @@ export default function SymptomsForm({ data, onChange, onValidationChange, start
                 onChange={(e) => onChange({ numbness_status: e.target.value as typeof data.numbness_status })}
                 className="w-4 h-4 text-blue-600"
               />
-              <span className="ml-2 text-gray-700">{option}</span>
+              <span className="ml-2 text-gray-700">{getOptionLabel(option, lang)}</span>
             </label>
           ))}
         </div>
         {data.numbness_status && (
           <div className="mt-3 ml-6">
             <label className="block text-gray-600 text-sm mb-1">
-              คำอธิบายเพิ่มเติมสำหรับอาการ (ไม่บังคับ)
+              {t.swelling.desc}
             </label>
             <textarea
               value={data.numbness_description || ''}
               onChange={(e) => onChange({ numbness_description: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="บันทึกบริเวณที่ชา เช่น บริเวณริมฝีปากล่างขวา"
+              placeholder={t.numbness.desc}
               rows={1}
             />
           </div>
         )}
       </div>
 
-      {/* 13. Phlebitis */}
+      {/* Phlebitis */}
       <div>
         <label className="block text-gray-700 font-medium mb-2">
-          {questionNumbers.phlebitis}. บริเวณที่เอาเข็มน้ำเกลือออกที่หลังมือหรือข้อมือ <span className="text-red-500">*</span>
+          {questionNumbers.phlebitis}. {t.phlebitis.label} <span className="text-red-500">*</span>
         </label>
         <div className="space-y-2">
           {PHLEBITIS_OPTIONS.map(option => (
-            <label key={option} className="flex items-center">
+            <label key={option} className="flex items-center cursor-pointer">
               <input
                 type="radio"
                 name="phlebitis"
@@ -556,34 +597,33 @@ export default function SymptomsForm({ data, onChange, onValidationChange, start
                 onChange={(e) => onChange({ phlebitis: e.target.value as typeof data.phlebitis })}
                 className="w-4 h-4 text-blue-600"
               />
-              <span className="ml-2 text-gray-700">{option}</span>
+              <span className="ml-2 text-gray-700">{getOptionLabel(option, lang)}</span>
             </label>
           ))}
         </div>
         {data.phlebitis && (
           <div className="mt-3 ml-6">
             <label className="block text-gray-600 text-sm mb-1">
-              คำอธิบายเพิ่มเติมสำหรับอาการ (ไม่บังคับ)
+              {t.swelling.desc}
             </label>
             <textarea
               value={data.phlebitis_description || ''}
               onChange={(e) => onChange({ phlebitis_description: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder=" "
               rows={1}
             />
           </div>
         )}
       </div>
 
-      {/* 14. ไหมเย็บแผล */}
+      {/* Suture */}
       <div>
         <label className="block text-gray-700 font-medium mb-2">
-          {questionNumbers.suture}. ไหมเย็บแผล <span className="text-red-500">*</span>
+          {questionNumbers.suture}. {t.suture.label} <span className="text-red-500">*</span>
         </label>
         <div className="space-y-2">
           {SUTURE_OPTIONS.map(option => (
-            <label key={option} className="flex items-center">
+            <label key={option} className="flex items-center cursor-pointer">
               <input
                 type="radio"
                 name="suture"
@@ -592,58 +632,56 @@ export default function SymptomsForm({ data, onChange, onValidationChange, start
                 onChange={(e) => onChange({ suture_status: e.target.value as typeof data.suture_status })}
                 className="w-4 h-4 text-blue-600"
               />
-              <span className="ml-2 text-gray-700">{option}</span>
+              <span className="ml-2 text-gray-700">{getOptionLabel(option, lang)}</span>
             </label>
           ))}
         </div>
         {data.suture_status && (
           <div className="mt-3 ml-6">
             <label className="block text-gray-600 text-sm mb-1">
-              คำอธิบายเพิ่มเติมสำหรับอาการ (ไม่บังคับ)
+              {t.swelling.desc}
             </label>
             <textarea
               value={data.suture_description || ''}
               onChange={(e) => onChange({ suture_description: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder=" "
               rows={1}
             />
           </div>
         )}
       </div>
 
-      {/* 15. อาการอื่นๆ (multiple) */}
+      {/* Other Symptoms */}
       <div>
         <label className="block text-gray-700 font-medium mb-2">
-          {questionNumbers.otherSymptoms}. อาการอื่นๆ (เลือกได้หลายคำตอบ)
+          {questionNumbers.otherSymptoms}. {t.other.label}
         </label>
         <div className="space-y-3 border border-gray-200 rounded-lg p-4">
-          {OTHER_SYMPTOMS_OPTIONS.filter(symptom => symptom !== 'เวียนหัว').map(symptom => (
-            <label key={symptom} className="flex items-start">
+          {OTHER_SYMPTOMS_OPTIONS.filter(key => key !== 'dizziness').map(key => (
+            <label key={key} className="flex items-start cursor-pointer">
               <input
                 type="checkbox"
-                checked={data.other_symptoms?.includes(symptom) || false}
-                onChange={(e) => handleOtherSymptomsChange(symptom, e.target.checked)}
+                checked={data.other_symptoms?.includes(key) || false}
+                onChange={(e) => handleOtherSymptomsChange(key, e.target.checked)}
                 className="w-4 h-4 text-blue-600 mt-1"
               />
-              <span className="ml-2 text-gray-700">{symptom}</span>
+              <span className="ml-2 text-gray-700">{getSymptomLabel(key, lang)}</span>
             </label>
           ))}
 
-          {/* อาการอื่นๆ - แบบหลายช่อง */}
+          {/* Custom Symptoms */}
           <div className="mt-4 pt-4 border-t border-gray-200">
-            <label className="block text-gray-700 font-medium mb-3">อาการอื่นๆ ที่ต้องการระบุเพิ่มเติม:</label>
+            <label className="block text-gray-700 font-medium mb-3">{t.other.customLabel}</label>
             <div className="space-y-3">
               {customSymptoms.map((symptom, index) => (
                 <div key={index} className="flex items-start gap-2">
-                  {/* ช่องชื่ออาการ (เล็ก ซ้าย) */}
                   <div className="w-1/3">
                     <input
                       type="text"
                       value={symptom.name || ''}
                       onChange={(e) => handleCustomSymptomChange(index, 'name', e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="ชื่ออาการ"
+                      placeholder={t.other.namePlaceholder}
                     />
                   </div>
                   <div className="flex-1">
@@ -652,15 +690,13 @@ export default function SymptomsForm({ data, onChange, onValidationChange, start
                       value={symptom.description || ''}
                       onChange={(e) => handleCustomSymptomChange(index, 'description', e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="ลักษณะอาการ"
+                      placeholder={t.other.descPlaceholder}
                     />
                   </div>
-
                   <button
                     type="button"
                     onClick={() => handleRemoveSymptomField(index)}
                     className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                    title="ลบอาการนี้"
                   >
                     <X className="w-5 h-5" />
                   </button>
@@ -673,8 +709,8 @@ export default function SymptomsForm({ data, onChange, onValidationChange, start
               >
                 <Plus className="w-5 h-5" />
                 {customSymptoms.length === 0
-                  ? 'กดเพื่อเพิ่มอาการอื่น ๆ'
-                  : 'กดเพื่อเพิ่มอาการถัดไป'
+                  ? t.other.add
+                  : t.other.add
                 }
               </button>
             </div>
@@ -682,14 +718,14 @@ export default function SymptomsForm({ data, onChange, onValidationChange, start
         </div>
       </div>
 
-      {/* 16. ยาฆ่าเชื้อ */}
+      {/* Antibiotic */}
       <div>
         <label className="block text-gray-700 font-medium mb-2">
-          {questionNumbers.antibiotic}. รับประทานยาฆ่าเชื้อครบตามแผนการรักษาหรือไม่? <span className="text-red-500">*</span>
+          {questionNumbers.antibiotic}. {t.antibiotic.label} <span className="text-red-500">*</span>
         </label>
         <div className="space-y-2">
           {ANTIBIOTIC_OPTIONS.map(option => (
-            <label key={option} className="flex items-center">
+            <label key={option} className="flex items-center cursor-pointer">
               <input
                 type="radio"
                 name="antibiotic"
@@ -698,16 +734,15 @@ export default function SymptomsForm({ data, onChange, onValidationChange, start
                 onChange={(e) => onChange({ antibiotic_compliance: e.target.value as typeof data.antibiotic_compliance })}
                 className="w-4 h-4 text-blue-600"
               />
-              <span className="ml-2 text-gray-700">{option}</span>
+              <span className="ml-2 text-gray-700">{getOptionLabel(option, lang)}</span>
             </label>
           ))}
         </div>
 
-        {/* แสดงช่องกรอกจำนวนครั้งเฉพาะเมื่อเลือก "ลืมทานบางครั้ง" */}
         {data.antibiotic_compliance === 'ลืมทานบางครั้ง' && (
           <div className="mt-3 ml-6">
             <label className="block text-gray-600 text-sm mb-1">
-              จำนวนครั้งที่ลืมทาน <span className="text-red-500">*</span>
+              {t.antibiotic.forgotCount} <span className="text-red-500">*</span>
             </label>
             <input
               type="number"
@@ -716,20 +751,19 @@ export default function SymptomsForm({ data, onChange, onValidationChange, start
               value={data.antibiotic_description || ''}
               onChange={(e) => onChange({ antibiotic_description: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="กรอกจำนวนครั้ง เช่น 2"
             />
           </div>
         )}
       </div>
 
-      {/* 17. ประคบเย็น หรือ อุ่นอยู่หรือไม่? */}
+      {/* Compress */}
       <div>
         <label className="block text-gray-700 font-medium mb-2">
-          {questionNumbers.compress}. ประคบเย็น หรือ อุ่นอยู่หรือไม่? <span className="text-red-500">*</span>
+          {questionNumbers.compress}. {t.compress.label} <span className="text-red-500">*</span>
         </label>
         <div className="space-y-2">
           {COMPRESS_OPTIONS.map(option => (
-            <label key={option} className="flex items-center">
+            <label key={option} className="flex items-center cursor-pointer">
               <input
                 type="radio"
                 name="compress"
@@ -738,89 +772,86 @@ export default function SymptomsForm({ data, onChange, onValidationChange, start
                 onChange={(e) => onChange({ compress_type: e.target.value as typeof data.compress_type })}
                 className="w-4 h-4 text-blue-600"
               />
-              <span className="ml-2 text-gray-700">{option}</span>
+              <span className="ml-2 text-gray-700">{getOptionLabel(option, lang)}</span>
             </label>
           ))}
         </div>
       </div>
 
-      {/* ลวดมัดฟัน (แสดงถ้าเลือก IMF) */}
-      {
-        data.has_imf === 'มีการมัดฟัน' && (
-          <div>
-            <label className="block text-gray-700 font-medium mb-2">
-              {questionNumbers.imfWire}. หากมีการมัดฟันบนและล่างเข้าด้วยกัน ลวด/ยางมัดฟันแน่นดีหรือไม่? <span className="text-red-500">*</span>
-            </label>
-            <div className="space-y-2">
-              {IMF_WIRE_OPTIONS.map(option => (
-                <label key={option} className="flex items-center">
-                  <input
-                    type="radio"
-                    name="imf_wire"
-                    value={option}
-                    checked={data.imf_wire_status === option}
-                    onChange={(e) => onChange({ imf_wire_status: e.target.value as typeof data.imf_wire_status })}
-                    className="w-4 h-4 text-blue-600"
-                  />
-                  <span className="ml-2 text-gray-700">{option}</span>
-                </label>
-              ))}
-            </div>
-            {data.imf_wire_status && (
-              <div className="mt-3 ml-6">
-                <label className="block text-gray-600 text-sm mb-1">
-                  คำอธิบายเพิ่มเติมสำหรับอาการ (ไม่บังคับ)
-                </label>
-                <textarea
-                  value={data.imf_wire_description || ''}
-                  onChange={(e) => onChange({ imf_wire_description: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder=""
-                  rows={1}
+      {/* IMF (Conditional) */}
+      {data.has_imf === 'มีการมัดฟัน' && (
+        <div className="animate-in fade-in slide-in-from-top-2">
+          <label className="block text-gray-700 font-medium mb-2">
+            {questionNumbers.imfWire}. {t.imfWire.label} <span className="text-red-500">*</span>
+          </label>
+          <div className="space-y-2">
+            {IMF_WIRE_OPTIONS.map(option => (
+              <label key={option} className="flex items-center cursor-pointer">
+                <input
+                  type="radio"
+                  name="imf_wire"
+                  value={option}
+                  checked={data.imf_wire_status === option}
+                  onChange={(e) => onChange({ imf_wire_status: e.target.value as typeof data.imf_wire_status })}
+                  className="w-4 h-4 text-blue-600"
                 />
-              </div>
-            )}      </div>
-        )
-      }
-      {/*  การเดิน (แสดงถ้าเลือก ICBG) */}
-      {
-        data.special_icbg === 'มี' && (
-          <div>
-            <label className="block text-gray-700 font-medium mb-2">
-              {questionNumbers.walking}. การเดิน ในผู้ป่วยที่ได้รับการปลูกถ่ายกระดูกจากสันกระดูกเชิงกราน <span className="text-red-500">*</span>
-            </label>
-            <div className="space-y-2">
-              {WALKING_OPTIONS.map(option => (
-                <label key={option} className="flex items-center">
-                  <input
-                    type="radio"
-                    name="walking"
-                    value={option}
-                    checked={data.walking_status === option}
-                    onChange={(e) => onChange({ walking_status: e.target.value as typeof data.walking_status })}
-                    className="w-4 h-4 text-blue-600"
-                  />
-                  <span className="ml-2 text-gray-700">{option}</span>
-                </label>
-              ))}
-            </div>
-            {data.walking_status && (
-              <div className="mt-3 ml-6">
-                <label className="block text-gray-600 text-sm mb-1">
-                  คำอธิบายเพิ่มเติมสำหรับอาการ (ไม่บังคับ)
-                </label>
-                <textarea
-                  value={data.walking_description || ''}
-                  onChange={(e) => onChange({ walking_description: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder=""
-                  rows={1}
-                />
-              </div>
-            )}
+                <span className="ml-2 text-gray-700">{getOptionLabel(option, lang)}</span>
+              </label>
+            ))}
           </div>
-        )
-      }
-    </div >
+          {data.imf_wire_status && (
+            <div className="mt-3 ml-6">
+              <label className="block text-gray-600 text-sm mb-1">
+                {t.swelling.desc}
+              </label>
+              <textarea
+                value={data.imf_wire_description || ''}
+                onChange={(e) => onChange({ imf_wire_description: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                rows={1}
+              />
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Walking (Conditional) - ICBG */}
+      {data.special_icbg === 'มี' && (
+        <div className="animate-in fade-in slide-in-from-top-2">
+          <label className="block text-gray-700 font-medium mb-2">
+            {questionNumbers.walking}. {t.walking.label} <span className="text-red-500">*</span>
+          </label>
+          <div className="space-y-2">
+            {WALKING_OPTIONS.map(option => (
+              <label key={option} className="flex items-center cursor-pointer">
+                <input
+                  type="radio"
+                  name="walking"
+                  value={option}
+                  checked={data.walking_status === option}
+                  onChange={(e) => onChange({ walking_status: e.target.value as typeof data.walking_status })}
+                  className="w-4 h-4 text-blue-600"
+                />
+                <span className="ml-2 text-gray-700">{getOptionLabel(option, lang)}</span>
+              </label>
+            ))}
+          </div>
+          {data.walking_status && (
+            <div className="mt-3 ml-6">
+              <label className="block text-gray-600 text-sm mb-1">
+                {t.swelling.desc}
+              </label>
+              <textarea
+                value={data.walking_description || ''}
+                onChange={(e) => onChange({ walking_description: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                rows={1}
+              />
+            </div>
+          )}
+        </div>
+      )}
+
+    </div>
   );
 }

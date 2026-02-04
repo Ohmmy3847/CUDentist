@@ -2,45 +2,48 @@ import React from 'react';
 import { Plus, X } from 'lucide-react';
 import type { PatientFormData } from '@/lib';
 import { GENDER_OPTIONS, PROCEDURE_OPTIONS } from '@/lib';
+import { th, en } from '@/lib/locales';
 
 interface BasicInfoFormProps {
   data: PatientFormData;
   onChange: (data: Partial<PatientFormData>) => void;
   onValidationChange?: (isValid: boolean) => void;
+  lang?: 'th' | 'en';
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function validateBasicInfo(_data: PatientFormData): boolean {
-  // if (!data.first_name || data.first_name.trim() === '') return false;
-  // if (!data.last_name || data.last_name.trim() === '') return false;
-
-  // // Validate email format
-  // if (!data.email || data.email.trim() === '') return false;
-  // const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  // if (!emailRegex.test(data.email)) return false;
-
-  // // Validate phone (Thai phone number: 10 digits starting with 0)
-  // if (!data.phone || data.phone.trim() === '') return false;
-  // const phoneRegex = /^0[0-9]{9}$/;
-  // if (!phoneRegex.test(data.phone.replace(/[\s-]/g, ''))) return false;
-
-  // // Validate birth year (between 2400-2600 for Thai Buddhist calendar)
-  // if (!data.birth_year) return false;
-  // if (data.birth_year < 2400 || data.birth_year > 2600) return false;
-
-  // // Validate other required fields
-  // if (!data.age) return false;
-  // if (!data.gender) return false;
-  // if (!data.hn) return false;
-  // if (!data.procedures || data.procedures.length === 0) return false;
-  // if (!data.surgery_date) return false;
-  // if (!data.discharge_date) return false;
-
-  //   console.log('validateBasicInfo', data);
   return true;
 }
 
-export default function BasicInfoForm({ data, onChange, onValidationChange }: BasicInfoFormProps) {
+
+
+export default function BasicInfoForm({ data, onChange, onValidationChange, lang = 'th' }: BasicInfoFormProps) {
+  const t = lang === 'th' ? th.form.basicInfo : en.form.basicInfo;
+
+  const getOptionLabel = (option: string, _lang?: string): string => {
+    if (lang === 'th') return option;
+
+    const map: Record<string, string> = {
+      // Gender
+      'ชาย': t.genderOptions.male,
+      'หญิง': t.genderOptions.female,
+
+      // Procedures
+      'ผ่าตัดขากรรไกรบน  (Lefort I)': t.procedureOptions.lefort,
+      'ผ่าตัดขากรรไกรล่าง (BSSRO-bilateral sagittal split osteotomy)': t.procedureOptions.bssro,
+      'ผ่าตัดถอนฟัน (Surgical removal of tooth)': t.procedureOptions.surgicalRemoval,
+      'ถอนฟัน (Extraction)': t.procedureOptions.extraction,
+      'การตัดชิ้นเนื้อตรวจ (Biopsy)': t.procedureOptions.biopsy,
+      'การตัดถุงน้ำออก (Cyst Enucleation)': t.procedureOptions.cyst,
+      'การกรีดและระบายหนอง (Incision and drainage)': t.procedureOptions.incision,
+      'การรักษาการแหว่งของสันเหงือกโดยการนำกระดูกสะโพกมาปลูก (Repair alveolar cleft with Iliac crest bone graft)': t.procedureOptions.cleftRepair,
+      'ผ่าตัดปุ่มกระดูก (Torectomy)': t.procedureOptions.torectomy,
+      'การผ่าตัดเพื่อนำแผ่นโลหะและสกรูออก (Off plate and screws)': t.procedureOptions.plateRemoval,
+    };
+
+    return map[option] || option;
+  };
+
   const [customProcedures, setCustomProcedures] = React.useState<string[]>([]);
 
   // Check if specific procedures are selected
@@ -132,43 +135,43 @@ export default function BasicInfoForm({ data, onChange, onValidationChange }: Ba
   return (
     <div className="space-y-6">
       <h2 className="text-2xl font-bold text-gray-800 mb-6">
-        ส่วนที่ 1: ข้อมูลพื้นฐาน
+        {t.title}
       </h2>
 
-      {/* ข้อมูลส่วนตัว (แยกข้อและใส่เลขข้อ) */}
+      {/* Basic Info */}
       <div className="space-y-4">
-        {/* 1. ชื่อจริง */}
+        {/* 1. First Name */}
         <div>
           <label className="block text-gray-700 font-medium mb-2">
-            {++qNum}. ชื่อจริง <span className="text-red-500">*</span>
+            {++qNum}. {t.firstName} <span className="text-red-500">*</span>
           </label>
           <input
             type="text"
             value={data.first_name || ''}
             onChange={(e) => onChange({ first_name: e.target.value })}
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            placeholder="กรอกชื่อจริง"
+            placeholder={t.firstName}
           />
         </div>
 
-        {/* 2. นามสกุล */}
+        {/* 2. Last Name */}
         <div>
           <label className="block text-gray-700 font-medium mb-2">
-            {++qNum}. นามสกุล <span className="text-red-500">*</span>
+            {++qNum}. {t.lastName} <span className="text-red-500">*</span>
           </label>
           <input
             type="text"
             value={data.last_name || ''}
             onChange={(e) => onChange({ last_name: e.target.value })}
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            placeholder="กรอกนามสกุล"
+            placeholder={t.lastName}
           />
         </div>
 
-        {/* 3. อีเมล */}
+        {/* 3. Email */}
         <div>
           <label className="block text-gray-700 font-medium mb-2">
-            {++qNum}. อีเมล <span className="text-red-500">*</span>
+            {++qNum}. {t.email} <span className="text-red-500">*</span>
           </label>
           <input
             type="email"
@@ -179,24 +182,24 @@ export default function BasicInfoForm({ data, onChange, onValidationChange }: Ba
           />
         </div>
 
-        {/* 4. เบอร์โทร */}
+        {/* 4. Phone */}
         <div>
           <label className="block text-gray-700 font-medium mb-2">
-            {++qNum}. เบอร์โทรศัพท์ <span className="text-red-500">*</span>
+            {++qNum}. {t.phone} <span className="text-red-500">*</span>
           </label>
           <input
             type="tel"
             value={data.phone || ''}
             onChange={(e) => onChange({ phone: e.target.value })}
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            placeholder="กรอกเบอร์โทรศัพท์ เช่น 0xx-xxx-xxxx"
+            placeholder={t.phone}
           />
         </div>
 
-        {/* 5. ปีเกิด */}
+        {/* 5. Birth Year */}
         <div>
           <label className="block text-gray-700 font-medium mb-2">
-            {++qNum}. ปีเกิด (พ.ศ.) <span className="text-red-500">*</span>
+            {++qNum}. {t.birthYear} <span className="text-red-500">*</span>
           </label>
           <input
             type="text"
@@ -210,15 +213,15 @@ export default function BasicInfoForm({ data, onChange, onValidationChange }: Ba
               }
             }}
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            placeholder="กรอกปีเกิด"
+            placeholder={t.birthYear}
           />
         </div>
       </div>
 
-      {/* 1. อายุ */}
+      {/* Age */}
       <div>
         <label className="block text-gray-700 font-medium mb-2">
-          {++qNum}. อายุ <span className="text-red-500">*</span>
+          {++qNum}. {t.age} <span className="text-red-500">*</span>
         </label>
         <input
           type="text"
@@ -232,18 +235,18 @@ export default function BasicInfoForm({ data, onChange, onValidationChange }: Ba
             }
           }}
           className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          placeholder="กรอกอายุ"
+          placeholder={t.age}
         />
       </div>
 
-      {/* 2. เพศ */}
+      {/* Gender */}
       <div>
         <label className="block text-gray-700 font-medium mb-2">
-          {++qNum}. เพศ <span className="text-red-500">*</span>
+          {++qNum}. {t.gender} <span className="text-red-500">*</span>
         </label>
         <div className="space-y-2">
           {GENDER_OPTIONS.map(option => (
-            <label key={option} className="flex items-center">
+            <label key={option} className="flex items-center cursor-pointer">
               <input
                 type="radio"
                 name="gender"
@@ -252,7 +255,7 @@ export default function BasicInfoForm({ data, onChange, onValidationChange }: Ba
                 onChange={(e) => onChange({ gender: e.target.value })}
                 className="w-4 h-4 text-blue-600"
               />
-              <span className="ml-2 text-gray-700">{option}</span>
+              <span className="ml-2 text-gray-700">{getOptionLabel(option, lang)}</span>
             </label>
           ))}
           <div className="flex items-center">
@@ -264,7 +267,7 @@ export default function BasicInfoForm({ data, onChange, onValidationChange }: Ba
                 onChange={() => onChange({ gender: ' ' })}
                 className="w-4 h-4 text-blue-600"
               />
-              <span className="ml-2 text-gray-700">อื่นๆ:</span>
+              <span className="ml-2 text-gray-700">{t.genderOther}:</span>
             </label>
             <input
               type="text"
@@ -276,48 +279,47 @@ export default function BasicInfoForm({ data, onChange, onValidationChange }: Ba
                 }
               }}
               className="ml-2 px-3 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="ระบุ"
             />
           </div>
         </div>
       </div>
 
-      {/* 3. HN */}
+      {/* HN */}
       <div>
         <label className="block text-gray-700 font-medium mb-2">
-          {++qNum}. HN (กรอกเลขคนไข้) <span className="text-red-500">*</span>
+          {++qNum}. {t.hn} <span className="text-red-500">*</span>
         </label>
         <input
           type="number"
           value={data.hn || ''}
           onChange={(e) => onChange({ hn: e.target.value })}
           className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          placeholder="กรอกหมายเลข HN"
+          placeholder=""
         />
       </div>
 
-      {/* 4. หัตถการที่ทำ */}
+      {/* Procedures */}
       <div>
         <label className="block text-gray-700 font-medium mb-2">
-          {++qNum}. หัตถการที่ทำ (เลือกได้มากกว่า 1 หัตถการ) <span className="text-red-500">*</span>
+          {++qNum}. {t.procedures} <span className="text-red-500">*</span>
         </label>
         <div className="space-y-3 border border-gray-200 rounded-lg p-4">
           {PROCEDURE_OPTIONS.map(procedure => (
             <div key={procedure}>
-              <label className="flex items-start">
+              <label className="flex items-start cursor-pointer">
                 <input
                   type="checkbox"
                   checked={data.procedures?.includes(procedure) || false}
                   onChange={(e) => handleProcedureChange(procedure, e.target.checked)}
                   className="w-4 h-4 text-blue-600 mt-1"
                 />
-                <span className="ml-2 text-gray-700">{procedure}</span>
+                <span className="ml-2 text-gray-700">{getOptionLabel(procedure, lang)}</span>
               </label>
 
               {/* Sub-options for Lefort I */}
               {procedure.includes('Lefort I') && hasLefortI && (
                 <div className="ml-6 mt-2 p-3 rounded-lg">
-                  <p className="text-sm text-gray-600 mb-2">เลือกรายละเอียดเพิ่มเติม:</p>
+                  <p className="text-sm text-gray-600 mb-2">{t.subOptions}:</p>
                   <div className="flex flex-wrap gap-2">
                     {["Advancement", "Setback", "Osteotomy", "2 pieces", "Impaction"].map(option => (
                       <label key={option} className="inline-flex items-center px-3 py-1 bg-white border border-blue-200 rounded-full hover:bg-blue-100 cursor-pointer transition-colors">
@@ -337,7 +339,7 @@ export default function BasicInfoForm({ data, onChange, onValidationChange }: Ba
               {/* Sub-options for BSSRO */}
               {procedure.includes('BSSRO') && hasBSSRO && (
                 <div className="ml-6 mt-2 p-3 rounded-lg">
-                  <p className="text-sm text-gray-600 mb-2">เลือกรายละเอียดเพิ่มเติม:</p>
+                  <p className="text-sm text-gray-600 mb-2">{t.subOptions}:</p>
                   <div className="flex flex-wrap gap-2">
                     {["Setback", "Advancement"].map(option => (
                       <label key={option} className="inline-flex items-center px-3 py-1 bg-white border border-green-200 rounded-full hover:bg-green-100 cursor-pointer transition-colors">
@@ -354,10 +356,10 @@ export default function BasicInfoForm({ data, onChange, onValidationChange }: Ba
                 </div>
               )}
 
-              {/* ช่องกรอกหมายเลขซี่ฟันสำหรับผ่าตัดถอนฟัน/ถอนฟัน */}
+              {/* Surgical Tooth */}
               {((procedure.includes('ผ่าตัดถอนฟัน') && data.procedures?.includes(procedure)) || (procedure.includes('ถอนฟัน') && data.procedures?.includes(procedure))) && (
                 <div className="ml-6 mt-2 p-3 rounded-lg">
-                  <label className="block text-gray-600 text-sm mb-2">ระบุหมายเลขซี่ฟัน (เช่น 18, 38, 47):</label>
+                  <label className="block text-gray-600 text-sm mb-2">{t.surgicalTooth}:</label>
                   <input
                     type="text"
                     value={procedure.includes('ผ่าตัดถอนฟัน') ? (data.surgical_tooth_numbers || '') : (data.extraction_tooth_numbers || '')}
@@ -369,7 +371,7 @@ export default function BasicInfoForm({ data, onChange, onValidationChange }: Ba
                       }
                     }}
                     className="w-full px-3 py-2 border border-yellow-400 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
-                    placeholder="ระบุหมายเลขซี่ฟัน เช่น 18, 38, 47"
+                    placeholder={t.surgicalTooth}
                   />
                 </div>
               )}
@@ -377,7 +379,7 @@ export default function BasicInfoForm({ data, onChange, onValidationChange }: Ba
               {/* Sub-options for Biopsy */}
               {procedure.includes('Biopsy') && hasBiopsy && (
                 <div className="ml-6 mt-2 p-3 rounded-lg">
-                  <p className="text-sm text-gray-600 mb-2">เลือกรายละเอียดเพิ่มเติม:</p>
+                  <p className="text-sm text-gray-600 mb-2">{t.subOptions}:</p>
                   <div className="flex flex-wrap gap-2">
                     {["Excisional", "Incisional"].map(option => (
                       <label key={option} className="inline-flex items-center px-3 py-1 bg-white border border-pink-200 rounded-full hover:bg-pink-100 cursor-pointer transition-colors">
@@ -402,9 +404,9 @@ export default function BasicInfoForm({ data, onChange, onValidationChange }: Ba
             </div>
           ))}
 
-          {/* หัตถการอื่นๆ */}
+          {/* Other Procedures */}
           <div className="mt-4 pt-4 border-t border-gray-200">
-            <label className="block text-gray-700 font-medium mb-3">หัตถการอื่นๆ:</label>
+            <label className="block text-gray-700 font-medium mb-3">{t.otherProcedures}:</label>
             <div className="space-y-2">
               {customProcedures.map((proc, index) => (
                 <div key={index} className="flex items-center gap-2">
@@ -413,13 +415,12 @@ export default function BasicInfoForm({ data, onChange, onValidationChange }: Ba
                     value={proc}
                     onChange={(e) => handleCustomProcedureChange(index, e.target.value)}
                     className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="โปรดระบุหัตถการ"
+                    placeholder={t.otherProceduresPlaceholder}
                   />
                   <button
                     type="button"
                     onClick={() => handleRemoveProcedureField(index)}
                     className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                    title="ลบช่องนี้"
                   >
                     <X className="w-5 h-5" />
                   </button>
@@ -431,20 +432,20 @@ export default function BasicInfoForm({ data, onChange, onValidationChange }: Ba
                 className="flex items-center gap-2 px-4 py-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors font-medium"
               >
                 <Plus className="w-5 h-5" />
-                {customProcedures.length === 0 ? 'กดเพื่อเพิ่มหัตถการอื่น ๆ' : 'กดเพื่อเพิ่มหัตถการถัดไป'}
+                {t.addProcedure}
               </button>
             </div>
           </div>
         </div>
       </div>
 
-      {/* 10. หัตถการอื่นๆ - IMF, ICBG, NG tube */}
+      {/* Special Procedures */}
       <div>
         <label className="block text-gray-700 font-medium mb-2">
-          {++qNum}. หัตถการอื่นๆ (เลือกได้หลายตัวเลือก)
+          {++qNum}. {t.specialProcedures}
         </label>
         <div className="space-y-3 border border-gray-200 rounded-lg p-4">
-          {/* IMF มัดลวด */}
+          {/* IMF Wire */}
           <div className="rounded-lg p-4 border border-gray-200">
             <div className="flex items-center gap-4 mb-2">
               <label className="flex items-center cursor-pointer">
@@ -461,12 +462,12 @@ export default function BasicInfoForm({ data, onChange, onValidationChange }: Ba
                   }}
                   className="w-4 h-4 text-purple-600"
                 />
-                <span className="ml-2 font-medium text-gray-700">IMF มัดลวด</span>
+                <span className="ml-2 font-medium text-gray-700">{t.imfWire}</span>
               </label>
             </div>
             {data.imf_wire && (
               <div className="ml-6">
-                <label className="block text-sm text-gray-600 mb-1">จำนวน loop (เช่น 1-10):</label>
+                <label className="block text-sm text-gray-600 mb-1">{t.loops}:</label>
                 <input
                   type="number"
                   min="1"
@@ -474,13 +475,13 @@ export default function BasicInfoForm({ data, onChange, onValidationChange }: Ba
                   value={data.imf_wire_loops || ''}
                   onChange={(e) => onChange({ imf_wire_loops: e.target.value ? parseInt(e.target.value) : undefined, imf_loops: e.target.value ? parseInt(e.target.value) : undefined })}
                   className="w-32 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 text-sm"
-                  placeholder="กรอกจำนวน"
+                  placeholder="Count"
                 />
               </div>
             )}
           </div>
 
-          {/* IMF มัดยาง */}
+          {/* IMF Elastic */}
           <div className="rounded-lg p-4 border border-gray-200">
             <div className="flex items-center gap-4 mb-2">
               <label className="flex items-center cursor-pointer">
@@ -497,12 +498,12 @@ export default function BasicInfoForm({ data, onChange, onValidationChange }: Ba
                   }}
                   className="w-4 h-4 text-purple-600"
                 />
-                <span className="ml-2 font-medium text-gray-700">IMF มัดยาง</span>
+                <span className="ml-2 font-medium text-gray-700">{t.imfElastic}</span>
               </label>
             </div>
             {data.imf_elastic && (
               <div className="ml-6">
-                <label className="block text-sm text-gray-600 mb-1">จำนวน loop (เช่น 1-10):</label>
+                <label className="block text-sm text-gray-600 mb-1">{t.loops}:</label>
                 <input
                   type="number"
                   min="1"
@@ -510,13 +511,13 @@ export default function BasicInfoForm({ data, onChange, onValidationChange }: Ba
                   value={data.imf_elastic_loops || ''}
                   onChange={(e) => onChange({ imf_elastic_loops: e.target.value ? parseInt(e.target.value) : undefined, imf_loops: e.target.value ? parseInt(e.target.value) : undefined })}
                   className="w-32 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 text-sm"
-                  placeholder="กรอกจำนวน"
+                  placeholder="Count"
                 />
               </div>
             )}
           </div>
 
-          {/* ICBG (iliac crest bone graft) */}
+          {/* ICBG */}
           <div className="rounded-lg p-4 border border-gray-200">
             <div className="flex items-center gap-4 mb-2">
               <label className="flex items-center cursor-pointer">
@@ -532,18 +533,18 @@ export default function BasicInfoForm({ data, onChange, onValidationChange }: Ba
                   }}
                   className="w-4 h-4 text-blue-600"
                 />
-                <span className="ml-2 font-medium text-gray-700">ICBG (iliac crest bone graft - การปลูกถ่ายกระดูกจากสันกระดูกเชิงกราน)</span>
+                <span className="ml-2 font-medium text-gray-700">{t.icbg}</span>
               </label>
             </div>
             {data.special_icbg === 'มี' && (
               <div className="ml-6">
-                <label className="block text-sm text-gray-600 mb-1">รายละเอียด (เช่น ข้างซ้าย, ข้างขวา):</label>
+                <label className="block text-sm text-gray-600 mb-1">{t.icbgDesc}:</label>
                 <input
                   type="text"
                   value={data.special_icbg_description || ''}
                   onChange={(e) => onChange({ special_icbg_description: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
-                  placeholder="ระบุรายละเอียด (สูงสุด 100 ตัวอักษร)"
+                  placeholder={t.icbgDesc}
                   maxLength={100}
                 />
               </div>
@@ -566,18 +567,18 @@ export default function BasicInfoForm({ data, onChange, onValidationChange }: Ba
                   }}
                   className="w-4 h-4 text-green-600"
                 />
-                <span className="ml-2 font-medium text-gray-700">NG tube (หลอดสายยางป้อนอาหารทางจมูก)</span>
+                <span className="ml-2 font-medium text-gray-700">{t.ngTube}</span>
               </label>
             </div>
             {data.special_ng_tube === 'มี' && (
               <div className="ml-6">
-                <label className="block text-sm text-gray-600 mb-1">รายละเอียด:</label>
+                <label className="block text-sm text-gray-600 mb-1">{t.ngTubeDesc}:</label>
                 <input
                   type="text"
                   value={data.special_ng_tube_description || ''}
                   onChange={(e) => onChange({ special_ng_tube_description: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 text-sm"
-                  placeholder="ระบุรายละเอียด (สูงสุด 100 ตัวอักษร)"
+                  placeholder={t.ngTubeDesc}
                   maxLength={100}
                 />
               </div>
@@ -586,10 +587,10 @@ export default function BasicInfoForm({ data, onChange, onValidationChange }: Ba
         </div>
       </div>
 
-      {/* 11. ได้รับการผ่าตัดเมื่อวันที่ */}
+      {/* Surgery Date */}
       <div>
         <label className="block text-gray-700 font-medium mb-2">
-          {++qNum}. ได้รับการผ่าตัดเมื่อวันที่ <span className="text-red-500">*</span>
+          {++qNum}. {t.surgeryDate} <span className="text-red-500">*</span>
         </label>
         <input
           type="date"
@@ -599,10 +600,10 @@ export default function BasicInfoForm({ data, onChange, onValidationChange }: Ba
         />
       </div>
 
-      {/* วันที่ Discharge */}
+      {/* Discharge Date */}
       <div>
         <label className="block text-gray-700 font-medium mb-2">
-          {++qNum}. วันที่ Discharge (กลับบ้าน) <span className="text-red-500">*</span>
+          {++qNum}. {t.dischargeDate} <span className="text-red-500">*</span>
         </label>
         <input
           type="date"
@@ -612,12 +613,11 @@ export default function BasicInfoForm({ data, onChange, onValidationChange }: Ba
         />
       </div>
 
-      {/* Note - หมายเหตุสำหรับหมอและพยาบาล */}
+      {/* Note */}
       <div>
         <label className="block text-gray-700 font-medium mb-2">
-          {++qNum}. หมายเหตุพิเศษ (สำหรับหมอและพยาบาล)
+          {++qNum}. {t.note}
         </label>
-
         <textarea
           value={data.note || ''}
           onChange={(e) => onChange({ note: e.target.value })}

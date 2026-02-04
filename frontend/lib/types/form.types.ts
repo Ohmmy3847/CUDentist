@@ -195,19 +195,10 @@ export const SUTURE_OPTIONS = [
   'ไหมหลุดหายไปบางส่วน และมีอาการเลือดสีแดงสดไหล',
 ] as const;
 
-export const OTHER_SYMPTOMS_OPTIONS = [
-  'ปวดหน่วงบริเวณหน้าแก้ม ร่วมกับมีน้ำมูกสีเหลือง/เขียว เหม็นลงคอ',
-  'คลื่นไส้/อาเจียน',
-  'ช้ำ',
-  'ปวดหัว',
-  'เวียนหัว',
-  'น้ำหนักลด',
-  'ท้องเสีย',
-  'คัดแน่นจมูก',
-  'มีน้ำมูก',
-  'ไอ',
-  'เจ็บคอ',
-] as const;
+import { getSymptomKeys } from '../symptomMappings';
+
+// Export symptom KEYS instead of labels
+export const OTHER_SYMPTOMS_OPTIONS = getSymptomKeys();
 
 export const ANTIBIOTIC_OPTIONS = [
   'ครบตามแพทย์สั่ง',

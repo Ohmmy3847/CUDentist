@@ -32,15 +32,22 @@ export const riskApi = {
    */
   assessPatient: async (
     data: PatientFormData,
-    onProgress?: ProgressCallback
+    onProgress?: ProgressCallback,
+    language: string = 'th'
   ): Promise<ThreeLayerResult> => {
     try {
       // Show phases instead of fake flow-by-flow progress
-      const phases = [
-        { name: '1. ประเมินความเสี่ยง 17 ด้าน...', progress: 30 },
-        { name: '2. วิเคราะห์รายละเอียดด้วย AI...', progress: 60 },
-        { name: '3. สรุปผลและคำแนะนำ...', progress: 90 },
-      ];
+      const phases = language === 'en'
+        ? [
+          { name: '1. Assessing 17 risk factors...', progress: 30 },
+          { name: '2. AI Analysis in progress...', progress: 60 },
+          { name: '3. Generating summary...', progress: 90 },
+        ]
+        : [
+          { name: '1. ประเมินความเสี่ยง 17 ด้าน...', progress: 30 },
+          { name: '2. วิเคราะห์รายละเอียดด้วย AI...', progress: 60 },
+          { name: '3. สรุปผลและคำแนะนำ...', progress: 90 },
+        ];
 
       let currentPhase = 0;
       const showPhase = () => {
@@ -55,12 +62,12 @@ export const riskApi = {
       showPhase(); // Show phase 1
 
       // Separate basic info from assessment data
-      const { 
+      const {
         // Personal Information
-        first_name, 
-        last_name, 
-        email, 
-        phone, 
+        first_name,
+        last_name,
+        email,
+        phone,
         birth_year,
         // Basic Medical Info
         age,
@@ -81,7 +88,7 @@ export const riskApi = {
         special_ng_tube,
         special_ng_tube_description,
         // Rest is assessment data (symptoms, care, etc.)
-        ...assessmentData 
+        ...assessmentData
       } = data;
 
       const apiPromise = apiClient.post<ThreeLayerResult>('/patient-assessment', {
@@ -112,6 +119,7 @@ export const riskApi = {
           special_ng_tube_description,
         },
         assessment_data: assessmentData,
+        language: language,
       });
 
       // Update progress every 3 seconds while waiting

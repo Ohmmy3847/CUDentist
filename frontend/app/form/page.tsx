@@ -1,26 +1,31 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, ArrowRight, CheckCircle, Loader2, Trash2 } from 'lucide-react';
 import type { PatientFormData } from '@/lib';
+import { th, en } from '@/lib/locales';
 
 // Import form part components
 import BasicInfoForm from '@/components/forms/BasicInfoForm';
 import SymptomsForm from '@/components/forms/SymptomsForm';
 import DailyLifeForm from '@/components/forms/DailyLifeForm';
 
-const STEPS = [
-  { id: 1, title: 'ข้อมูลพื้นฐาน', description: 'ข้อ 1-13' },
-  { id: 2, title: 'อาการ', description: 'ข้อ 14-27' },
-  { id: 3, title: 'การใช้ชีวิตประจำวัน', description: 'ข้อ 28-34' },
-];
-
 const FORM_STORAGE_KEY = 'patientFormDraft';
 const STEP_STORAGE_KEY = 'patientFormStep';
 
-export default function PatientFormPage() {
+function FormContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const lang = (searchParams.get('lang') as 'th' | 'en') || 'th';
+  const t = lang === 'th' ? th.form : en.form;
+
+  const STEPS = [
+    { id: 1, title: t.steps.basicInfo, description: t.steps.description[1] },
+    { id: 2, title: t.steps.symptoms, description: t.steps.description[2] },
+    { id: 3, title: t.steps.dailyLife, description: t.steps.description[3] },
+  ];
+
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState<PatientFormData>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -34,6 +39,9 @@ export default function PatientFormPage() {
 
     // Clear result page flags when starting new form
     sessionStorage.removeItem('resultSaved');
+
+    // Also try to restore language from storage if not in URL, or save URL lang to storage
+    // For now, simpler to just rely on URL.
 
     const savedData = localStorage.getItem(FORM_STORAGE_KEY);
     const savedStep = localStorage.getItem(STEP_STORAGE_KEY);
@@ -103,22 +111,53 @@ export default function PatientFormPage() {
       sessionStorage.removeItem('riskAssessmentResult');
       sessionStorage.removeItem('isCurrentlyProcessing'); // Also clear processing flag
 
+      // Include language preference in form data
+      const finalData: PatientFormData = {
+        ...formData,
+        // @ts-ignore - adding temporary field for backend
+        _language: lang
+      };
+
       // บันทึกข้อมูลลง sessionStorage เพื่อส่งไปหน้า result
-      sessionStorage.setItem('patientData', JSON.stringify(formData));
+      sessionStorage.setItem('patientData', JSON.stringify(finalData));
       sessionStorage.setItem('isProcessing', 'true');
 
       localStorage.removeItem(FORM_STORAGE_KEY);
       localStorage.removeItem(STEP_STORAGE_KEY);
 
-      router.push('/result');
+      router.push(`/result?lang=${lang}`);
+
+      // Start the API call in background (or in parallel) - actually the logic here seems to redirect to /result 
+      // which probably triggers the API call or handles it.
+      // Wait, in the original file I see:
+      /*
+      await riskApi.assessPatient(formData, (current, total, status) => {
+        setSubmitProgress({ current, total, status });
+      });
+      */
+      // BUT `FormContent` in the viewed file (Step 222) DOES NOT HAVE `assessPatient` call visible in `handleSubmit`.
+      // It pushes to `/result`.
+      // Ah, I missed something. 
+      // The `handleSubmit` in Step 222 pushes to `/result`. 
+      // WHERE IS `assessPatient` called?
+      // It might be called in `/result/page.tsx`??
+
+      // Let me re-read `form/page.tsx` Step 222 very carefully.
+      // It pushes to `/result`. It sets `patientData` in sessionStorage.
+
+      // Therefore, the API call is NOT here. It is likely in the Result page.
+
+      // My previous assumption that `assessPatient` is called in `form/page.tsx` was wrong based on the current file content.
+      // I must check `app/result/page.tsx` instead.
+
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'เกิดข้อผิดพลาดในการบันทึกข้อมูล');
+      setError(err instanceof Error ? err.message : t.validationError);
       setIsSubmitting(false);
     }
   };
 
   const handleClearDraft = () => {
-    if (confirm('คุณต้องการล้างข้อมูลที่บันทึกไว้ใช่หรือไม่?')) {
+    if (confirm(t.confirmClear)) {
       localStorage.removeItem(FORM_STORAGE_KEY);
       localStorage.removeItem(STEP_STORAGE_KEY);
       setFormData({});
@@ -136,6 +175,7 @@ export default function PatientFormPage() {
             data={formData}
             onChange={handleFormDataChange}
             onValidationChange={setIsCurrentStepValid}
+            lang={lang}
           />
         );
       case 2:
@@ -145,6 +185,7 @@ export default function PatientFormPage() {
             onChange={handleFormDataChange}
             onValidationChange={setIsCurrentStepValid}
             startingQuestionNumber={13}
+            lang={lang}
           />
         );
       case 3:
@@ -164,6 +205,7 @@ export default function PatientFormPage() {
             onChange={handleFormDataChange}
             onValidationChange={setIsCurrentStepValid}
             startingQuestionNumber={dailyLifeStartNum}
+            lang={lang}
           />
         );
       default:
@@ -177,21 +219,21 @@ export default function PatientFormPage() {
         <div className="mb-6">
           <div className="grid grid-cols-2 gap-2 mb-3">
             <button
-              onClick={() => router.push('/')}
+              onClick={() => router.push(`/?lang=${lang}`)}
               className="cu-btn bg-cu-gray text-cu-pink border border-cu-pink flex items-center justify-center text-sm md:text-base"
             >
-              <ArrowLeft className="w-4 h-4 mr-1 md:mr-2" /> <span className="hidden sm:inline">กลับ</span>หน้าหลัก
+              <ArrowLeft className="w-4 h-4 mr-1 md:mr-2" /> <span className="hidden sm:inline">{t.back}</span>{t.backHome}
             </button>
             {hasSavedData && (
               <button
                 onClick={handleClearDraft}
                 className="cu-btn bg-red-100 text-red-700 border border-red-300 flex items-center justify-center text-sm md:text-base"
               >
-                <Trash2 className="w-4 h-4 mr-1 md:mr-2" /> ล้างข้อมูล
+                <Trash2 className="w-4 h-4 mr-1 md:mr-2" /> {t.clear}
               </button>
             )}
           </div>
-          <h1 className="text-xl md:text-2xl font-bold text-cu-pink text-center">กรอกข้อมูลคนไข้</h1>
+          <h1 className="text-xl md:text-2xl font-bold text-cu-pink text-center">{t.title}</h1>
         </div>
 
         <div className="mb-6 flex items-center justify-center gap-2 md:gap-4">
@@ -213,7 +255,7 @@ export default function PatientFormPage() {
         {hasSavedData && (
           <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
             <p className="text-xs md:text-sm text-blue-800 text-center">
-              ✓ พบข้อมูลที่บันทึกไว้ ระบบจะบันทึกอัตโนมัติทุกครั้งที่คุณกรอก
+              ✓ {t.savedDataFound}
             </p>
           </div>
         )}
@@ -234,7 +276,7 @@ export default function PatientFormPage() {
             className="cu-btn bg-cu-gray text-cu-pink border border-cu-pink flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
             disabled={currentStep === 1}
           >
-            <ArrowLeft className="w-4 h-4 mr-1 md:mr-2" /> ย้อนกลับ
+            <ArrowLeft className="w-4 h-4 mr-1 md:mr-2" /> {t.back}
           </button>
           {currentStep < STEPS.length ? (
             <button
@@ -242,7 +284,7 @@ export default function PatientFormPage() {
               className="cu-btn flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
               disabled={!isCurrentStepValid}
             >
-              ถัดไป <ArrowRight className="w-4 h-4 ml-1 md:ml-2" />
+              {t.next} <ArrowRight className="w-4 h-4 ml-1 md:ml-2" />
             </button>
           ) : (
             <button
@@ -253,12 +295,12 @@ export default function PatientFormPage() {
               {isSubmitting ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-1 md:mr-2 animate-spin" />
-                  <span className="hidden sm:inline">กำลัง</span>บันทึก...
+                  <span className="hidden sm:inline">{t.submitting}</span>
                 </>
               ) : (
                 <>
                   <CheckCircle className="w-4 h-4 mr-1 md:mr-2" />
-                  <span className="hidden sm:inline">ส่งข้อมูล</span>ประเมิน
+                  <span className="hidden sm:inline">{t.submit}</span>
                 </>
               )}
             </button>
@@ -266,5 +308,13 @@ export default function PatientFormPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function PatientFormPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <FormContent />
+    </Suspense>
   );
 }
