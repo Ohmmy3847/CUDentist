@@ -16,28 +16,43 @@ class ConcisenessMetric(BaseMetric):
     """
     
     # Class-level cache for evaluation steps (shared across all instances)
-    _cached_steps = None
-    _criteria_file = "evaluation_criteria_conciseness.txt"
+    _cached_steps = {}  # Changed to dict to support multiple languages
+    _criteria_file_map = {
+        "th": "../criteria/th/conciseness.txt",
+        "en": "../criteria/en/conciseness.txt"
+    }
     
-    def __init__(self, threshold: float = 0.7):
+    def __init__(self, threshold: float = 0.7, language: str = "th"):
         self.threshold = threshold
+        self.language = language
         self.score = 0
         self.reason = ""
         self.success = False
         
     @classmethod
-    def _load_criteria_from_file(cls):
+    def _load_criteria_from_file(cls, language="th"):
         """Load cached criteria from file if exists"""
         import os
-        if os.path.exists(cls._criteria_file):
-            with open(cls._criteria_file, 'r', encoding='utf-8') as f:
+        from pathlib import Path
+        
+        # Get path relative to this file's location
+        metrics_dir = Path(__file__).parent
+        criteria_file = metrics_dir.parent / "criteria" / language / "conciseness.txt"
+        
+        if criteria_file.exists():
+            with open(criteria_file, 'r', encoding='utf-8') as f:
                 return f.read().strip()
         return None
     
     @classmethod
-    def _save_criteria_to_file(cls, criteria):
+    def _save_criteria_to_file(cls, criteria, language="th"):
         """Save criteria to file for future use"""
-        with open(cls._criteria_file, 'w', encoding='utf-8') as f:
+        from pathlib import Path
+        
+        metrics_dir = Path(__file__).parent
+        criteria_file = metrics_dir.parent / "criteria" / language / "conciseness.txt"
+        
+        with open(criteria_file, 'w', encoding='utf-8') as f:
             f.write(criteria)
         
     def measure(self, test_case: LLMTestCase) -> float:
@@ -47,23 +62,55 @@ class ConcisenessMetric(BaseMetric):
         2. Use steps to determine score 1-5
         3. Normalize to 0-1 scale
         """
-        from langchain_google_genai import ChatGoogleGenerativeAI
+        from langchain_openai import ChatOpenAI
         import os
         
-        api_key = os.getenv("GOOGLE_API_KEY")
+        api_key = os.getenv("DEEPSEEK_API_KEY")
         if not api_key:
-            raise ValueError("GOOGLE_API_KEY environment variable is required")
+            raise ValueError("DEEPSEEK_API_KEY environment variable is required")
         
-        llm = ChatGoogleGenerativeAI(
-            model="gemini-2.0-flash",
-            google_api_key=api_key,
+        llm = ChatOpenAI(
+            model="deepseek-chat",
+            api_key=api_key,
+            base_url="https://api.deepseek.com",
             temperature=0,
             timeout=60,
-            max_output_tokens=None  # No limit - get full response
+            max_tokens=None
         )
         
         # Step 1: Generate evaluation steps with scoring criteria (G-Eval CoT)
-        step_generation_prompt = f"""
+        if self.language == "en":
+            step_generation_prompt = f"""
+You are creating evaluation steps for "Conciseness" assessment of medical recommendation summaries.
+
+Conciseness Scoring Criteria (1-5):
+5 = Very Concise: No redundancy at all, appropriate length for content, every word has meaning
+4 = Good Conciseness: Minor words could be reduced but doesn't affect clarity
+3 = Acceptable: Some redundancy or slightly excessive length
+2 = Not Very Concise: Clear redundancy at multiple points or obviously excessive length
+1 = Not Concise At All: Extensive redundancy or extremely excessive length, inefficient
+
+Conciseness means:
+- Text is reasonably concise, not overly verbose
+- Words that add clarity (e.g., "in the mouth", "as needed") are not considered filler
+- Information is combined efficiently
+- No truly unnecessary repeated words or phrases
+
+Examples:
+✅ Concise (5): "Bite gauze 30 minutes, if not stopped see doctor" (short, clear, no repetition)
+⚠️ Redundant (2): "Bite gauze, bite firmly, bite for 30 minutes" (repeats "bite")
+❌ Too Long (1): "You should perform the action of biting gauze firmly for approximately 30 minutes in order to help the bleeding stop" (overly verbose)
+
+Please create evaluation steps that:
+1. Check for redundancy
+2. Check length vs content
+3. Check communication efficiency
+4. Check for unnecessary words
+
+Then use those steps with the scoring criteria above to evaluate Conciseness.
+"""
+        else:
+            step_generation_prompt = f"""
 คุณกำลังสร้างขั้นตอนการประเมิน "Conciseness" (ความกระชับ) สำหรับสรุปคำแนะนำทางการแพทย์
 
 เกณฑ์คะแนน Conciseness (1-5):
@@ -94,23 +141,23 @@ Conciseness หมายถึง:
 """
         
         try:
-            # Load or generate evaluation steps (once, then cache)
-            if ConcisenessMetric._cached_steps is None:
+            # Load or generate evaluation steps (once per language, then cache)
+            if self.language not in ConcisenessMetric._cached_steps:
                 # Try loading from file first
-                cached = ConcisenessMetric._load_criteria_from_file()
+                cached = ConcisenessMetric._load_criteria_from_file(self.language)
                 if cached:
-                    print("    📂 Loaded Conciseness criteria from file")
-                    ConcisenessMetric._cached_steps = cached
+                    print(f"    📂 Loaded Conciseness criteria from file ({self.language})")
+                    ConcisenessMetric._cached_steps[self.language] = cached
                 else:
                     # Generate new criteria
-                    print("    🔧 Generating Conciseness criteria (first time)...")
+                    print(f"    🔧 Generating Conciseness criteria (first time, {self.language})...")
                     steps_response = llm.invoke(step_generation_prompt)
-                    ConcisenessMetric._cached_steps = steps_response.content.strip()
+                    ConcisenessMetric._cached_steps[self.language] = steps_response.content.strip()
                     # Save to file
-                    ConcisenessMetric._save_criteria_to_file(ConcisenessMetric._cached_steps)
+                    ConcisenessMetric._save_criteria_to_file(ConcisenessMetric._cached_steps[self.language], self.language)
                     print("    💾 Saved criteria to file for future use")
             
-            evaluation_steps = ConcisenessMetric._cached_steps
+            evaluation_steps = ConcisenessMetric._cached_steps[self.language]
             
             # นับจำนวนประโยค
             sentences = [s.strip() for s in test_case.actual_output.split('\n') if s.strip()]

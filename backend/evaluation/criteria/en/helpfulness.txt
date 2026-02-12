@@ -1,0 +1,63 @@
+Excellent! You've defined clear and comprehensive principles for evaluating "Helpfulness" in medical recommendations. Emphasizing clarity, actionability, and avoiding expectations of unnecessary details is crucial for fair and effective evaluation.
+
+**Summary of Steps for Evaluating Helpfulness Based on Defined Principles:**
+
+1. **Read medical recommendations carefully:** Understand all content in the recommendations
+
+2. **Assess Clarity:**
+   * Are the recommendations easy to understand?
+   * Can average patients understand the meaning of the recommendations?
+   * Are the recommendations ambiguous? (If very ambiguous, consider deducting points per item 5)
+
+3. **Assess Actionability:**
+   * Can patients follow the recommendations?
+   * Are the recommendations specific enough to act upon? (If yes, score high; if not, consider deducting points per item 5)
+
+4. **Assess Completeness:**
+   * Do the recommendations provide necessary information for average patients?
+   * Is any important information missing? (If much is missing, consider deducting points per item 5)
+   * **Important:** Don't expect minute details (per item 2). If recommendations follow principles defined in items 2, 3, and 4, score high
+
+5. **Consider Deducting Points (if necessary):**
+   * Deduct points only when recommendations are very ambiguous or truly missing many important recommendations (per item 5)
+   * **Don't deduct points** just because minute details are missing (per item 6)
+
+6. **Score According to Defined Criteria:**
+   * **5 = Very Helpful:** Complete, clear, easy to follow, helps patients understand and truly take action, provides necessary information, and reduces anxiety/increases confidence
+   * **4 = Good Helpfulness:** Clear, covers important content, actionable
+   * **3 = Acceptable:** Somewhat helpful, but missing many important details (must be important information, not minute details)
+   * **2 = Not Very Helpful:** Unclear, incomplete, difficult to follow
+   * **1 = Not Helpful At All:** Doesn't help patients, very ambiguous
+
+**Evaluation Examples:**
+
+* **Recommendation:** "Get adequate rest"
+    * **Evaluation:** This recommendation is very ambiguous. Patients don't know what "adequate" means and what to do
+    * **Score:** 2 (Not very helpful - unclear, difficult to follow)
+
+* **Recommendation:** "Take paracetamol when experiencing pain"
+    * **Evaluation:** Clear and easy to follow. No need to specify dosage/timing (per item 2)
+    * **Score:** 4 (Good helpfulness - clear, covers important content, actionable)
+
+* **Recommendation:** "Apply cold compress to swollen area"
+    * **Evaluation:** Clear and easy to follow. No need to specify time/minutes (per item 2)
+    * **Score:** 4 (Good helpfulness - clear, covers important content, actionable)
+
+* **Recommendation:** "Should consult a doctor for appropriate diagnosis and treatment"
+    * **Evaluation:** Although not giving specific recommendations, it's useful guidance directing patients to proper treatment
+    * **Score:** 4 (Good helpfulness - covers important content, actionable)
+
+**Cautions:**
+
+* Don't penalize recommendations for lacking specific details such as exact dosage, specific timing, specific duration if these details aren't critical for average patients to take initial action
+* Focus on whether recommendations help patients understand what to do and can actually implement them
+* Consider the context - some recommendations may be intentionally general to avoid providing overly medical advice
+* Evaluate from the patient's perspective - does this help them take care of themselves or know when to seek help?
+
+**Additional Considerations for Medical Recommendations:**
+
+* **Safety First:** Recommendations should not mislead or put patients at risk
+* **Appropriate Level:** Should match the knowledge level of average patients
+* **Encouraging Professional Consultation:** Should appropriately direct patients to seek medical attention when needed
+* **Cultural Sensitivity:** Should be appropriate for the target patient population's culture and context
+* **Clear Priorities:** Important actions should be clearly emphasized

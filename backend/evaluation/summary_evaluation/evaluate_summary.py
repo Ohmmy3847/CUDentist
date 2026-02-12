@@ -20,7 +20,7 @@ backend_dir = os.path.dirname(parent_dir)
 sys.path.append(parent_dir)
 sys.path.append(backend_dir)
 
-from metrics import FaithfulnessMetric, ConcisenessMetric, CompletenessMetric, HelpfulnessMetric, FormatComplianceMetric
+from metrics import FaithfulnessMetric, ConcisenessMetric, CompletenessMetric, HelpfulnessMetric
 
 # Default metric weights (can be customized via command line)
 # Higher weight = more importance in final score
@@ -43,11 +43,11 @@ def load_test_cases(csv_file: str, sample_size: int = None) -> List[Dict]:
     return cases
 
 
-def call_assessment_api(patient_data: Dict) -> Dict:
+def call_assessment_api(patient_data: Dict, language: str = "th") -> Dict:
     """เรียก API backend เพื่อประเมินความเสี่ยง"""
     url = "http://localhost:8000/patient-assessment"
     
-    # Convert CSV data to API format - API expects {"basic_info": {...}, "assessment_data": {...}}
+    # Convert CSV data to API format - API expects {"basic_info": {...}, "assessment_data": {...}, "language": "..."}
     # Get first_name and last_name from CSV (already split)
     first_name = patient_data.get("first_name", "")
     last_name = patient_data.get("last_name", "")
@@ -98,7 +98,8 @@ def call_assessment_api(patient_data: Dict) -> Dict:
             "mouth_rinsing": patient_data.get("mouth_rinsing", ""),
             "feeding_method": patient_data.get("feeding_method", ""),
             "additional_questions": patient_data.get("additional_questions", "")
-        }
+        },
+        "language": language
     }
     
     try:
@@ -218,7 +219,7 @@ def create_test_case(patient_data: Dict, api_response: Dict) -> LLMTestCase:
     )
 
 
-def evaluate_case(test_case: LLMTestCase, weights: Dict[str, float] = None) -> Dict:
+def evaluate_case(test_case: LLMTestCase, weights: Dict[str, float] = None, language: str = "th") -> Dict:
     """
     ประเมิน 1 test case ด้วย 6 metrics (PARALLEL)
     Based on Confident AI's LLM Evaluation Guide:
@@ -229,22 +230,29 @@ def evaluate_case(test_case: LLMTestCase, weights: Dict[str, float] = None) -> D
     Args:
         test_case: LLMTestCase to evaluate
         weights: Dictionary of metric weights (default: DEFAULT_METRIC_WEIGHTS)
+        language: Language for evaluation criteria ("th" or "en")
     """
     
     # Use default weights if not provided
     if weights is None:
         weights = DEFAULT_METRIC_WEIGHTS.copy()
     
-    # Initialize metrics
+    # Initialize metrics with language parameter
+    # Add readability metric only for English
     metrics_list = [
         ("faithfulness", FaithfulnessMetric(threshold=0.7), "QAG scorer"),
-        ("conciseness", ConcisenessMetric(threshold=0.7), "G-Eval"),
-        ("completeness", CompletenessMetric(threshold=0.7, model="gemini-2.0-flash"), "G-Eval (Gemini)"),
-        ("helpfulness", HelpfulnessMetric(threshold=0.7), "G-Eval+CoT"),
-        # ("format_compliance", FormatComplianceMetric(threshold=0.8), "Rule-based"),  # Temporarily disabled
+        ("conciseness", ConcisenessMetric(threshold=0.7, language=language), "G-Eval"),
+        ("completeness", CompletenessMetric(threshold=0.7, model="deepseek-chat", language=language), "G-Eval (DeepSeek)"),
+        ("helpfulness", HelpfulnessMetric(threshold=0.7, language=language), "G-Eval+CoT"),
     ]
     
-    print("  📊 Evaluating with 4 metrics (parallel)...")
+    # Add readability metrics for English only (FRE, FKGL)
+    if language == "en":
+        from metrics.readability import ReadabilityMetric
+        metrics_list.append(("readability", ReadabilityMetric(threshold_fre=60.0, threshold_fkgl=8.0), "FRE+FKGL"))
+    
+    metric_count = len(metrics_list)
+    print(f"  📊 Evaluating with {metric_count} metrics (parallel)...")
     metrics = {}
     
     def evaluate_metric(name, metric, desc):
@@ -254,11 +262,18 @@ def evaluate_case(test_case: LLMTestCase, weights: Dict[str, float] = None) -> D
             score = metric.measure(test_case)
             reason = getattr(metric, 'reason', '')
             success = metric.is_successful()
-            return name, score, reason, success, None
+            
+            # For readability, also extract FRE and FKGL scores
+            extra_data = {}
+            if name == "readability":
+                extra_data['fre'] = getattr(metric, 'fre_score', None)
+                extra_data['fkgl'] = getattr(metric, 'fkgl_score', None)
+            
+            return name, score, reason, success, None, extra_data
         except Exception as e:
             print(f"    ❌ {name.replace('_', ' ').title()} error: {e}")
             default_score = 0.5 if name in ['faithfulness', 'conciseness', 'answer_relevancy', 'helpfulness'] else 0.7
-            return name, default_score, str(e), False, e
+            return name, default_score, str(e), False, e, {}
     
     # Run metrics in parallel (max 15 concurrent - with 1K req/min quota)
     with ThreadPoolExecutor(max_workers=15) as executor:
@@ -267,13 +282,17 @@ def evaluate_case(test_case: LLMTestCase, weights: Dict[str, float] = None) -> D
         
         metric_objects = {}
         for future in as_completed(futures):
-            name, score, reason, success, error = future.result()
+            name, score, reason, success, error, extra_data = future.result()
             metrics[name] = score
             metrics[f"{name}_reason"] = reason
             metric_objects[name] = success
+            
+            # Add extra data (e.g., FRE, FKGL for readability)
+            for key, value in extra_data.items():
+                metrics[f"{name}_{key}"] = value
     
-    # Calculate weighted average
-    score_keys = [k for k in metrics.keys() if not k.endswith('_reason')]
+    # Calculate weighted average (exclude readability - it's informational only)
+    score_keys = [k for k in metrics.keys() if not k.endswith('_reason') and not k.endswith('_fre') and not k.endswith('_fkgl') and k != 'readability']
     
     # Normalize weights to sum to 1
     total_weight = sum(weights.get(k, 1.0) for k in score_keys)
@@ -313,12 +332,21 @@ def save_results(results: List[Dict], output_dir: str = "results", experiment_na
     # Save detailed results as CSV (scores only)
     csv_file = os.path.join(output_dir, f"evaluation_results_{timestamp}.csv")
     with open(csv_file, 'w', newline='', encoding='utf-8') as f:
-        fieldnames = [
+        # Dynamic fieldnames based on what metrics are present
+        base_fieldnames = [
             "case_id", "expected_risk_level", "actual_risk_level",
             "faithfulness", "conciseness",
-            "completeness", "helpfulness",
-            "weighted_average", "simple_average", "passed", "summary_length"
+            "completeness", "helpfulness"
         ]
+        
+        # Check if readability metrics exist in results
+        has_readability = any('readability' in r for r in results if r)
+        if has_readability:
+            base_fieldnames.append("readability")
+        
+        # Add summary fields
+        fieldnames = base_fieldnames + ["weighted_average", "simple_average", "passed", "summary_length"]
+        
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()
         # Write scores only (without reason fields)
@@ -365,15 +393,24 @@ def save_results(results: List[Dict], output_dir: str = "results", experiment_na
             "weighted_overall": sum(r["average"] for r in results) / len(results) if results else 0,
             "simple_overall": sum(r.get("simple_average", r["average"]) for r in results) / len(results) if results else 0
         },
+        "readability_scores": {
+            "average_fre": sum(r.get("readability_fre", 0) for r in results if r.get("readability_fre") is not None) / len([r for r in results if r.get("readability_fre") is not None]) if any(r.get("readability_fre") is not None for r in results) else None,
+            "average_fkgl": sum(r.get("readability_fkgl", 0) for r in results if r.get("readability_fkgl") is not None) / len([r for r in results if r.get("readability_fkgl") is not None]) if any(r.get("readability_fkgl") is not None for r in results) else None
+        },
         "evaluation_framework": "Based on Confident AI's LLM Evaluation Guide",
         "metrics_used": [
             "Faithfulness (QAG Scorer)",
             "Conciseness (G-Eval)",
             "Completeness (G-Eval)",
-            "Helpfulness (G-Eval)",
-            "Format Compliance (Rule-based)"
+            "Helpfulness (G-Eval)"
+        ],
+        "informational_metrics": [
+            "Readability (FRE + FKGL)" if any('readability' in r for r in results if r) else None
         ]
     }
+    
+    # Remove None from informational_metrics
+    summary["informational_metrics"] = [m for m in summary["informational_metrics"] if m]
     
     json_file = os.path.join(output_dir, f"evaluation_summary_{timestamp}.json")
     with open(json_file, 'w', encoding='utf-8') as f:
@@ -400,17 +437,23 @@ def save_results(results: List[Dict], output_dir: str = "results", experiment_na
             pass_rate = (passed / total * 100) if total > 0 else 0
             print(f"     - {metric}: {score:.2f} (passed: {passed}/{total} = {pass_rate:.1f}%)")
     
+    # Print readability scores separately (informational only)
+    if summary['readability_scores']['average_fre'] is not None:
+        print(f"\n   📚 Readability (Informational - not scored):")
+        print(f"     - Average FRE: {summary['readability_scores']['average_fre']:.1f}/100")
+        print(f"     - Average FKGL: {summary['readability_scores']['average_fkgl']:.1f} (Grade Level)")
+    
     return summary
 
 
-def process_single_case(patient_data, case_num, total_cases, args, weights=None):
+def process_single_case(patient_data, case_num, total_cases, args, weights=None, language="th"):
     """ประมวลผล 1 case (ใช้สำหรับ batch)"""
     case_id = patient_data.get("case_id", f"case_{case_num:03d}")
     print(f"\nเริ่ม {case_id} ({case_num}/{total_cases})...")
     
     try:
-        # Call API
-        api_response = call_assessment_api(patient_data)
+        # Call API with language parameter
+        api_response = call_assessment_api(patient_data, language)
         if not api_response:
             print(f"   ❌ API failed")
             return None
@@ -418,8 +461,8 @@ def process_single_case(patient_data, case_num, total_cases, args, weights=None)
         # Create test case
         test_case = create_test_case(patient_data, api_response)
         
-        # Evaluate with weights
-        metrics = evaluate_case(test_case, weights)
+        # Evaluate with weights and language
+        metrics = evaluate_case(test_case, weights, language)
         
         # Print brief results
         if not args.verbose:
@@ -434,11 +477,18 @@ def process_single_case(patient_data, case_num, total_cases, args, weights=None)
             if metrics.get('completeness_reason'):
                 print(f"      → {metrics['completeness_reason'][:100]}...")
             print(f"   ├─ Helpfulness: {metrics['helpfulness']:.2f} {'✓' if metrics['helpfulness'] >= 0.7 else '✗'}")
+            
+            # Add readability metrics if available
+            if 'readability' in metrics:
+                print(f"   ├─ Readability: {metrics['readability']:.2f} {'✓' if metrics['readability'] >= 0.7 else '✗'}")
+                if metrics.get('readability_fre') is not None:
+                    print(f"      → FRE: {metrics['readability_fre']:.1f}/100 | FKGL: {metrics['readability_fkgl']:.1f}")
+            
             print(f"   ├─ Weighted Average: {metrics['average']:.2f} {'✓' if metrics['passed'] else '✗'}")
             print(f"   └─ Simple Average: {metrics['simple_average']:.2f}")
         
         # Return result
-        return {
+        result = {
             "case_id": case_id,
             "expected_risk_level": patient_data.get("expected_risk_level", ""),
             "actual_risk_level": api_response.get("overall_risk", ""),
@@ -458,6 +508,15 @@ def process_single_case(patient_data, case_num, total_cases, args, weights=None)
             "patient_data": patient_data,
             "api_response": api_response
         }
+        
+        # Add readability metrics if available
+        if 'readability' in metrics:
+            result["readability"] = metrics["readability"]
+            result["readability_reason"] = metrics.get("readability_reason", "")
+            result["readability_fre"] = metrics.get("readability_fre")
+            result["readability_fkgl"] = metrics.get("readability_fkgl")
+        
+        return result
     except Exception as e:
         print(f"   ❌ Error: {str(e)[:100]}")
         return None
@@ -471,12 +530,14 @@ def main():
     parser.add_argument("--output", default="results", help="Output directory")
     parser.add_argument("--experiment", default=None, help="Experiment name (creates subfolder in results/)")
     parser.add_argument("--weights", type=str, help="Custom metric weights as JSON string, e.g. '{\"faithfulness\": 2.0, \"conciseness\": 0.5}'")
+    parser.add_argument("--language", default="th", choices=["th", "en"], help="Language for evaluation criteria (th or en)")
     args = parser.parse_args()
     
     print("🚀 Starting LLM Summary Evaluation")
     print("="*60)
     if args.experiment:
         print(f"📂 Experiment: {args.experiment}")
+    print(f"🌐 Language: {args.language.upper()}")
     
     # Parse custom weights if provided
     weights = DEFAULT_METRIC_WEIGHTS.copy()
@@ -504,7 +565,7 @@ def main():
     
     results = []
     with ThreadPoolExecutor(max_workers=10) as executor:
-        futures = {executor.submit(process_single_case, patient_data, i, len(cases), args, weights): i 
+        futures = {executor.submit(process_single_case, patient_data, i, len(cases), args, weights, args.language): i 
                    for i, patient_data in enumerate(cases, 1)}
         
         for future in as_completed(futures):

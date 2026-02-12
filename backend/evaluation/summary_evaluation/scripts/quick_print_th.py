@@ -146,7 +146,7 @@ def main():
     
     # Find results file
     if USE_LATEST:
-        results_dir = Path("results")
+        results_dir = Path("../results/th")
         reason_files = sorted(results_dir.glob("evaluation_reasons_*.json"), reverse=True)
         if not reason_files:
             print("❌ No evaluation results found")

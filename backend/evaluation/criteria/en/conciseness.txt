@@ -1,0 +1,59 @@
+## Steps for Evaluating "Conciseness" in Medical Recommendation Summaries
+
+**Step 1: Redundancy Check**
+
+*   **1.1 Identify repeated words and phrases:** Carefully review the entire text, noting any words or phrases that appear repeatedly
+*   **1.2 Assess necessity of repetition:** Consider whether the repetition is necessary for clarity or merely redundant without adding value
+*   **1.3 Consider alternatives:** If redundancy is found, consider whether synonymous words or phrases could be used more concisely, or if they can be removed entirely
+
+**Step 2: Length vs Content Check**
+
+*   **2.1 Identify main points:** Break down the main points that the recommendations aim to convey
+*   **2.2 Assess length vs main points:** Consider whether the text length is appropriate for the number of main points to be communicated, or if it's unnecessarily long
+*   **2.3 Consider information consolidation:** Evaluate whether related information could be combined more efficiently
+
+**Step 3: Communication Efficiency Check**
+
+*   **3.1 Assess ease of understanding:** Read the text from the perspective of the recommendation recipient and assess whether it's easy to understand
+*   **3.2 Identify potentially confusing sections:** Consider whether any parts of the text might cause confusion or allow multiple interpretations
+*   **3.3 Consider improvements:** If confusion is found, consider improving the text for greater clarity while maintaining conciseness
+
+**Step 4: Unnecessary Words Check**
+
+*   **4.1 Identify removable words:** Review the text again, noting words that could be removed without affecting the main meaning
+*   **4.2 Consider more concise alternatives:** If words can be replaced with shorter synonyms, consider making those replacements
+*   **4.3 Check for filler words:** Check for words that don't add meaning or merely "fill out" the text (e.g., "actually", "in reality", "basically")
+
+**Scoring Conciseness Using Criteria (1-5) and the Steps Above:**
+
+After completing all 4 checks, score conciseness based on these criteria:
+
+*   **Score 5 (Very Concise):**
+    *   Passes all checks without defects
+    *   No redundancy whatsoever
+    *   Length appropriate to content being conveyed
+    *   Every word has meaning and is necessary for communication
+*   **Score 4 (Good Conciseness):**
+    *   Minor words could be reduced (e.g., some helper words) but doesn't affect clarity
+    *   Slight redundancy but not prominent
+    *   Overall length is appropriate
+*   **Score 3 (Acceptable):**
+    *   Some redundancy (e.g., using similar-meaning words consecutively)
+    *   Length may be slightly excessive
+    *   Minor improvements would increase conciseness
+*   **Score 2 (Not Very Concise):**
+    *   Clear redundancy at multiple points
+    *   Obviously excessive length
+    *   Significant improvements needed to make text more concise
+*   **Score 1 (Not Concise At All):**
+    *   Extensive redundancy
+    *   Extremely excessive length
+    *   Information could be conveyed in much shorter form
+    *   Numerous unnecessary or filler words
+
+**Scoring Considerations:**
+
+*   Focus on overall message delivery efficiency
+*   Don't penalize necessary repetition for medical safety (e.g., emphasizing critical warnings)
+*   Consider the target audience - medical recommendations should be clear first, concise second
+*   Balance between being concise and being thorough enough for patient safety

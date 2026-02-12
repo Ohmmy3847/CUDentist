@@ -17,28 +17,43 @@ class HelpfulnessMetric(BaseMetric):
     """
     
     # Class-level cache for evaluation steps (shared across all instances)
-    _cached_steps = None
-    _criteria_file = "evaluation_criteria_helpfulness.txt"
+    _cached_steps = {}  # Changed to dict to support multiple languages
+    _criteria_file_map = {
+        "th": "../criteria/th/helpfulness.txt",
+        "en": "../criteria/en/helpfulness.txt"
+    }
     
-    def __init__(self, threshold: float = 0.7):
+    def __init__(self, threshold: float = 0.7, language: str = "th"):
         self.threshold = threshold
+        self.language = language
         self.score = 0
         self.reason = ""
         self.success = False
         
     @classmethod
-    def _load_criteria_from_file(cls):
+    def _load_criteria_from_file(cls, language="th"):
         """Load cached criteria from file if exists"""
         import os
-        if os.path.exists(cls._criteria_file):
-            with open(cls._criteria_file, 'r', encoding='utf-8') as f:
+        from pathlib import Path
+        
+        # Get path relative to this file's location
+        metrics_dir = Path(__file__).parent
+        criteria_file = metrics_dir.parent / "criteria" / language / "helpfulness.txt"
+        
+        if criteria_file.exists():
+            with open(criteria_file, 'r', encoding='utf-8') as f:
                 return f.read().strip()
         return None
     
     @classmethod
-    def _save_criteria_to_file(cls, criteria):
+    def _save_criteria_to_file(cls, criteria, language="th"):
         """Save criteria to file for future use"""
-        with open(cls._criteria_file, 'w', encoding='utf-8') as f:
+        from pathlib import Path
+        
+        metrics_dir = Path(__file__).parent
+        criteria_file = metrics_dir.parent / "criteria" / language / "helpfulness.txt"
+        
+        with open(criteria_file, 'w', encoding='utf-8') as f:
             f.write(criteria)
         
     def measure(self, test_case: LLMTestCase) -> float:
@@ -48,23 +63,73 @@ class HelpfulnessMetric(BaseMetric):
         2. Assess actionability, clarity, completeness
         3. Calculate score
         """
-        from langchain_google_genai import ChatGoogleGenerativeAI
+        from langchain_openai import ChatOpenAI
         import os
         
-        api_key = os.getenv("GOOGLE_API_KEY")
+        api_key = os.getenv("DEEPSEEK_API_KEY")
         if not api_key:
-            raise ValueError("GOOGLE_API_KEY environment variable is required")
+            raise ValueError("DEEPSEEK_API_KEY environment variable is required")
         
-        llm = ChatGoogleGenerativeAI(
-            model="gemini-2.0-flash",
-            google_api_key=api_key,
+        llm = ChatOpenAI(
+            model="deepseek-chat",
+            api_key=api_key,
+            base_url="https://api.deepseek.com",
             temperature=0,
             timeout=60,
-            max_output_tokens=None  # No limit - get full response
+            max_tokens=None
         )
         
         # G-Eval: Step 1 - Generate evaluation steps with scoring criteria (CoT)
-        steps_prompt = f"""
+        if self.language == "en":
+            steps_prompt = f"""
+You are creating evaluation guidelines for "Helpfulness" assessment of medical recommendations.
+
+Helpfulness Scoring Criteria (1-5):
+5 = Very Helpful: Complete, clear, easy to follow
+4 = Good Helpfulness: Clear recommendations, covers important content
+3 = Acceptable: Somewhat helpful but missing many important details
+2 = Not Very Helpful: Unclear, incomplete, or hard to follow
+1 = Not Helpful At All: Doesn't help patients or very ambiguous
+
+Helpfulness means:
+- Helps patients understand and actually take action (Actionable)
+- Provides necessary information for general patients (Complete for general patient)
+- Clear enough (Clear enough)
+
+**Evaluation Principles - CRITICAL (Must Follow):**
+
+1. **Clear and actionable recommendations = Good enough**
+
+2. **Don't expect "minute details" - This is NOT a flaw:**
+   - "Take pain medication as prescribed" = Complete ✓ (no need to specify dosage/time)
+   - "Sleep with head elevated" = Complete ✓ (no need to specify degrees/hours)
+   - "Apply cold compress" = Complete ✓ (no need to specify minutes/times)
+   - "Bite gauze firmly" = Complete ✓ (no need to specify how many minutes)
+
+3. **Location specified = Clear and complete:**
+   - "Apply cold compress outside mouth" = Complete ✓ (no need to add "cheeks, lips")
+   - "Bite gauze" = Complete ✓ (understood to be in mouth)
+   - "Sleep with head elevated" = Complete ✓
+
+4. **These recommendations = 4-5 score (not 0.75):**
+   - ✓ "Bite gauze firmly with cold compress"
+   - ✓ "Sleep with head elevated 30 degrees"
+   - ✓ "Apply cold compress outside mouth and sleep with head elevated"
+   - ✓ "Should contact dentist for evaluation and treatment plan adjustment"
+   - ✓ "Turn face to one side to prevent choking"
+
+5. **Deduct points only for:**
+   - Very ambiguous (e.g., "take good care" "be careful")
+   - Truly missing many important recommendations
+
+6. **Don't say "missing minute details" - This is NOT a reason to deduct points**
+- Helps reduce anxiety and increase confidence (Reassuring)
+
+
+Then use those steps with the scoring criteria above to evaluate medical recommendations.
+"""
+        else:
+            steps_prompt = f"""
 คุณกำลังสร้างแนวทางการประเมิน "Helpfulness" สำหรับคำแนะนำทางการแพทย์
 
 เกณฑ์คะแนน Helpfulness (1-5):
@@ -113,23 +178,23 @@ Helpfulness หมายถึง:
 """
         
         try:
-            # Load or generate evaluation steps (once, then cache)
-            if HelpfulnessMetric._cached_steps is None:
+            # Load or generate evaluation steps (once per language, then cache)
+            if self.language not in HelpfulnessMetric._cached_steps:
                 # Try loading from file first
-                cached = HelpfulnessMetric._load_criteria_from_file()
+                cached = HelpfulnessMetric._load_criteria_from_file(self.language)
                 if cached:
-                    print("    📂 Loaded Helpfulness criteria from file")
-                    HelpfulnessMetric._cached_steps = cached
+                    print(f"    📂 Loaded Helpfulness criteria from file ({self.language})")
+                    HelpfulnessMetric._cached_steps[self.language] = cached
                 else:
                     # Generate new criteria
-                    print("    🔧 Generating Helpfulness criteria (first time)...")
+                    print(f"    🔧 Generating Helpfulness criteria (first time, {self.language})...")
                     steps_response = llm.invoke(steps_prompt)
-                    HelpfulnessMetric._cached_steps = steps_response.content.strip()
+                    HelpfulnessMetric._cached_steps[self.language] = steps_response.content.strip()
                     # Save to file
-                    HelpfulnessMetric._save_criteria_to_file(HelpfulnessMetric._cached_steps)
+                    HelpfulnessMetric._save_criteria_to_file(HelpfulnessMetric._cached_steps[self.language], self.language)
                     print("    💾 Saved criteria to file for future use")
             
-            evaluation_steps = HelpfulnessMetric._cached_steps
+            evaluation_steps = HelpfulnessMetric._cached_steps[self.language]
             
             # G-Eval: Step 2 - Use generated steps with criteria to evaluate
             scoring_prompt = f"""
@@ -198,10 +263,14 @@ Helpfulness หมายถึง:
                     print(f"    Response: {score_text[:200]}...")
                     self.score = 0.5  # Default to middle score
             
-            # Extract analysis - try multiple patterns
-            analysis_match = re.search(r'การวิเคราะห์:(.+?)(?=คะแนน|$)', score_text, re.DOTALL)
+            # Extract analysis - try multiple patterns - support both Thai and English
+            if self.language == 'en':
+                analysis_match = re.search(r'Analysis[:\s]+(.+?)(?=Score|$)', score_text, re.DOTALL | re.IGNORECASE)
+            else:
+                analysis_match = re.search(r'การวิเคราะห์:(.+?)(?=คะแนน|$)', score_text, re.DOTALL)
+            
             if not analysis_match:
-                # Try taking everything before "คะแนน:" line
+                # Try taking everything before "คะแนน:" or "Score:" line
                 analysis_match = re.search(r'(.+?)(?=คะแนน|Score)', score_text, re.DOTALL | re.IGNORECASE)
             if not analysis_match:
                 # Use full response as reason (no limit)

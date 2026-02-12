@@ -21,63 +21,110 @@ class CompletenessMetric(BaseMetric):
     """
     
     # Class-level cache for evaluation steps
-    _cached_steps = None
-    _criteria_file = "evaluation_criteria_completeness.txt"
+    _cached_steps = {}  # Changed to dict to support multiple languages
+    _criteria_file_map = {
+        "th": "../criteria/th/completeness.txt",
+        "en": "../criteria/en/completeness.txt"
+    }
     
     def __init__(
         self, 
         threshold: float = 0.7,
-        model: str = "gemini-2.0-flash",  # Changed from gpt-4o-mini to Gemini
-        include_reason: bool = True
+        model: str = "deepseek-chat",  # Changed from Gemini to DeepSeek
+        include_reason: bool = True,
+        language: str = "th"
     ):
         self.threshold = threshold
         self.model = model
         self.include_reason = include_reason
+        self.language = language
         self.score = 0
         self.reason = ""
         self.success = False
     
     @classmethod
-    def _load_criteria_from_file(cls):
+    def _load_criteria_from_file(cls, language="th"):
         """Load cached criteria from file if exists"""
         import os
-        if os.path.exists(cls._criteria_file):
-            with open(cls._criteria_file, 'r', encoding='utf-8') as f:
+        from pathlib import Path
+        
+        # Get path relative to this file's location
+        metrics_dir = Path(__file__).parent
+        criteria_file = metrics_dir.parent / "criteria" / language / "completeness.txt"
+        
+        if criteria_file.exists():
+            with open(criteria_file, 'r', encoding='utf-8') as f:
                 return f.read().strip()
         return None
     
     @classmethod
-    def _save_criteria_to_file(cls, criteria):
+    def _save_criteria_to_file(cls, criteria, language="th"):
         """Save criteria to file for future use"""
-        with open(cls._criteria_file, 'w', encoding='utf-8') as f:
+        from pathlib import Path
+        
+        metrics_dir = Path(__file__).parent
+        criteria_file = metrics_dir.parent / "criteria" / language / "completeness.txt"
+        
+        with open(criteria_file, 'w', encoding='utf-8') as f:
             f.write(criteria)
         
     def measure(self, test_case: LLMTestCase) -> float:
-        """Evaluate completeness using Gemini (G-Eval approach)"""
-        from langchain_google_genai import ChatGoogleGenerativeAI
+        """Evaluate completeness using DeepSeek (G-Eval approach)"""
+        from langchain_openai import ChatOpenAI
         import os
         
-        api_key = os.getenv("GOOGLE_API_KEY")
+        api_key = os.getenv("DEEPSEEK_API_KEY")
         if not api_key:
-            raise ValueError("GOOGLE_API_KEY environment variable is required")
+            raise ValueError("DEEPSEEK_API_KEY environment variable is required")
         
-        llm = ChatGoogleGenerativeAI(
-            model=self.model,
-            google_api_key=api_key,
+        llm = ChatOpenAI(
+            model="deepseek-chat",
+            api_key=api_key,
+            base_url="https://api.deepseek.com",
             temperature=0,
             timeout=60,
-            max_output_tokens=None  # No limit - get full response
+            max_tokens=None
         )
         
-        # Step 1: Generate/Load evaluation steps (cache)
-        if CompletenessMetric._cached_steps is None:
-            cached = CompletenessMetric._load_criteria_from_file()
+        # Step 1: Generate/Load evaluation steps (cache per language)
+        if self.language not in CompletenessMetric._cached_steps:
+            cached = CompletenessMetric._load_criteria_from_file(self.language)
             if cached:
-                print("    📂 Loaded Completeness criteria from file")
-                CompletenessMetric._cached_steps = cached
+                print(f"    📂 Loaded Completeness criteria from file ({self.language})")
+                CompletenessMetric._cached_steps[self.language] = cached
             else:
-                print("    🔧 Generating Completeness criteria (first time)...")
-                step_generation_prompt = """คุณกำลังสร้างขั้นตอนการประเมิน "Completeness" (ความครบถ้วน) สำหรับสรุปคำแนะนำทางการแพทย์
+                print(f"    🔧 Generating Completeness criteria (first time, {self.language})...")
+                if self.language == "en":
+                    step_generation_prompt = """You are creating evaluation steps for "Completeness" assessment of medical recommendation summaries.
+
+Completeness Scoring Criteria (0-10):
+10 = Includes all recommendations completely, nothing missing, covers all dimensions
+7-9 = Mostly complete, has all important recommendations, may lack minor non-critical details
+4-6 = Partially complete, has some main recommendations but missing several important ones
+1-3 = Missing many important recommendations, only some parts present
+0 = No recommendations at all or everything is missing
+
+Completeness means:
+- Important recommendations from rule-based are fully included in summary
+- No missing critical recommendations such as care methods, medication instructions, compress methods
+- For high/medium risk, must have specific recommendations completely
+- For low risk, must have main recommendations even if summarized
+
+Examples:
+✅ Complete (10): Includes all recommendations from rule-based, nothing missing
+✅ Good (8): Has all main recommendations, may skip minor details
+⚠️ Partial (5): Has some recommendations but missing several important ones
+❌ Incomplete (2): Missing almost all important recommendations
+
+Please create evaluation steps that:
+1. Compare recommendations in summary with rule-based recommendations
+2. Check if important recommendations are included
+3. Count complete and missing recommendations
+4. Consider importance of missing recommendations
+
+Then use those steps with the scoring criteria above to evaluate Completeness."""
+                else:
+                    step_generation_prompt = """คุณกำลังสร้างขั้นตอนการประเมิน "Completeness" (ความครบถ้วน) สำหรับสรุปคำแนะนำทางการแพทย์
 
 เกณฑ์คะแนน Completeness (0-10):
 10 = รวมคำแนะนำครบถ้วนทุกข้อ ไม่ขาดอะไรเลย ครอบคลุมทุกมิติ
@@ -106,11 +153,11 @@ Completeness หมายถึง:
 
 แล้วใช้ขั้นตอนนั้นกับเกณฑ์คะแนนข้างต้นเพื่อประเมิน Completeness"""
                 steps_response = llm.invoke(step_generation_prompt)
-                CompletenessMetric._cached_steps = steps_response.content.strip()
-                CompletenessMetric._save_criteria_to_file(CompletenessMetric._cached_steps)
+                CompletenessMetric._cached_steps[self.language] = steps_response.content.strip()
+                CompletenessMetric._save_criteria_to_file(CompletenessMetric._cached_steps[self.language], self.language)
                 print("    💾 Saved criteria to file for future use")
         
-        evaluation_steps = CompletenessMetric._cached_steps
+        evaluation_steps = CompletenessMetric._cached_steps[self.language]
         
         # Parse retrieval_context to extract recommendations
         context_str = ""

@@ -29,19 +29,19 @@ class FaithfulnessMetric(BaseMetric):
         2. For each claim, verify against input + expected_output
         3. Calculate proportion of truthful claims
         """
-        from langchain_google_genai import ChatGoogleGenerativeAI
+        from langchain_openai import ChatOpenAI
         import os
         
-        api_key = os.getenv("GOOGLE_API_KEY")
+        api_key = os.getenv("DEEPSEEK_API_KEY")
         if not api_key:
-            raise ValueError("GOOGLE_API_KEY environment variable is required")
+            raise ValueError("DEEPSEEK_API_KEY environment variable is required")
         
-        llm = ChatGoogleGenerativeAI(
-            model="gemini-2.0-flash",
-            google_api_key=api_key,
+        llm = ChatOpenAI(
+            model="deepseek-chat",
+            api_key=api_key,
+            base_url="https://api.deepseek.com",
             temperature=0,
             timeout=60,
-            max_output_tokens=None,  # No limit - get full response.1,
             max_tokens=8192
         )
         
