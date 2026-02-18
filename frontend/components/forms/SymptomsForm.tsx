@@ -26,7 +26,8 @@ interface SymptomsFormProps {
 }
 
 export function validateSymptoms(data: PatientFormData): boolean {
-  // const hasIMF = data.has_imf === 'มีการมัดฟัน';
+  console.log(data.birth_date);
+  // const hasIMF = data.imf_wire || data.imf_elastic;
   // const hasPain = (data.pain_score || 0) > 0;
   // const forgotAntibiotic = data.antibiotic_compliance === 'ลืมทานบางครั้ง';
 

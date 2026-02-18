@@ -55,7 +55,7 @@ export const en = {
                 female: 'Female'
             },
             genderOther: 'Other: Please specify',
-            hn: 'Hospital Number (HN)',
+            hn: 'HN (Fill patient\'s HN)',
             procedures: 'Procedure(s) performed (multiple answers allowed)',
             subOptions: 'Select additional details',
             surgicalTooth: 'Surgical removal of tooth',

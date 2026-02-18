@@ -170,34 +170,32 @@ const getDynamicLabels = (data: PatientFormData | null, t: typeof th): Record<st
     // ข้อมูลพื้นฐาน
     first_name: `1. ${t.form.basicInfo.firstName}`,
     last_name: `2. ${t.form.basicInfo.lastName}`,
-    email: `3. ${t.form.basicInfo.email}`,
-    phone: `4. ${t.form.basicInfo.phone}`,
-    birth_year: `5. ${t.form.basicInfo.birthYear}`,
-    age: `6. ${t.form.basicInfo.age}`,
-    gender: `7. ${t.form.basicInfo.gender}`,
-    hn: `8. ${t.form.basicInfo.hn}`,
-    procedures: `9. ${t.form.basicInfo.procedures}`,
+    phone: `3. ${t.form.basicInfo.phone}`,
+    birth_date: `4. ${t.form.basicInfo.birthDate}`,
+    gender: `5. ${t.form.basicInfo.gender}`,
+    hn: `6. ${t.form.basicInfo.hn}`,
+    procedures: `7. ${t.form.basicInfo.procedures}`,
 
     // รายละเอียดหัตถการ (Sub-options)
-    lefort_sub_options: `9.1 ${t.form.basicInfo.subOptions} (Lefort I)`,
-    bssro_sub_options: `9.2 ${t.form.basicInfo.subOptions} (BSSRO)`,
-    surgical_tooth_numbers: `9.3 ${t.form.basicInfo.surgicalTooth}`,
-    extraction_tooth_numbers: `9.4 ${t.form.basicInfo.surgicalTooth}`,
-    biopsy_sub_options: `9.5 ${t.form.basicInfo.subOptions} (Biopsy)`,
+    lefort_sub_options: `7.1 ${t.form.basicInfo.subOptions} (Lefort I)`,
+    bssro_sub_options: `7.2 ${t.form.basicInfo.subOptions} (BSSRO)`,
+    surgical_tooth_numbers: `7.3 ${t.form.basicInfo.surgicalTooth}`,
+    extraction_tooth_numbers: `7.4 ${t.form.basicInfo.surgicalTooth}`,
+    biopsy_sub_options: `7.5 ${t.form.basicInfo.subOptions} (Biopsy)`,
 
-    // หัตถการอื่นๆ (ข้อ 10)
-    imf_wire: `10.1 ${t.form.basicInfo.imfWire}`,
-    imf_elastic: `10.2 ${t.form.basicInfo.imfElastic}`,
+    // หัตถการอื่นๆ (ข้อ 8)
+    imf_wire: `8.1 ${t.form.basicInfo.imfWire}`,
+    imf_elastic: `8.2 ${t.form.basicInfo.imfElastic}`,
     imf_loops: t.form.basicInfo.loops,
-    special_icbg: `10.3 ${t.form.basicInfo.icbg}`,
+    special_icbg: `8.3 ${t.form.basicInfo.icbg}`,
     special_icbg_description: t.form.basicInfo.icbgDesc,
-    special_ng_tube: `10.4 ${t.form.basicInfo.ngTube}`,
+    special_ng_tube: `8.4 ${t.form.basicInfo.ngTube}`,
     special_ng_tube_description: t.form.basicInfo.ngTubeDesc,
 
     // วันที่และหมายเหตุ
-    surgery_date: `11. ${t.form.basicInfo.surgeryDate}`,
-    discharge_date: `12. ${t.form.basicInfo.dischargeDate}`,
-    note: `13. ${t.form.basicInfo.note}`,
+    surgery_date: `9. ${t.form.basicInfo.surgeryDate}`,
+    discharge_date: `10. ${t.form.basicInfo.dischargeDate}`,
+    note: `11. ${t.form.basicInfo.note}`,
   };
 
   if (!data) return baseLabels;
@@ -675,12 +673,12 @@ export default function ResultPage() {
                     .sort(([keyA], [keyB]) => {
                       const order = [
                         // Basic Info
-                        'first_name', 'last_name', 'email', 'phone', 'birth_year',
-                        'age', 'gender', 'hn',
+                        'first_name', 'last_name', 'phone', 'birth_date',
+                        'gender', 'hn',
                         'procedures', 'lefort_sub_options', 'bssro_sub_options',
                         'surgical_tooth_numbers', 'extraction_tooth_numbers', 'biopsy_sub_options',
 
-                        // Procedure Details (ข้อ 10)
+                        // Procedure Details (ข้อ 8)
                         'imf_wire', 'imf_elastic', 'imf_loops',
                         'special_icbg', 'special_icbg_description',
                         'special_ng_tube', 'special_ng_tube_description',

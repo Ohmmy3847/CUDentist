@@ -260,7 +260,7 @@ class RuleEngine:
             return {
                 'risk_level': RiskLevel.LOW.value,
                 'reason': 'Still numb' if language == 'en' else 'มีอาการชา',
-                'recommendation': 'If your symptoms last more than two weeks, see your dentist' if language == 'en' else 'สังเกตอาการ หากชานานเกิน 2 สัปดาห์ ควรพบทันตแพทย์'
+                'recommendation': ''
             }
         
         return {
