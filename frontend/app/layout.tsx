@@ -15,7 +15,17 @@ export default function RootLayout({
   // Hide language switcher in form and result pages
   const hideLanguageSwitcher = pathname?.includes('/form') || pathname?.includes('/result');
 
+  // Load language from localStorage on mount
   useEffect(() => {
+    const savedLang = localStorage.getItem('selectedLanguage') as 'th' | 'en' | null;
+    if (savedLang && (savedLang === 'th' || savedLang === 'en')) {
+      setLang(savedLang);
+    }
+  }, []);
+
+  useEffect(() => {
+    // Save language to localStorage
+    localStorage.setItem('selectedLanguage', lang);
     // Broadcast language change to other components
     window.dispatchEvent(new CustomEvent('languageChange', { detail: lang }));
   }, [lang]);

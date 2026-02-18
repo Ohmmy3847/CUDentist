@@ -110,15 +110,15 @@ class RuleEngine:
         if 'มี' in breathing and 'ไม่มี' not in breathing:
             return {
                 'risk_level': RiskLevel.HIGH.value,
-                'reason': 'Breathing or swallowing difficulty detected' if language == 'en' else 'มีอาการหายใจลำบากหรือกลืนลำบาก',
-                'recommendation': 'cut intermaxillary fixation wires and return to the dentist immediately' if language == 'en' else 'ตัดลวดมัดฟัน และกลับมาพบทันตแพทย์โดยเร็ว'
+                'reason': 'Hard to breathe or swallow' if language == 'en' else 'มีอาการหายใจลำบากหรือกลืนลำบาก',
+                'recommendation': 'Cut the jaw wires and see your dentist right away' if language == 'en' else 'ตัดลวดมัดฟัน และกลับมาพบทันตแพทย์โดยเร็ว'
             }
         
         # บวมมากขึ้นมากจนกระทบการใช้ชีวิตประจำวัน
         if 'บวมมากขึ้นมากๆจนกระทบการใช้ชีวิตประจำวัน' in swelling or 'บวมมากขึ้นมาก' in swelling:
             return {
                 'risk_level': RiskLevel.HIGH.value,
-                'reason': 'Severe swelling affecting daily life' if language == 'en' else 'บวมมากขึ้นมากๆ จนกระทบการใช้ชีวิตประจำวัน',
+                'reason': 'Very bad swelling' if language == 'en' else 'บวมมากขึ้นมากๆ จนกระทบการใช้ชีวิตประจำวัน',
                 'recommendation': ''
             }
         
@@ -130,14 +130,14 @@ class RuleEngine:
             if has_bleeding:
                 return {
                     'risk_level': RiskLevel.MEDIUM.value,
-                    'reason': 'Increased swelling with bleeding/bruising' if language == 'en' else 'บวมมากขึ้น และมีอาการเลือดออกหรือรอยช้ำ',
-                    'recommendation': 'Sleep with head elevated at 30°' if language == 'en' else 'นอนยกศีรษะสูง 30 องศา'
+                    'reason': 'More swelling with bleeding' if language == 'en' else 'บวมมากขึ้น และมีอาการเลือดออกหรือรอยช้ำ',
+                    'recommendation': 'Sleep with your head raised at 30 degrees' if language == 'en' else 'นอนยกศีรษะสูง 30 องศา'
                 }
             else:
                 return {
                     'risk_level': RiskLevel.MEDIUM.value,
-                    'reason': 'Increased swelling' if language == 'en' else 'บวมมากขึ้น',
-                    'recommendation': 'Apply a warm compression outside the mouth and sleep with head elevated at 30' if language == 'en' else 'ประคบอุ่นนอกช่องปาก และนอนยกศีรษะสูง 30 องศา'
+                    'reason': 'More swelling' if language == 'en' else 'บวมมากขึ้น',
+                    'recommendation': 'Use a warm compress on your face. Sleep with your head raised at 30 degrees' if language == 'en' else 'ประคบอุ่นนอกช่องปาก และนอนยกศีรษะสูง 30 องศา'
                 }
         
         # บวมเท่าเดิม
@@ -145,14 +145,14 @@ class RuleEngine:
             if has_bleeding:
                 return {
                     'risk_level': RiskLevel.LOW.value,
-                    'reason': 'Swelling unchanged with bleeding/bruising' if language == 'en' else 'บวมเท่าเดิม และมีอาการเลือดออกหรือรอยช้ำ',
-                    'recommendation': 'Sleep with head elevated at 30°' if language == 'en' else 'นอนยกศีรษะสูง 30 องศา'
+                    'reason': 'Same swelling with bleeding' if language == 'en' else 'บวมเท่าเดิม และมีอาการเลือดออกหรือรอยช้ำ',
+                    'recommendation': 'Sleep with your head raised at 30 degrees' if language == 'en' else 'นอนยกศีรษะสูง 30 องศา'
                 }
             else:
                 return {
                     'risk_level': RiskLevel.LOW.value,
-                    'reason': 'Swelling unchanged' if language == 'en' else 'บวมเท่าเดิม',
-                    'recommendation': 'Apply a warm compression outside the mouth and sleep with head elevated at 30' if language == 'en' else 'ประคบอุ่นนอกช่องปาก และนอนยกศีรษะสูง 30 องศา'
+                    'reason': 'Same swelling' if language == 'en' else 'บวมเท่าเดิม',
+                    'recommendation': 'Use a warm compress on your face. Sleep with your head raised at 30 degrees' if language == 'en' else 'ประคบอุ่นนอกช่องปาก และนอนยกศีรษะสูง 30 องศา'
                 }
         
         # บวมลดลง/บวมน้อยลง
@@ -160,21 +160,21 @@ class RuleEngine:
             if has_bleeding:
                 return {
                     'risk_level': RiskLevel.LOW.value,
-                    'reason': 'Decreased swelling with bleeding/bruising' if language == 'en' else 'บวมลดลง และมีอาการเลือดออกหรือรอยช้ำ',
-                    'recommendation': 'Sleep with head elevated at 30°' if language == 'en' else 'นอนยกศีรษะสูง 30 องศา'
+                    'reason': 'Less swelling with bleeding' if language == 'en' else 'บวมลดลง และมีอาการเลือดออกหรือรอยช้ำ',
+                    'recommendation': 'Sleep with your head raised at 30 degrees' if language == 'en' else 'นอนยกศีรษะสูง 30 องศา'
                 }
             else:
                 return {
                     'risk_level': RiskLevel.LOW.value,
-                    'reason': 'Decreased swelling' if language == 'en' else 'บวมลดลง',
-                    'recommendation': 'Apply a warm compression outside the mouth and sleep with head elevated at 30' if language == 'en' else 'ประคบอุ่นนอกช่องปาก และนอนยกศีรษะสูง 30 องศา'
+                    'reason': 'Less swelling' if language == 'en' else 'บวมลดลง',
+                    'recommendation': 'Use a warm compress on your face. Sleep with your head raised at 30 degrees' if language == 'en' else 'ประคบอุ่นนอกช่องปาก และนอนยกศีรษะสูง 30 องศา'
                 }
         
         # หายบวมแล้ว
         if 'หายบวมแล้ว' in swelling or 'ปัจจุบันหายบวมแล้ว' in swelling:
             return {
                 'risk_level': RiskLevel.LOW.value,
-                'reason': 'Swelling resolved' if language == 'en' else 'หายบวมแล้ว',
+                'reason': 'No more swelling' if language == 'en' else 'หายบวมแล้ว',
                 'recommendation': ''
             }
         
@@ -200,14 +200,14 @@ class RuleEngine:
         elif 'เลือดซึม' in bleeding and 'หยุดได้เอง' in bleeding:
             return {
                 'risk_level': RiskLevel.LOW.value,
-                'reason': 'Minor bleeding, stopped on its own' if language == 'en' else 'เลือดซึมแต่หยุดได้เอง',
-                'recommendation': 'apply a cold compression externally and sleep with head elevated at 30°' if language == 'en' else 'ประคบเย็นนอกช่องปากและนอนยกศีรษะสูง'
+                'reason': 'Light bleeding. Stopped by itself' if language == 'en' else 'เลือดซึมแต่หยุดได้เอง',
+                'recommendation': 'Use a cold compress on your face. Sleep with your head raised at 30 degrees' if language == 'en' else 'ประคบเย็นนอกช่องปากและนอนยกศีรษะสูง'
             }
         elif 'เลือดสีแดงสดไหลไม่หยุด' in bleeding or 'ปริมาณมาก' in bleeding:
             return {
                 'risk_level': RiskLevel.HIGH.value,
-                'reason': 'Uncontrollable excessive bleeding' if language == 'en' else 'เลือดสีแดงสดไหลไม่หยุดปริมาณมาก',
-                'recommendation': 'For oral bleeding, bite firmly on gauze; for nasal bleeding, pinch nostrils together while leaning forward. In both cases, apply an external cold compression and return to the dentist immediately' if language == 'en' else 'กัดผ้าก๊อซให้แน่นหากเลือดออกในช่องปาก หรือก้มหน้าและกดปีกจมูกเข้าหากันหากเลือดออกจากจมูก ร่วมกับประคบเย็นนอกช่องปาก และรีบกลับมาพบทันตแพทย์โดยเร็ว'
+                'reason': 'Heavy bleeding won\'t stop' if language == 'en' else 'เลือดสีแดงสดไหลไม่หยุดปริมาณมาก',
+                'recommendation': 'If bleeding in your mouth, bite down firmly on gauze. If bleeding from your nose, lean forward and pinch your nose shut. Use a cold compress on your face. See your dentist right away' if language == 'en' else 'กัดผ้าก๊อซให้แน่นหากเลือดออกในช่องปาก หรือก้มหน้าและกดปีกจมูกเข้าหากันหากเลือดออกจากจมูก ร่วมกับประคบเย็นนอกช่องปาก และรีบกลับมาพบทันตแพทย์โดยเร็ว'
             }
         
         return {
@@ -232,8 +232,8 @@ class RuleEngine:
         elif 'มีไข้' in fever_status:
             return {
                 'risk_level': RiskLevel.HIGH.value,
-                'reason': 'High fever (> 38°C)' if language == 'en' else 'มีไข้ (มากกว่า 38°C)',
-                'recommendation': 'take fever-reducing medicine such as paracetamol' if language == 'en' else 'ทานยาลดไข้(พาราเซตามอล)'
+                'reason': 'Fever over 38°C' if language == 'en' else 'มีไข้ (มากกว่า 38°C)',
+                'recommendation': 'take paracetamol to lower your fever.' if language == 'en' else 'ทานยาลดไข้(พาราเซตามอล)'
             }
         
         return {
@@ -253,14 +253,14 @@ class RuleEngine:
         if 'ไม่ชา' in numbness or 'หายแล้ว' in numbness:
             return {
                 'risk_level': RiskLevel.LOW.value,
-                'reason': 'No numbness' if language == 'en' else 'ไม่มีอาการชา',
+                'reason': 'Not numb' if language == 'en' else 'ไม่มีอาการชา',
                 'recommendation': ''
             }
         elif 'ชา' in numbness:
             return {
                 'risk_level': RiskLevel.LOW.value,
-                'reason': 'Numbness persists' if language == 'en' else 'มีอาการชา',
-                'recommendation': 'Observe symptoms. If persists more than 2 weeks, see dentist.' if language == 'en' else 'สังเกตอาการ หากชานานเกิน 2 สัปดาห์ ควรพบทันตแพทย์'
+                'reason': 'Still numb' if language == 'en' else 'มีอาการชา',
+                'recommendation': 'If your symptoms last more than two weeks, see your dentist' if language == 'en' else 'สังเกตอาการ หากชานานเกิน 2 สัปดาห์ ควรพบทันตแพทย์'
             }
         
         return {
@@ -279,14 +279,14 @@ class RuleEngine:
         if 'ไม่มีอาการ' in phlebitis or 'ไม่มีปวด' in phlebitis:
             return {
                 'risk_level': RiskLevel.LOW.value,
-                'reason': 'No phlebitis' if language == 'en' else 'ไม่มี phlebitis',
+                'reason': 'No pain at needle site' if language == 'en' else 'ไม่มี phlebitis',
                 'recommendation': ''
             }
         elif 'มีอาการ' in phlebitis or 'ปวด' in phlebitis or 'บวม' in phlebitis or 'แดง' in phlebitis:
             return {
                 'risk_level': RiskLevel.MEDIUM.value,
-                'reason': 'Pain/Swelling/Redness at IV site' if language == 'en' else 'มีอาการปวด/บวม/แดง รอบรอยเข็ม',
-                'recommendation': 'apply cold compression to reduce pain or warm compression to reduce swelling' if language == 'en' else 'ประคบเย็นเพื่อลดปวด / ประคบอุ่นเพื่อลดบวม'
+                'reason': 'Pain or swelling at needle site' if language == 'en' else 'มีอาการปวด/บวม/แดง รอบรอยเข็ม',
+                'recommendation': 'Use a cold compress to ease pain or a warm compress to ease swelling' if language == 'en' else 'ประคบเย็นเพื่อลดปวด / ประคบอุ่นเพื่อลดบวม'
             }
         
         return {
@@ -305,20 +305,20 @@ class RuleEngine:
         if 'แน่นดี' in suture or 'ไม่ได้สังเกต' in suture:
             return {
                 'risk_level': RiskLevel.LOW.value,
-                'reason': 'Sutures intact' if language == 'en' else 'ไหมแน่นดี',
+                'reason': 'Stitches look good' if language == 'en' else 'ไหมแน่นดี',
                 'recommendation': ''
             }
         elif 'หลุด' in suture and 'ไม่มีเลือด' in suture:
             return {
                 'risk_level': RiskLevel.LOW.value,
-                'reason': 'Partial suture loss, no bleeding' if language == 'en' else 'ไหมหลุดบางส่วน แต่ไม่มีเลือดไหล',
-                'recommendation': 'do not touch the wound or push it with your tongue. Contact your dentist if you are concerned (for example, if the wound opens)' if language == 'en' else 'ห้ามเขี่ยหรือใช้ลิ้นดุนบริเวณแผล และแจ้งทันแพทย์หากมีความกังวล เช่น แผลแยก'
+                'reason': 'Some stitches came out. No bleeding' if language == 'en' else 'ไหมหลุดบางส่วน แต่ไม่มีเลือดไหล',
+                'recommendation': 'Do not touch the wound. Do not push it with your tongue. Call your dentist if the wound opens' if language == 'en' else 'ห้ามเขี่ยหรือใช้ลิ้นดุนบริเวณแผล และแจ้งทันแพทย์หากมีความกังวล เช่น แผลแยก'
             }
         elif 'หลุด' in suture and ('เลือด' in suture or 'แดงสด' in suture):
             return {
                 'risk_level': RiskLevel.HIGH.value,
-                'reason': 'Suture loss with fresh bleeding' if language == 'en' else 'ไหมหลุด และมีเลือดสีแดงสดไหล',
-                'recommendation': 'bite firmly on gauze at the bleeding area, apply external cold compression, and return to the dentist immediately' if language == 'en' else 'กัดผ้าก๊อซให้แน่นบริเวณที่เลือดไหล ร่วมกับประคบเย็นนอกช่องปาก และกลับมาพบทันตแพทย์โดยเร็ว'
+                'reason': 'Stitches came out with bleeding' if language == 'en' else 'ไหมหลุด และมีเลือดสีแดงสดไหล',
+                'recommendation': 'Bite down firmly on gauze where it bleeds. Use a cold pack on your face. See your dentist right away' if language == 'en' else 'กัดผ้าก๊อซให้แน่นบริเวณที่เลือดไหล ร่วมกับประคบเย็นนอกช่องปาก และกลับมาพบทันตแพทย์โดยเร็ว'
             }
         
         return {
@@ -361,7 +361,7 @@ class RuleEngine:
             return {
                 'risk_level': RiskLevel.COMPLICATED.value,
                 'reason': reason,
-                'recommendation': 'Consult nurse or dentist for further assessment' if language == 'en' else 'ควรปรึกษาพยาบาลหรือทันตแพทย์เพื่อประเมินอาการเพิ่มเติม'
+                'recommendation': 'Talk to your nurse or dentist for a check-up' if language == 'en' else 'ควรปรึกษาพยาบาลหรือทันตแพทย์เพื่อประเมินอาการเพิ่มเติม'
             }
         
         # No symptoms
@@ -389,35 +389,35 @@ class RuleEngine:
                 'risk': RiskLevel.MEDIUM.value,
                 'reason_en': 'Nausea/Vomiting',
                 'reason_th': 'คลื่นไส้/อาเจียน',
-                'recommendation_en': 'During an episode, turn your head to one side to prevent choking and consult a nurse to identify the cause',
+                'recommendation_en': 'Turn your head to one side to avoid choking. Talk to your nurse to find the cause',
                 'recommendation_th': 'เมื่อมีอาการให้ตะแคงหน้าไปด้านใดด้านหนึ่งเพื่อป้องกันการสำลัก ร่วมกับปรึกษาพยาบาลเพื่อหาสาเหตุและแก้ไข'
             },
             'cough': {
                 'risk': RiskLevel.MEDIUM.value,
                 'reason_en': 'Cough/Phlegm',
                 'reason_th': 'ไอ/มีเสมหะ',
-                'recommendation_en': 'Take deep breaths and cough to clear phlegm. Sip warm water frequently, and taking an ATK test if respiratory symptoms worsen',
+                'recommendation_en': 'Take deep breaths and cough up phlegm. Sip warm water often. Take an ATK test if symptom gets worse',
                 'recommendation_th': 'สูดหายใจเข้าเต็มที่และไอให้เสมหะออกมา จิบน้ำอุ่นบ่อยๆ และหากมีอาการทางเดินหายใจมากขึ้นแนะนำตรวจ ATK'
             },
             'stuffy_nose': {
                 'risk': RiskLevel.MEDIUM.value,
                 'reason_en': 'Stuffy nose',
                 'reason_th': 'คัดแน่นจมูก',
-                'recommendation_en': 'Sleep with your head elevated at 30° and avoid cold air',
+                'recommendation_en': 'Sleep with your head raised at 30 degrees. Stay away from cold air',
                 'recommendation_th': 'นอนยกศีรษะสูง 30° เลี่ยงอากาศเย็น'
             },
             'bruising': {
                 'risk': RiskLevel.LOW.value,
                 'reason_en': 'Bruising',
                 'reason_th': 'ช้ำ',
-                'recommendation_en': 'Apply cold compression if the bruise is red or purple. Use warm compression when it turns green. Apply compression extraorally',
+                'recommendation_en': 'Use a cold compress for a red or purple bruise. Use a warm compress for a green bruise. Place the compress on your face.',
                 'recommendation_th': 'ประคบเย็นกรณีแผลฟกช้ำสีแดงอมม่วง หรือประคบอุ่นหากแผลฟกช้ำเริ่มเป็นสีเขียว โดยประคบนอกช่องปากบริเวณที่ช้ำ'
             },
             'diarrhea': {
                 'risk': RiskLevel.LOW.value,
                 'reason_en': 'Diarrhea',
                 'reason_th': 'ท้องเสีย',
-                'recommendation_en': 'Drink oral rehydration solution to prevent dehydration. Eat cooked food and wash hands before preparing food',
+                'recommendation_en': 'Drink rehydration drink to stop water loss. Eat cooked food. Wash your hands before making food.',
                 'recommendation_th': 'ดื่มน้ำเกลือแร่เพื่อป้องกันภาวะขาดน้ำและเกลือแร่ อุ่นอาหาร ล้างมือเวลาเตรียมอาหาร'
             },
             'runny_nose': {
@@ -431,21 +431,21 @@ class RuleEngine:
                 'risk': RiskLevel.LOW.value,
                 'reason_en': 'Sore throat',
                 'reason_th': 'เจ็บคอ',
-                'recommendation_en': 'Sip warm water frequently, and taking an ATK test if respiratory symptoms worsen',
+                'recommendation_en': 'Sip warm water often. Take an ATK test if symptom gets worse.',
                 'recommendation_th': 'จิบน้ำบ่อยๆ และหากมีอาการทางเดินหายใจมากขึ้นแนะนำตรวจ ATK'
             },
             'weight_loss': {
                 'risk': RiskLevel.LOW.value,
                 'reason_en': 'Weight loss',
                 'reason_th': 'น้ำหนักลด',
-                'recommendation_en': 'Eat small meals more often and choose high-calorie, high-protein foods like nutrition drinks (for example, Ensure), protein shakes, blended chicken, or pumpkin soup.',
+                'recommendation_en': 'Eat small meals more often. Choose foods high in calories and protein like Ensure, protein shakes, blended chicken, or pumpkin soup.',
                 'recommendation_th': 'ทานอาหารเสริม เช่น นมเอนชัวร์/โปรตีนชง/ไก่ปั่น/ซุปฟักทอง ร่วมกับแบ่งทานอาหารหลายมื้อ'
             },
             'headache': {
                 'risk': RiskLevel.LOW.value,
                 'reason_en': 'Headache',
                 'reason_th': 'ปวดหัว',
-                'recommendation_en': 'Take pain medicine as prescribed by your dentist.',
+                'recommendation_en': 'Take painuillers as your dentist told you.',
                 'recommendation_th': 'ทานยาแก้ปวดตามทันตแพทย์สั่ง'
             }
         }
@@ -474,8 +474,8 @@ class RuleEngine:
         # ถ้าไม่ match = default LOW
         return {
             'risk_level': RiskLevel.LOW.value,
-            'reason': f'Symptom: {symptom_key}' if language == 'en' else f'มีอาการ: {symptom_key}',
-            'recommendation': 'Observe symptoms. Contact nurse if worsening.' if language == 'en' else 'สังเกตอาการ หากมีอาการรุนแรงขึ้นให้ติดต่อพยาบาล'
+            'reason': f'Has {symptom_key}' if language == 'en' else f'มีอาการ: {symptom_key}',
+            'recommendation': ''
         }
     
     @staticmethod
@@ -488,20 +488,20 @@ class RuleEngine:
         if 'ครบตามแพทย์สั่ง' in antibiotic:
             return {
                 'risk_level': RiskLevel.LOW.value,
-                'reason': 'Antibiotics completed as prescribed' if language == 'en' else 'ทานยาฆ่าเชื้อครบ',
+                'reason': 'Took all antibiotics' if language == 'en' else 'ทานยาฆ่าเชื้อครบ',
                 'recommendation': ''
             }
         elif 'ลืม' in antibiotic or 'บางครั้ง' in antibiotic:
             return {
                 'risk_level': RiskLevel.LOW.value,
-                'reason': 'Missed some antibiotic doses' if language == 'en' else 'ลืมทานยาฆ่าเชื้อบางครั้ง',
-                'recommendation': 'take the missed dose when remembered. If it is close to the next dose, skip the missed dose and continue as scheduled. Do not take extra medicine.' if language == 'en' else 'รีบทานทันทีที่นึกได้หากใกล้เวลาของมื้อถัดไปให้ข้ามมื้อที่ลืมและทานยาของมื้อถัดไปตามปกติโดยไม่ต้องเพิ่มขนาดยาเพื่อชดเชย'
+                'reason': 'Forgot some antibiotics' if language == 'en' else 'ลืมทานยาฆ่าเชื้อบางครั้ง',
+                'recommendation': 'Take the missed dose when you recall. If the next dose is soon, skip the missed one. Keep your normal schedule. Do not take extra pills.' if language == 'en' else 'รีบทานทันทีที่นึกได้หากใกล้เวลาของมื้อถัดไปให้ข้ามมื้อที่ลืมและทานยาของมื้อถัดไปตามปกติโดยไม่ต้องเพิ่มขนาดยาเพื่อชดเชย'
             }
         elif 'ไม่ได้ทาน' in antibiotic:
             return {
                 'risk_level': RiskLevel.MEDIUM.value,
-                'reason': 'No antibiotics taken' if language == 'en' else 'ไม่ได้ทานยาฆ่าเชื้อเลย',
-                'recommendation': 'inform the dentist so the treatment plan can be reviewed' if language == 'en' else 'แจ้งให้ทันตแพทย์ทราบเพื่อประเมินและปรับแผนการรักษา'
+                'reason': 'Did not take antibiotics' if language == 'en' else 'ไม่ได้ทานยาฆ่าเชื้อเลย',
+                'recommendation': 'Tell your dentist so they can update your plan.' if language == 'en' else 'แจ้งให้ทันตแพทย์ทราบเพื่อประเมินและปรับแผนการรักษา'
             }
         
         return {
@@ -524,40 +524,40 @@ class RuleEngine:
             if has_bleeding:
                 return {
                     'risk_level': RiskLevel.LOW.value,
-                    'reason': 'Cold compress with active bleeding/bruising' if language == 'en' else 'ประคบเย็นอยู่ และมีอาการเลือดซึม/เลือดออก/รอยช้ำ',
-                    'recommendation': 'Continue cold compression' if language == 'en' else 'ประคบเย็นต่อ'
+                    'reason': 'Cold compress with bleeding' if language == 'en' else 'ประคบเย็นอยู่ และมีอาการเลือดซึม/เลือดออก/รอยช้ำ',
+                    'recommendation': 'Keep using a cold compress.' if language == 'en' else 'ประคบเย็นต่อ'
                 }
             else:
                 return {
                     'risk_level': RiskLevel.LOW.value,
-                    'reason': 'Cold compress without bleeding/bruising' if language == 'en' else 'ประคบเย็นอยู่ และไม่มีอาการเลือดซึม/เลือดออก/รอยช้ำ',
-                    'recommendation': ' Switch to warm compression' if language == 'en' else 'เปลี่ยนเป็นประคบอุ่น'
+                    'reason': 'Cold compress. No bleeding' if language == 'en' else 'ประคบเย็นอยู่ และไม่มีอาการเลือดซึม/เลือดออก/รอยช้ำ',
+                    'recommendation': 'Switch to a warm compress.' if language == 'en' else 'เปลี่ยนเป็นประคบอุ่น'
                 }
         elif 'ประคบอุ่น' in compress:
             if has_bleeding:
                 return {
                     'risk_level': RiskLevel.LOW.value,
-                    'reason': 'Warm compress with active bleeding/bruising' if language == 'en' else 'ประคบอุ่นอยู่ และมีอาการเลือดซึม/เลือดออก/รอยช้ำ',
-                    'recommendation': 'Switch to cold compression' if language == 'en' else 'เปลี่ยนเป็นประคบเย็น'
+                    'reason': 'Warm compress with bleeding' if language == 'en' else 'ประคบอุ่นอยู่ และมีอาการเลือดซึม/เลือดออก/รอยช้ำ',
+                    'recommendation': 'Switch to a cold compress' if language == 'en' else 'เปลี่ยนเป็นประคบเย็น'
                 }
             else:
                 return {
                     'risk_level': RiskLevel.LOW.value,
-                    'reason': 'Warm compress without bleeding/bruising' if language == 'en' else 'ประคบอุ่นอยู่ และไม่มีอาการเลือดซึม/เลือดออก/รอยช้ำ',
-                    'recommendation': 'Continue warm compression' if language == 'en' else 'ประคบอุ่นต่อ'
+                    'reason': 'Warm compress. No bleeding' if language == 'en' else 'ประคบอุ่นอยู่ และไม่มีอาการเลือดซึม/เลือดออก/รอยช้ำ',
+                    'recommendation': 'Keep using a warm compress.' if language == 'en' else 'ประคบอุ่นต่อ'
                 }
         elif 'ไม่ได้ประคบ' in compress:
             if has_bleeding:
                 return {
                     'risk_level': RiskLevel.LOW.value,
-                    'reason': 'No compress with active bleeding/bruising' if language == 'en' else 'ไม่ได้ประคบ และมีอาการเลือดซึม/เลือดออก/รอยช้ำ',
-                    'recommendation': 'Start cold compression' if language == 'en' else 'เริ่มประคบเย็น'
+                    'reason': 'No compress. Has bleeding' if language == 'en' else 'ไม่ได้ประคบ และมีอาการเลือดซึม/เลือดออก/รอยช้ำ',
+                    'recommendation': 'Start using a cold compress.' if language == 'en' else 'เริ่มประคบเย็น'
                 }
             else:
                 return {
                     'risk_level': RiskLevel.LOW.value,
-                    'reason': 'No compress without bleeding/bruising' if language == 'en' else 'ไม่ได้ประคบ และไม่มีอาการเลือดซึม/เลือดออก/รอยช้ำ',
-                    'recommendation': 'Start warm compression' if language == 'en' else 'เริ่มประคบอุ่น'
+                    'reason': 'No compress. No bleeding' if language == 'en' else 'ไม่ได้ประคบ และไม่มีอาการเลือดซึม/เลือดออก/รอยช้ำ',
+                    'recommendation': 'Start using a warm compress.' if language == 'en' else 'เริ่มประคบอุ่น'
                 }
         
         return {
@@ -571,14 +571,15 @@ class RuleEngine:
         """
         IMF: มีการมัดฟันบนและล่างเข้าด้วยกันหรือไม่
         """
-        has_imf = data.get('has_imf', '')
+        imf_wire = data.get('imf_wire', False)
+        imf_elastic = data.get('imf_elastic', False)
         wire_status = data.get('imf_wire_status', '')
         
-        # ถ้าไม่มี IMF (เช็คหลายรูปแบบ)
-        if not has_imf or has_imf == False or 'ไม่มี' in str(has_imf) or has_imf == 'ไม่':
+        # ถ้าไม่มี IMF ทั้ง wire และ elastic
+        if not imf_wire and not imf_elastic:
             return {
                 'risk_level': RiskLevel.LOW.value,
-                'reason': 'No intermaxillary fixation (IMF)' if language == 'en' else 'ไม่มีการมัดฟัน',
+                'reason': 'No jaw wires' if language == 'en' else 'ไม่มีการมัดฟัน',
                 'recommendation': ''
             }
         
@@ -594,19 +595,19 @@ class RuleEngine:
         if 'แน่นดี' in wire_status or 'แน่น' in wire_status or 'ดี' in wire_status:
             return {
                 'risk_level': RiskLevel.LOW.value,
-                'reason': 'IMF wire/elastic tight' if language == 'en' else 'ลวด/ยางมัดฟันแน่นดี',
+                'reason': 'Jaw wires tight' if language == 'en' else 'ลวด/ยางมัดฟันแน่นดี',
                 'recommendation': ''
             }
         elif 'หลวม' in wire_status or 'อ้าปากได้' in wire_status:
             return {
                 'risk_level': RiskLevel.HIGH.value,
-                'reason': 'IMF wire loose, mouth can open slightly' if language == 'en' else 'ลวดมัดฟันหลวม อ้าปากได้เล็กน้อย',
+                'reason': 'Jaw wire loose. Can open mouth' if language == 'en' else 'ลวดมัดฟันหลวม อ้าปากได้เล็กน้อย',
                 'recommendation': ''
             }
         elif 'ยางขาด' in wire_status and 'อ้าปากไม่ได้' in wire_status:
             return {
                 'risk_level': RiskLevel.LOW.value,
-                'reason': 'Some elastic bands broken but mouth cannot open' if language == 'en' else 'ยางมัดฟันขาดบางเส้น แต่ยังอ้าปากไม่ได้',
+                'reason': 'Some bands broke. Mouth still closed' if language == 'en' else 'ยางมัดฟันขาดบางเส้น แต่ยังอ้าปากไม่ได้',
                 'recommendation': '' if language == 'en' else ''
             }
         
@@ -623,13 +624,13 @@ class RuleEngine:
         ถ้าไม่ได้ทำหัตถการนี้ให้ข้าม
         """
         # ตรวจสอบว่าทำหัตถการนี้หรือไม่จาก special_icbg field
-        special_icbg = data.get('special_icbg', '')
+        special_icbg = data.get('special_icbg', False)
         
-        # ถ้าไม่มีหรือเป็น 'ไม่มี' ก็ไม่ต้องประเมิน
-        if not special_icbg or 'ไม่มี' in str(special_icbg) or special_icbg == 'ไม่':
+        # ถ้าไม่มีหรือเป็น False ก็ไม่ต้องประเมิน
+        if not special_icbg:
             return {
                 'risk_level': RiskLevel.NOT_APPLICABLE.value,
-                'reason': 'ICBG not performed' if language == 'en' else 'ไม่ได้ทำหัตถการนำกระดูกสะโพกมาปลูก',
+                'reason': 'No hip bone graft' if language == 'en' else 'ไม่ได้ทำหัตถการนำกระดูกสะโพกมาปลูก',
                 'recommendation': ''
             }
         
@@ -638,13 +639,13 @@ class RuleEngine:
         if 'คล่อง' in walking or 'ปกติ' in walking or 'เดินได้' in walking:
             return {
                 'risk_level': RiskLevel.LOW.value,
-                'reason': 'Walking normally' if language == 'en' else 'เดินได้ปกติ',
+                'reason': 'Can walk well' if language == 'en' else 'เดินได้ปกติ',
                 'recommendation': ''
             }
         elif 'ไม่ถนัด' in walking:
             return {
                 'risk_level': RiskLevel.LOW.value,
-                'reason': 'Difficulty walking' if language == 'en' else 'เดินไม่ถนัด',
+                'reason': 'Hard to walk' if language == 'en' else 'เดินไม่ถนัด',
                 'recommendation': ''
             }
         
@@ -673,14 +674,14 @@ class RuleEngine:
         if 'ไม่ถนัด' in brushing or 'แปรงไม่ถนัด' in brushing or 'แปรงฟันไม่ถนัด' in brushing:
             return {
                 'risk_level': RiskLevel.LOW.value,
-                'reason': 'Difficulty brushing teeth' if language == 'en' else 'แปรงฟันไม่ถนัด',
-                'recommendation': 'Use a small, soft toothbrush with non-irritating toothpaste. Brush gently and slowly. Avoid brushing over surgical wound' if language == 'en' else 'ใช้แปรงสีฟันหัวเล็กขนนุ่มร่วมกับยาสีฟันที่ไม่แสบปาก แปรงเบาๆช้าๆและหลีกเลี่ยงการแปรงโดนเหงือกที่มีแผลโดยใช้น้ำเกลือฉีดล้างแทน'
+                'reason': 'Hard to brush teeth' if language == 'en' else 'แปรงฟันไม่ถนัด',
+                'recommendation': 'Use a small, soft brush with mild toothpaste. Brush slowly and gently. Do not brush the wound area.' if language == 'en' else 'ใช้แปรงสีฟันหัวเล็กขนนุ่มร่วมกับยาสีฟันที่ไม่แสบปาก แปรงเบาๆช้าๆและหลีกเลี่ยงการแปรงโดนเหงือกที่มีแผลโดยใช้น้ำเกลือฉีดล้างแทน'
             }
         # แปรงได้
         elif 'แปรงได้' in brushing or 'แปรงฟันได้' in brushing or 'ได้' in brushing:
             return {
                 'risk_level': RiskLevel.LOW.value,
-                'reason': 'Can brush teeth normally' if language == 'en' else 'แปรงฟันได้',
+                'reason': 'Can brush teeth' if language == 'en' else 'แปรงฟันได้',
                 'recommendation': ''
             }
         
@@ -716,7 +717,7 @@ class RuleEngine:
         if 'บ้วนปากไม่ได้' in rinsing or 'บ้วนไม่ได้' in rinsing:
             return {
                 'risk_level': RiskLevel.LOW.value,
-                'reason': 'Cannot rinse mouth' if language == 'en' else 'บ้วนปากไม่ได้',
+                'reason': 'Can not rinse' if language == 'en' else 'บ้วนปากไม่ได้',
                 'recommendation': ''
             }
             
@@ -725,7 +726,7 @@ class RuleEngine:
         if 'ไม่ได้บ้วนปาก' in rinsing or 'ไม่ได้บ้วน' in rinsing:
             return {
                 'risk_level': RiskLevel.LOW.value,
-                'reason': 'Not rinsing mouth' if language == 'en' else 'ไม่ได้บ้วนปาก',
+                'reason': 'Not rinsing' if language == 'en' else 'ไม่ได้บ้วนปาก',
                 'recommendation': 'Gently rinse with water or mouthwash after every meal' if language == 'en' else 'บ้วนปากเบาๆด้วยน้ำเปล่าจามด้วยน้ำยาบ้วนปาก ทุกครั้งหลังทานอาหาร'
             }
         
@@ -743,21 +744,19 @@ class RuleEngine:
         ประเภทอาหารที่ทาน
         """
         food_types = data.get('food_types', [])
-        if isinstance(food_types, str):
-            food_types = [food_types]
         
-        if not food_types or len(food_types) == 0:
+        if not food_types:
             return {
                 'risk_level': RiskLevel.UNKNOWN.value,
                 'reason': 'Unspecified food types' if language == 'en' else 'ไม่ระบุประเภทอาหาร',
                 'recommendation': ''
             }
         
-        # All food types are acceptable based on recovery stage
-        food_description = ', '.join(food_types)
+        # Check food types
+        food_list = ', '.join(food_types) if isinstance(food_types, list) else str(food_types)
         return {
             'risk_level': RiskLevel.LOW.value,
-            'reason': f'Food types: {food_description}' if language == 'en' else f'ทานอาหาร: {food_description}',
+            'reason': f'Food types: {food_list}' if language == 'en' else f'ประเภทอาหาร: {food_list}',
             'recommendation': ''
         }
     
@@ -766,19 +765,26 @@ class RuleEngine:
         """
         ปริมาณอาหารที่ทาน
         """
-        amount = data.get('food_amount', '')
+        food_amount = data.get('food_amount', '')
         
-        if 'ปกติ' in amount:
+        if not food_amount or food_amount.strip() == '':
             return {
-                'risk_level': RiskLevel.LOW.value,
-                'reason': 'Eating normal amount' if language == 'en' else 'รับประทานอาหารปริมาณปกติ',
+                'risk_level': RiskLevel.UNKNOWN.value,
+                'reason': 'Unspecified food amount' if language == 'en' else 'ไม่ระบุปริมาณอาหาร',
                 'recommendation': ''
             }
-        elif 'น้อยลง' in amount or 'ลดลง' in amount:
+        
+        if 'ปกติ' in food_amount or 'normally' in food_amount.lower():
             return {
                 'risk_level': RiskLevel.LOW.value,
-                'reason': 'Eating less' if language == 'en' else 'รับประทานอาหารได้น้อยลง',
-                'recommendation': 'Eat small meals more often and choose high-calorie, high-protein foods such as nutrition drinks (e.g., Ensure), protein shakes, blended chicken, or pumpkin soup' if language == 'en' else 'ทานอาหารเสริม เช่น นมเอนชัวร์ และแบ่งทานอาหารหลายมื้อ'
+                'reason': 'Eating well' if language == 'en' else 'รับประทานอาหารปริมาณปกติ',
+                'recommendation': ''
+            }
+        elif 'น้อยลง' in food_amount or 'ลดลง' in food_amount or 'less' in food_amount.lower():
+            return {
+                'risk_level': RiskLevel.LOW.value,
+                'reason': 'Eating less food' if language == 'en' else 'รับประทานอาหารได้น้อยลง',
+                'recommendation': 'Eat small meals more often. Choose foods high in calories and protein like Ensure, protein shakes, blended chicken, or pumpkin soup' if language == 'en' else 'ทานอาหารเสริม เช่น นมเอนชัวร์ และแบ่งทานอาหารหลายมื้อ'
             }
         
         return {
@@ -792,18 +798,28 @@ class RuleEngine:
         """
         ตำแหน่งสายยางให้อาหาร (NG tube position)
         """
+        # Check if patient has NG tube
+        has_ng_tube = data.get('special_ng_tube', False)
+        
+        if not has_ng_tube:
+            return {
+                'risk_level': RiskLevel.NOT_APPLICABLE.value,
+                'reason': 'No NG tube' if language == 'en' else 'ไม่มีสายยางให้อาหาร',
+                'recommendation': ''
+            }
+        
         ng_position = data.get('ng_tube_position', '')
         
         if 'ตำแหน่งเดิม' in ng_position and 'แน่นดี' in ng_position:
             return {
                 'risk_level': RiskLevel.LOW.value,
-                'reason': 'NG tube in place, tape tight' if language == 'en' else 'สายยางอยู่ในตำแหน่งเดิม เทปยึดแน่นดี',
+                'reason': 'Tube in place. Tape tight' if language == 'en' else 'สายยางอยู่ในตำแหน่งเดิม เทปยึดแน่นดี',
                 'recommendation': ''
             }
         elif 'เลื่อน' in ng_position or 'หลุด' in ng_position or 'ไม่แน่น' in ng_position:
             return {
                 'risk_level': RiskLevel.HIGH.value,
-                'reason': 'NG tube displaced or tape loose' if language == 'en' else 'สายยางเลื่อนตำแหน่ง หรือเทปไม่แน่น',
+                'reason': 'Tube moved or tape loose' if language == 'en' else 'สายยางเลื่อนตำแหน่ง หรือเทปไม่แน่น',
                 'recommendation': ''
             }
         

@@ -10,12 +10,10 @@ class BasicInfo(BaseModel):
     # Personal Information
     first_name: Optional[str] = None
     last_name: Optional[str] = None
-    email: Optional[str] = None
     phone: Optional[str] = None
-    birth_year: Optional[int] = None
+    birth_date: Optional[str] = None
     
     # Basic Medical Info
-    age: Optional[int] = None
     gender: Optional[str] = None
     hn: Optional[str] = None
     procedures: Optional[list] = None
@@ -26,12 +24,13 @@ class BasicInfo(BaseModel):
     note: Optional[str] = None
     
     # Special Procedures
-    has_imf: Optional[str] = None
-    imf_type: Optional[str] = None
-    imf_loops: Optional[int] = None
-    special_icbg: Optional[str] = None
+    imf_wire: Optional[bool] = None
+    imf_wire_loops: Optional[int] = None
+    imf_elastic: Optional[bool] = None
+    imf_elastic_loops: Optional[int] = None
+    special_icbg: Optional[bool] = None
     special_icbg_description: Optional[str] = None
-    special_ng_tube: Optional[str] = None
+    special_ng_tube: Optional[bool] = None
     special_ng_tube_description: Optional[str] = None
 
 

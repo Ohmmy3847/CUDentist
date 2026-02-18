@@ -194,8 +194,8 @@ function FormContent() {
 
         // Conditional questions in SymptomsForm
         if ((formData.pain_score || 0) > 0) symptomsCount++; // Pain medication
-        if (formData.has_imf === 'มีการมัดฟัน') symptomsCount++; // IMF wire
-        if (formData.special_icbg === 'มี') symptomsCount++; // Walking
+        if (formData.imf_wire || formData.imf_elastic) symptomsCount++; // IMF wire
+        if (formData.special_icbg) symptomsCount++; // Walking
 
         const dailyLifeStartNum = 13 + symptomsCount;
 

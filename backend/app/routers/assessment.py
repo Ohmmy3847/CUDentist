@@ -12,17 +12,14 @@ from app.services.risk_service import (
     FIELD_LABELS,
     analyze_description_field,
     summarize_all_risks,
-    answer_patient_questions,
     FIELD_WITH_DESCRIPTION,
     DESCRIPTION_LABELS
 )
 from app.services.flow_parser import RuleEngine
 from app.core.config import settings
+from app.core.dependencies import get_llm
 
 logger = logging.getLogger(__name__)
-
-# Global variable to hold get_llm function (set by main.py)
-get_llm = None
 
 router = APIRouter(
     prefix="",
@@ -39,7 +36,7 @@ async def root():
         "message": settings.API_TITLE,
         "version": settings.API_VERSION,
         "endpoints": {
-            "/patient-assessment": "POST - Comprehensive patient risk assessment (3-layer system)",
+            "/patient-assessment": "POST - Comprehensive patient risk assessment (2-layer system: Rule-based + LLM Summary)",
             "/flows": "GET - List available flows"
         }
     }
@@ -52,19 +49,18 @@ async def get_flows():
 
 
 @router.post("/patient-assessment")
-async def comprehensive_patient_assessment(patient: PatientData, llm = Depends(lambda: get_llm())):
+async def comprehensive_patient_assessment(patient: PatientData, llm = Depends(get_llm)):
     """
-    Comprehensive Patient Risk Assessment - 3-Layer System:
+    Comprehensive Patient Risk Assessment - 2-Layer System:
     1. RuleEngine - Deterministic classification for structured data
-    2. LLM Analyzer - Analyze free-text description fields
-    3. LLM Summarizer - Comprehensive summary + answer patient questions
+    2. LLM Summarizer - Comprehensive summary and recommendations
     
     Example request:
     {
         "basic_info": {
             "first_name": "สมชาย",
             "last_name": "ใจดี",
-            "age": 35,
+            "birth_date": "2000-05-15",
             "hn": "HN12345",
             "procedures": ["BSSRO"],
             "surgery_date": "2026-01-09"
@@ -72,17 +68,17 @@ async def comprehensive_patient_assessment(patient: PatientData, llm = Depends(l
         "assessment_data": {
             "pain_score": 5,
             "pain_medication_effect": "ดีขึ้น",
-            "swelling_description": "บวมมากแต่ยังทนได้",
-            "additional_questions": "ควรประคบนานแค่ไหน?"
-        }
+            "swelling_description": "บวมมากแต่ยังทนได้"
+        },
+        "language": "th"
     }
     
     Returns:
     {
+        "patient": {...},  # Patient info and assessment data
         "flows": {...},  # Individual flow results (Rule-based)
-        "descriptions": {...},  # LLM analysis of free-text fields
         "summary": {...},  # Overall summary and recommendations
-        "patient_qa": "..."  # Answer to patient's questions
+        "errors": {...}  # Errors if any
     }
     """
     logger.info(f"Received comprehensive patient assessment request")
@@ -339,12 +335,8 @@ async def comprehensive_patient_assessment(patient: PatientData, llm = Depends(l
                 detail=f"All flows failed. Errors: {errors}"
             )
         
-        # Phase 2: LLM analysis of description fields
-        # logger.info("Phase 2: Analyzing description fields with LLM...")
-        # description_analysis = await analyze_descriptions()
-        
-        # Phase 3: LLM summarization (สรุบเหตุผลและคำแนะนำ รวม context จาก description analysis)
-        logger.info("Phase 3: Generating overall summary with LLM...")
+        # Phase 2: LLM summarization (สรุปเหตุผลและคำแนะนำโดยรวม)
+        logger.info("Phase 2: Generating overall summary with LLM...")
         procedures = merged_data.get('procedures', merged_data.get('procedure', 'ไม่ระบุ'))
         
         summary = await asyncio.to_thread(
@@ -357,38 +349,17 @@ async def comprehensive_patient_assessment(patient: PatientData, llm = Depends(l
             language=patient.language
         )
         
-        # Phase 4: Answer patient questions (if any)
-        patient_qa = None
-        additional_questions = merged_data.get('additional_questions', '')
-        if additional_questions and additional_questions.strip():
-            logger.info("Phase 4: Answering patient questions with LLM...")
-            patient_qa = await asyncio.to_thread(
-                answer_patient_questions,
-                additional_questions,
-                patient.basic_info.dict(exclude_none=True),
-                llm,
-                results,      # เพิ่ม risk results เป็น context
-                procedures,    # เพิ่ม procedures context
-                patient.language
-            )
-        
         # Compile final response
         response = {
             "patient": {"basic_info": patient.basic_info.dict(exclude_none=True), "assessment_data": patient.assessment_data},
             "flows": results,
-            
+            "language": patient.language,
             # "descriptions": description_analysis,
             "summary": {
                 "overall_risk": summary.overall_risk,
                 "critical_issues": summary.critical_issues,
                 "summary": summary.summary
             },
-            "patient_qa": {
-                "answer": patient_qa.answer,
-                "urgency_level": patient_qa.urgency_level,
-                "should_contact_doctor": patient_qa.should_contact_doctor,
-                "related_risks": patient_qa.related_risks
-            } if patient_qa else None,
             "errors": errors if errors else None
         }
         

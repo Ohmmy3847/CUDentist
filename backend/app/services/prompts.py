@@ -63,18 +63,17 @@ TASK: Generate a message following the FORMAT below strictly.
 
 **REQUIRED FORMAT:**
 
-Based on the assessment, {name_text if name_text else 'the patient'} has a HIGH risk of post-operative complications.
-Reason: [Summarize main reasons from HIGH RISK DETAILS]
+Based on your symptoms, {name_text if name_text else 'the patient'} has a HIGH risk of complications due to [Summarize main reasons from HIGH RISK DETAILS].
 
 Recommendation:
-• [Short Topic 3-5 words]: [Full recommendation from context]
-• [Short Topic 3-5 words]: [Full recommendation from context]
+• [Short Topic 3-5 words]: [Full recommendation from context].
+• [Short Topic 3-5 words]: [Full recommendation from context].
 
-Please contact a nurse immediately at {PHONE_NUMBER} for further assessment or special appointment.
+Please call a nurse now at {PHONE_NUMBER} for a check-up or special visit.
 
-Additional recommendations based on symptoms:
-• [Short Topic 3-5 words]: [Full recommendation from context]
-• [Short Topic 3-5 words]: [Full recommendation from context]
+More advices based on symptoms:
+• [Short Topic 3-5 words]: [Full recommendation from context].
+• [Short Topic 3-5 words]: [Full recommendation from context].
 
 **STRICT RULES:**
 
@@ -107,7 +106,8 @@ Additional recommendations based on symptoms:
    • Antibiotics: Take immediately when remembered
    • Compress: Switch to cold compress
 8. **"Recommendation:" Section** = High risk symptoms only. If High Risk has no recommendations, this section MUST BE REMOVED.
-9. **"Additional recommendations" Section** = Moderate/Low risk symptoms only. If both Medium and Low have no recommendations, this section MUST BE REMOVED.
+9. **"More advices based on symptoms" Section** = Moderate/Low risk symptoms only. If both Medium and Low have no recommendations, this section MUST BE REMOVED.
+10. **READABILITY: Use short, simple words. Keep sentences under 15 words. Avoid medical terms when possible.**
 """
 
     return f"""คุณเป็นพยาบาลที่สื่อสารกับผู้ป่วยผ่าน LINE
@@ -198,17 +198,16 @@ TASK: Generate a message following the FORMAT below strictly.
 
 **REQUIRED FORMAT:**
 
-Based on the assessment, {name_text if name_text else 'the patient'} has a MODERATE risk of post-operative complications.
-Reason: [Summarize main reasons from MODERATE RISK DETAILS]
+Based on your symptoms, {name_text if name_text else 'the patient'} has a MODERATE risk of complications due to [Summarize main reasons from MODERATE RISK DETAILS].
 
 Recommendation:
-• [Short Topic 3-5 words]: [Full recommendation from context]
-• [Short Topic 3-5 words]: [Full recommendation from context]
+• [Short Topic 3-5 words]: [Full recommendation from context].
+• [Short Topic 3-5 words]: [Full recommendation from context].
 
-The nursing team will contact you for further assessment. For inquiries, call {PHONE_NUMBER}
+The nursing team will call you for a check-up. If you have any questions, call {PHONE_NUMBER}.
 
-Additional recommendations based on symptoms:
-• [Short Topic 3-5 words]: [Full recommendation from context]
+More advices based on symptoms:
+• [Short Topic 3-5 words]: [Full recommendation from context].
 • [Short Topic 3-5 words]: [Full recommendation from context]   
 
 **STRICT RULES:**
@@ -241,7 +240,8 @@ Additional recommendations based on symptoms:
    • Brushing: Use small soft brush + non-stinging toothpaste, brush gently avoiding wound
    • Rinsing: Rinse gently with water or mouthwash after every meal
 8. **"Recommendation:" Section** = Moderate risk symptoms only. If Medium Risk has no recommendations, this section MUST BE REMOVED.
-9. **"Additional recommendations" Section** = Low risk symptoms only. If Low Risk has no recommendations, this section MUST BE REMOVED.
+9. **"More advices based on symptoms" Section** = Low risk symptoms only. If Low Risk has no recommendations, this section MUST BE REMOVED.
+10. **READABILITY: Use short, simple words. Keep sentences under 15 words. Avoid medical terms when possible.**
 """
 
     return f"""คุณเป็นพยาบาลที่สื่อสารกับผู้ป่วยผ่าน LINE
@@ -323,13 +323,13 @@ TASK: Generate a message following the FORMAT below strictly.
 
 **REQUIRED FORMAT:**
 
-Based on the assessment of post-operative complications, the risk cannot be concluded due to complex symptoms.
+Based on your symptoms, the risk level cannot be set due to complex symptoms.
 
-The nursing team will contact you for further assessment. If you have questions, call {PHONE_NUMBER}
+The nurse team will call you for a check-up. If you have questions, call {PHONE_NUMBER}.
 
-Preliminary recommendations based on symptoms:
-• [Short Topic 3-5 words]: [Full recommendation from context]
-• [Short Topic 3-5 words]: [Full recommendation from context]
+Advices based on your symptoms:
+• [Short Topic 3-5 words]: [Full recommendation from context].
+• [Short Topic 3-5 words]: [Full recommendation from context].
 
 **STRICT RULES:**
 
@@ -359,6 +359,7 @@ Preliminary recommendations based on symptoms:
    • Bleeding: Bite gauze tightly if bleeding in mouth, or tilt head down and pinch nose wings if bleeding from nose, along with cold compress outside mouth
    • Fever: Wipe body, take paracetamol
    • Wire: Contact nurse to make appointment with dentist immediately
+8. **READABILITY: Use short, simple words. Keep sentences under 15 words. Avoid medical terms when possible.**
 """
 
     base_prompt = f"""คุณเป็นพยาบาลที่สื่อสารกับผู้ป่วยผ่าน LINE
@@ -431,10 +432,10 @@ TASK: Generate a message following the FORMAT below strictly.
 
 **REQUIRED FORMAT:**
 
-Based on the assessment, the risk of post-operative complications is LOW.
+Based on the assessment, the risk of complications is LOW.
 Overall symptoms are normal.
 
-Preliminary recommendations based on symptoms
+Advices based on your symptoms:
 [Short Topic 3-5 words]: [Full recommendation from context]
 [Short Topic 3-5 words]: [Full recommendation from context]
 
@@ -469,6 +470,7 @@ If you have questions, call {PHONE_NUMBER}
    Numbness: Observe symptoms, if numbness lasts over 2 weeks, see dentist
    Brushing: Use small soft brush + non-stinging toothpaste, brush gently avoiding wound
    Rinsing: Rinse gently with water or mouthwash after every meal
+9. **READABILITY: Use short, simple words. Keep sentences under 15 words. Avoid medical terms when possible.**
 """
 
     base_prompt = f"""คุณเป็นพยาบาลที่สื่อสารกับผู้ป่วยผ่าน LINE

@@ -114,7 +114,7 @@ export default function DailyLifeForm({
     // Check if additional questions appear for everyone
     numbers.questions = ++num;
 
-    if (data.special_ng_tube === 'มี') numbers.ngTube = ++num;
+    if (data.special_ng_tube) numbers.ngTube = ++num;
 
     return numbers;
   }, [startingQuestionNumber, data.special_ng_tube]);
@@ -308,7 +308,7 @@ export default function DailyLifeForm({
       </div>
 
       {/* NG Tube (Conditional) */}
-      {data.special_ng_tube === 'มี' && (
+      {data.special_ng_tube && (
         <div className="animate-in fade-in slide-in-from-top-2">
           <label className="block text-gray-700 font-medium mb-2">
             {questionNumbers.ngTube}. {t.ngTube.label} <span className="text-red-500">*</span>

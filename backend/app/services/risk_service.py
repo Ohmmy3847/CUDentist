@@ -447,7 +447,7 @@ def _generate_patient_summary(
     # เตรียมข้อมูลสำหรับ prompt
     # เตรียมข้อมูลสำหรับ prompt
     if language == 'en':
-        name_text = f"Patient {patient_name}" if patient_name else "the patient"
+        name_text = f"{patient_name}" if patient_name else "the patient"
     else:
         name_text = f"คุณ{patient_name}" if patient_name else ""
     

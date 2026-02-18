@@ -66,11 +66,9 @@ export const riskApi = {
         // Personal Information
         first_name,
         last_name,
-        email,
         phone,
-        birth_year,
+        birth_date,
         // Basic Medical Info
-        age,
         gender,
         hn,
         procedures,
@@ -80,9 +78,10 @@ export const riskApi = {
         discharge_date,
         note,
         // Special Procedures
-        has_imf,
-        imf_type,
-        imf_loops,
+        imf_wire,
+        imf_wire_loops,
+        imf_elastic,
+        imf_elastic_loops,
         special_icbg,
         special_icbg_description,
         special_ng_tube,
@@ -96,11 +95,9 @@ export const riskApi = {
           // Personal Information
           first_name,
           last_name,
-          email,
           phone,
-          birth_year,
+          birth_date,
           // Basic Medical Info
-          age,
           gender,
           hn,
           procedures,
@@ -110,9 +107,10 @@ export const riskApi = {
           discharge_date,
           note,
           // Special Procedures
-          has_imf,
-          imf_type,
-          imf_loops,
+          imf_wire,
+          imf_wire_loops,
+          imf_elastic,
+          imf_elastic_loops,
           special_icbg,
           special_icbg_description,
           special_ng_tube,

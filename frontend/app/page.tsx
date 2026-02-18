@@ -10,6 +10,12 @@ export default function Home() {
   const t = lang === 'th' ? th.home : en.home;
 
   useEffect(() => {
+    // Load language from localStorage on mount
+    const savedLang = localStorage.getItem('selectedLanguage') as 'th' | 'en' | null;
+    if (savedLang && (savedLang === 'th' || savedLang === 'en')) {
+      setLang(savedLang);
+    }
+
     const handleLanguageChange = (e: CustomEvent) => {
       setLang(e.detail);
     };

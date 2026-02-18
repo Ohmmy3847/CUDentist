@@ -249,13 +249,13 @@ const getDynamicLabels = (data: PatientFormData | null, t: typeof th): Record<st
   addLabel('compress_type', t.form.symptoms.compress.label);
 
   // IMF Wire/Elastic check
-  if (data.has_imf === 'มีการมัดฟัน' || data.imf_wire || data.imf_elastic) {
+  if (data.imf_wire || data.imf_elastic) {
     addLabel('imf_wire_status', t.form.symptoms.imfWire.label);
     baseLabels['imf_wire_description'] = `${qNum}.1 ${t.form.symptoms.imfWire.label}`;
   }
 
   // ICBG check
-  if (data.special_icbg === 'มี') {
+  if (data.special_icbg) {
     addLabel('walking_status', t.form.symptoms.walking.label);
     baseLabels['walking_description'] = `${qNum}.1 ${t.form.symptoms.walking.label}`;
   }
@@ -276,7 +276,7 @@ const getDynamicLabels = (data: PatientFormData | null, t: typeof th): Record<st
   addLabel('additional_questions', t.form.dailyLife.questions.label);
 
   // NG Tube check
-  if (data.special_ng_tube === 'มี') {
+  if (data.special_ng_tube) {
     addLabel('ng_tube_position', t.form.dailyLife.ngTube.label);
     baseLabels['ng_tube_description'] = `${qNum}.1 ${t.form.dailyLife.ngTube.label}`;
   }
@@ -286,14 +286,11 @@ const getDynamicLabels = (data: PatientFormData | null, t: typeof th): Record<st
 
 const shouldSkipField = (key: string, value: any): boolean => {
   if (value === undefined || value === null || value === '') return true;
-  if (key === 'has_imf') return true;
-  if (key === 'imf_type') return true; // Legacy field
+  if (key === 'imf_wire' || key === 'imf_elastic' || key === 'imf_wire_loops' || key === 'imf_elastic_loops') return true;
   if (key === 'pain_medication_effective') return true;
   if (key === 'pain_score_description') return true;
-  if (key === 'imf_wire' && value === false) return true;
-  if (key === 'imf_elastic' && value === false) return true;
-  if (key === 'special_icbg' && value === 'ไม่ทำ') return true;
-  if (key === 'special_ng_tube' && value === 'ไม่ทำ') return true;
+  if (key === 'special_icbg' && value === false) return true;
+  if (key === 'special_ng_tube' && value === false) return true;
   return false;
 };
 

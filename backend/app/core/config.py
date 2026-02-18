@@ -53,6 +53,42 @@ class Settings:
         self.DATA_DIR.mkdir(exist_ok=True)
         self.LOGS_DIR.mkdir(exist_ok=True)
 
+         # Thai-English word mappings
+        self.translations = {
+            'ผู้ชาย': 'man',
+            'ผู้หญิง': 'woman',
+            'คน': 'person',
+            'เสื้อ': 'shirt',
+            'กางเกง': 'pants',
+            'หมวก': 'hat',
+            'แว่นตา': 'glasses',
+            'รองเท้า': 'shoes',
+            'กระเป๋า': 'bag',
+            'สีแดง': 'red',
+            'สีน้ำเงิน': 'blue',
+            'สีเขียว': 'green',
+            'สีเหลือง': 'yellow',
+            'สีดำ': 'black',
+            'สีขาว': 'white',
+            'ใส่': 'wearing',
+            'ถือ': 'holding',
+            'ใกล้': 'near',
+        }
+        
+        # Color keywords
+        self.colors = {
+            'แดง', 'red', 'น้ำเงิน', 'blue', 'เขียว', 'green',
+            'เหลือง', 'yellow', 'ดำ', 'black', 'ขาว', 'white',
+            'ส้ม', 'orange', 'ม่วง', 'purple', 'ชมพู', 'pink',
+            'เทา', 'gray', 'น้ำตาล', 'brown'
+        }
+
+        def translate_thai_to_english(self, text: str) -> str:
+            """Translate Thai words to English"""
+            result = text
+            for thai, eng in self.translations.items():
+                result = result.replace(thai, eng)
+            return result
 
 # Global settings instance
 settings = Settings()

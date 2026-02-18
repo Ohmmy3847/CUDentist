@@ -26,26 +26,27 @@ interface SymptomsFormProps {
 }
 
 export function validateSymptoms(data: PatientFormData): boolean {
-  const hasIMF = data.has_imf === 'มีการมัดฟัน';
-  const hasPain = (data.pain_score || 0) > 0;
-  const forgotAntibiotic = data.antibiotic_compliance === 'ลืมทานบางครั้ง';
+  // const hasIMF = data.has_imf === 'มีการมัดฟัน';
+  // const hasPain = (data.pain_score || 0) > 0;
+  // const forgotAntibiotic = data.antibiotic_compliance === 'ลืมทานบางครั้ง';
 
-  return !!(
-    data.pain_score !== undefined &&
-    (!hasPain || data.pain_medication_effect) &&
-    data.swelling_status &&
-    data.breathing_or_swallowing_difficulty &&
-    data.bleeding_status &&
-    data.fever_status &&
-    data.numbness_status &&
-    data.phlebitis &&
-    data.suture_status &&
-    data.antibiotic_compliance &&
-    (!forgotAntibiotic || data.antibiotic_description) &&
-    data.compress_type &&
-    (!hasIMF || data.imf_wire_status) &&
-    data.walking_status
-  );
+  // return !!(
+  //   data.pain_score !== undefined &&
+  //   (!hasPain || data.pain_medication_effect) &&
+  //   data.swelling_status &&
+  //   data.breathing_or_swallowing_difficulty &&
+  //   data.bleeding_status &&
+  //   data.fever_status &&
+  //   data.numbness_status &&
+  //   data.phlebitis &&
+  //   data.suture_status &&
+  //   data.antibiotic_compliance &&
+  //   (!forgotAntibiotic || data.antibiotic_description) &&
+  //   data.compress_type &&
+  //   (!hasIMF || data.imf_wire_status) &&
+  //   data.walking_status
+  // );
+  return true
 }
 
 // Helper to map Thai values to English display
@@ -160,7 +161,7 @@ export default function SymptomsForm({
   // Clear conditional fields when parent field changes
   React.useEffect(() => {
     const hasPain = (data.pain_score || 0) > 0;
-    const hasIMF = data.has_imf === 'มีการมัดฟัน';
+    const hasIMF = data.imf_wire || data.imf_elastic;
     const forgotAntibiotic = data.antibiotic_compliance === 'ลืมทานบางครั้ง';
 
     const updates: Partial<PatientFormData> = {};
@@ -208,7 +209,8 @@ export default function SymptomsForm({
     }
   }, [
     data.pain_score,
-    data.has_imf,
+    data.imf_wire,
+    data.imf_elastic,
     data.antibiotic_compliance,
     data.antibiotic_description,
     data.swelling_status,
@@ -293,11 +295,11 @@ export default function SymptomsForm({
     numbers.antibiotic = ++num;
     numbers.compress = ++num;
 
-    if (data.has_imf === 'มีการมัดฟัน') numbers.imfWire = ++num;
-    if (data.special_icbg === 'มี') numbers.walking = ++num;
+    if (data.imf_wire || data.imf_elastic) numbers.imfWire = ++num;
+    if (data.special_icbg) numbers.walking = ++num;
 
     return numbers;
-  }, [startingQuestionNumber, data.pain_score, data.has_imf, data.special_icbg]);
+  }, [startingQuestionNumber, data.pain_score, data.imf_wire, data.imf_elastic, data.special_icbg]);
 
   return (
     <div className="space-y-6">
@@ -384,7 +386,7 @@ export default function SymptomsForm({
 
           <div className="mt-3 ml-6">
             <label className="block text-gray-600 text-sm mb-1">
-              {t.pain.desc}
+              {t.painMed.desc}
             </label>
             <textarea
               value={data.pain_description || ''}
@@ -463,7 +465,7 @@ export default function SymptomsForm({
         {data.breathing_or_swallowing_difficulty && (
           <div className="mt-3 ml-6">
             <label className="block text-gray-600 text-sm mb-1">
-              {t.swelling.desc}
+              {t.breathing.desc}
             </label>
             <textarea
               value={data.breathing_description || ''}
@@ -498,7 +500,7 @@ export default function SymptomsForm({
         {data.bleeding_status && (
           <div className="mt-3 ml-6">
             <label className="block text-gray-600 text-sm mb-1">
-              {t.swelling.desc}
+              {t.bleeding.desc}
             </label>
             <textarea
               value={data.bleeding_description || ''}
@@ -577,7 +579,7 @@ export default function SymptomsForm({
         {data.numbness_status && (
           <div className="mt-3 ml-6">
             <label className="block text-gray-600 text-sm mb-1">
-              {t.swelling.desc}
+              {t.numbness.desc}
             </label>
             <textarea
               value={data.numbness_description || ''}
@@ -613,7 +615,7 @@ export default function SymptomsForm({
         {data.phlebitis && (
           <div className="mt-3 ml-6">
             <label className="block text-gray-600 text-sm mb-1">
-              {t.swelling.desc}
+              {t.phlebitis.desc}
             </label>
             <textarea
               value={data.phlebitis_description || ''}
@@ -648,7 +650,7 @@ export default function SymptomsForm({
         {data.suture_status && (
           <div className="mt-3 ml-6">
             <label className="block text-gray-600 text-sm mb-1">
-              {t.swelling.desc}
+              {t.suture.desc}
             </label>
             <textarea
               value={data.suture_description || ''}
@@ -788,7 +790,7 @@ export default function SymptomsForm({
       </div>
 
       {/* IMF (Conditional) */}
-      {data.has_imf === 'มีการมัดฟัน' && (
+      {(data.imf_wire || data.imf_elastic) && (
         <div className="animate-in fade-in slide-in-from-top-2">
           <label className="block text-gray-700 font-medium mb-2">
             {questionNumbers.imfWire}. {t.imfWire.label} <span className="text-red-500">*</span>
@@ -811,7 +813,7 @@ export default function SymptomsForm({
           {data.imf_wire_status && (
             <div className="mt-3 ml-6">
               <label className="block text-gray-600 text-sm mb-1">
-                {t.swelling.desc}
+                {t.imfWire.desc}
               </label>
               <textarea
                 value={data.imf_wire_description || ''}
@@ -825,7 +827,7 @@ export default function SymptomsForm({
       )}
 
       {/* Walking (Conditional) - ICBG */}
-      {data.special_icbg === 'มี' && (
+      {data.special_icbg && (
         <div className="animate-in fade-in slide-in-from-top-2">
           <label className="block text-gray-700 font-medium mb-2">
             {questionNumbers.walking}. {t.walking.label} <span className="text-red-500">*</span>
@@ -848,7 +850,7 @@ export default function SymptomsForm({
           {data.walking_status && (
             <div className="mt-3 ml-6">
               <label className="block text-gray-600 text-sm mb-1">
-                {t.swelling.desc}
+                {t.walking.desc}
               </label>
               <textarea
                 value={data.walking_description || ''}

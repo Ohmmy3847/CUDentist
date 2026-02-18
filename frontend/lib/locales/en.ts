@@ -47,10 +47,8 @@ export const en = {
             title: 'Section 1: Basic Information',
             firstName: 'First Name',
             lastName: 'Last Name',
-            email: 'Email',
             phone: 'Phone Number',
-            birthYear: 'Birth Year (B.E.)',
-            age: 'Age',
+            birthDate: 'Date of Birth',
             gender: 'Gender',
             genderOptions: {
                 male: 'Male',
@@ -95,13 +93,14 @@ export const en = {
                 label: 'Current pain level (Pain score)',
                 min: 'No pain at all',
                 max: 'Worst pain imaginable',
-                desc: 'Please select your pain level.'
+                desc: 'Additional details about your pain level (optional).'
             },
             painMed: {
                 label: 'Did the pain get better after taking the pain medication?',
                 better: 'Improved',
                 notBetter: 'Not improved',
-                notTaken: 'Not taken yet'
+                notTaken: 'Not taken yet',
+                desc: 'Additional details about pain medication (optional)'
             },
             swelling: {
                 label: 'Swelling',
@@ -115,7 +114,8 @@ export const en = {
             breathing: {
                 label: 'Do you have any difficulty breathing or swallowing?',
                 no: 'No',
-                yes: 'Yes'
+                yes: 'Yes',
+                desc: 'Additional details about breathing/swallowing (optional)'
             },
             bleeding: {
                 label: 'Bleeding or oozing from a wound in the mouth or nose',
@@ -140,13 +140,15 @@ export const en = {
             phlebitis: {
                 label: 'Area where the IV needle was removed (back of the hand or wrist)',
                 no: 'No pain, swelling, or redness around the needle site',
-                yes: 'Pain, swelling, or redness around the needle site'
+                yes: 'Pain, swelling, or redness around the needle site',
+                desc: 'Additional details about the needle site (optional)'
             },
             suture: {
                 label: 'Stitches',
                 secure: 'Stitches are secure / not noticed',
                 loose: 'Some stitches have fallen out, but no bleeding',
-                bleeding: 'Some stitches have fallen out, with ongoing bright red bleeding'
+                bleeding: 'Some stitches have fallen out, with ongoing bright red bleeding',
+                desc: 'Additional details about stitches (optional)'
             },
             other: {
                 label: 'Other symptoms (multiple answers allowed)',
@@ -174,13 +176,15 @@ export const en = {
                 yes: 'Jaw wiring present',
                 tight: 'Tight',
                 loose: 'Loose (slight opening)',
-                broken: 'Broken elastic (cannot open)'
+                broken: 'Broken elastic (cannot open)',
+                desc: 'Additional details about jaw wiring (optional)'
             },
             walking: {
                 label: 'Walking ability (for patients who had alveolar cleft repair using a hip bone graft)',
                 na: 'Did not undergo alveolar cleft repair with hip bone graft',
                 normal: 'Able to walk normally',
-                difficult: 'Difficulty walking'
+                difficult: 'Difficulty walking',
+                desc: 'Additional details about walking (optional)'
             }
         },
 

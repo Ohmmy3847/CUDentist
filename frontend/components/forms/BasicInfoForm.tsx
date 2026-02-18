@@ -168,21 +168,7 @@ export default function BasicInfoForm({ data, onChange, onValidationChange, lang
           />
         </div>
 
-        {/* 3. Email */}
-        <div>
-          <label className="block text-gray-700 font-medium mb-2">
-            {++qNum}. {t.email} <span className="text-red-500">*</span>
-          </label>
-          <input
-            type="email"
-            value={data.email || ''}
-            onChange={(e) => onChange({ email: e.target.value })}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            placeholder="example@email.com"
-          />
-        </div>
-
-        {/* 4. Phone */}
+        {/* 3. Phone */}
         <div>
           <label className="block text-gray-700 font-medium mb-2">
             {++qNum}. {t.phone} <span className="text-red-500">*</span>
@@ -196,47 +182,19 @@ export default function BasicInfoForm({ data, onChange, onValidationChange, lang
           />
         </div>
 
-        {/* 5. Birth Year */}
+        {/* 4. Birth Date */}
         <div>
           <label className="block text-gray-700 font-medium mb-2">
-            {++qNum}. {t.birthYear} <span className="text-red-500">*</span>
+            {++qNum}. {t.birthDate} <span className="text-red-500">*</span>
           </label>
           <input
-            type="text"
-            inputMode="numeric"
-            pattern="[0-9]*"
-            value={data.birth_year ?? ""}
-            onChange={(e) => {
-              const value = e.target.value;
-              if (/^\d*$/.test(value)) {
-                onChange({ birth_year: value === "" ? undefined : parseInt(value) });
-              }
-            }}
+            type="date"
+            value={data.birth_date || ''}
+            onChange={(e) => onChange({ birth_date: e.target.value })}
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            placeholder={t.birthYear}
+            max={new Date().toISOString().split('T')[0]}
           />
         </div>
-      </div>
-
-      {/* Age */}
-      <div>
-        <label className="block text-gray-700 font-medium mb-2">
-          {++qNum}. {t.age} <span className="text-red-500">*</span>
-        </label>
-        <input
-          type="text"
-          inputMode="numeric"
-          pattern="[0-9]*"
-          value={data.age ?? ""}
-          onChange={(e) => {
-            const value = e.target.value;
-            if (/^\d*$/.test(value)) {
-              onChange({ age: value === "" ? undefined : parseInt(value) });
-            }
-          }}
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          placeholder={t.age}
-        />
       </div>
 
       {/* Gender */}
@@ -453,10 +411,8 @@ export default function BasicInfoForm({ data, onChange, onValidationChange, lang
                   checked={!!data.imf_wire}
                   onChange={(e) => {
                     onChange({ imf_wire: e.target.checked });
-                    if (!e.target.checked && !data.imf_elastic) {
-                      onChange({ has_imf: 'ไม่มีการมัดฟัน', imf_loops: undefined, imf_wire_loops: undefined });
-                    } else if (e.target.checked) {
-                      onChange({ has_imf: 'มีการมัดฟัน' });
+                    if (!e.target.checked) {
+                      onChange({ imf_wire_loops: undefined });
                     }
                   }}
                   className="w-4 h-4 text-purple-600"
@@ -472,7 +428,7 @@ export default function BasicInfoForm({ data, onChange, onValidationChange, lang
                   min="1"
                   max="20"
                   value={data.imf_wire_loops || ''}
-                  onChange={(e) => onChange({ imf_wire_loops: e.target.value ? parseInt(e.target.value) : undefined, imf_loops: e.target.value ? parseInt(e.target.value) : undefined })}
+                  onChange={(e) => onChange({ imf_wire_loops: e.target.value ? parseInt(e.target.value) : undefined })}
                   className="w-32 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 text-sm"
                   placeholder="Count"
                 />
@@ -489,10 +445,8 @@ export default function BasicInfoForm({ data, onChange, onValidationChange, lang
                   checked={!!data.imf_elastic}
                   onChange={(e) => {
                     onChange({ imf_elastic: e.target.checked });
-                    if (!e.target.checked && !data.imf_wire) {
-                      onChange({ has_imf: 'ไม่มีการมัดฟัน', imf_loops: undefined, imf_elastic_loops: undefined });
-                    } else if (e.target.checked) {
-                      onChange({ has_imf: 'มีการมัดฟัน' });
+                    if (!e.target.checked) {
+                      onChange({ imf_elastic_loops: undefined });
                     }
                   }}
                   className="w-4 h-4 text-purple-600"
@@ -508,7 +462,7 @@ export default function BasicInfoForm({ data, onChange, onValidationChange, lang
                   min="1"
                   max="20"
                   value={data.imf_elastic_loops || ''}
-                  onChange={(e) => onChange({ imf_elastic_loops: e.target.value ? parseInt(e.target.value) : undefined, imf_loops: e.target.value ? parseInt(e.target.value) : undefined })}
+                  onChange={(e) => onChange({ imf_elastic_loops: e.target.value ? parseInt(e.target.value) : undefined })}
                   className="w-32 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 text-sm"
                   placeholder="Count"
                 />
@@ -522,12 +476,11 @@ export default function BasicInfoForm({ data, onChange, onValidationChange, lang
               <label className="flex items-center cursor-pointer">
                 <input
                   type="checkbox"
-                  checked={!!data.special_icbg && data.special_icbg !== 'ไม่ทำ'}
+                  checked={!!data.special_icbg}
                   onChange={(e) => {
-                    if (e.target.checked) {
-                      onChange({ special_icbg: 'มี' });
-                    } else {
-                      onChange({ special_icbg: 'ไม่ทำ', special_icbg_description: '' });
+                    onChange({ special_icbg: e.target.checked });
+                    if (!e.target.checked) {
+                      onChange({ special_icbg_description: '' });
                     }
                   }}
                   className="w-4 h-4 text-blue-600"
@@ -535,7 +488,7 @@ export default function BasicInfoForm({ data, onChange, onValidationChange, lang
                 <span className="ml-2 font-medium text-gray-700">{t.icbg}</span>
               </label>
             </div>
-            {data.special_icbg === 'มี' && (
+            {data.special_icbg && (
               <div className="ml-6">
                 <label className="block text-sm text-gray-600 mb-1">{t.icbgDesc}:</label>
                 <input
@@ -556,12 +509,11 @@ export default function BasicInfoForm({ data, onChange, onValidationChange, lang
               <label className="flex items-center cursor-pointer">
                 <input
                   type="checkbox"
-                  checked={!!data.special_ng_tube && data.special_ng_tube !== 'ไม่ทำ'}
+                  checked={!!data.special_ng_tube}
                   onChange={(e) => {
-                    if (e.target.checked) {
-                      onChange({ special_ng_tube: 'มี' });
-                    } else {
-                      onChange({ special_ng_tube: 'ไม่ทำ', special_ng_tube_description: '' });
+                    onChange({ special_ng_tube: e.target.checked });
+                    if (!e.target.checked) {
+                      onChange({ special_ng_tube_description: '' });
                     }
                   }}
                   className="w-4 h-4 text-green-600"
@@ -569,7 +521,7 @@ export default function BasicInfoForm({ data, onChange, onValidationChange, lang
                 <span className="ml-2 font-medium text-gray-700">{t.ngTube}</span>
               </label>
             </div>
-            {data.special_ng_tube === 'มี' && (
+            {data.special_ng_tube && (
               <div className="ml-6">
                 <label className="block text-sm text-gray-600 mb-1">{t.ngTubeDesc}:</label>
                 <input

@@ -31,19 +31,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Initialize LLM
-llm = build_llm(settings.DEEPSEEK_API_KEY, settings.MODEL_NAME)
-logger.info(f"Initialized LLM with model: {settings.MODEL_NAME}")
 
+@app.on_event("startup")
+async def startup_event():
+    """Initialize resources on startup"""
+    # Initialize LLM and store in app.state
+    app.state.llm = build_llm(settings.DEEPSEEK_API_KEY, settings.MODEL_NAME)
+    logger.info(f"✓ LLM initialized with model: {settings.MODEL_NAME}")
 
-# Dependency for LLM injection
-def get_llm():
-    """Dependency to inject LLM into endpoints"""
-    return llm
-
-
-# Make get_llm available to routers
-assessment.get_llm = get_llm
 
 # Include routers
 app.include_router(assessment.router)

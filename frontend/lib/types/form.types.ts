@@ -7,20 +7,16 @@ export interface PatientFormData {
   // ข้อมูลส่วนตัว
   first_name?: string;
   last_name?: string;
-  email?: string;
   phone?: string;
-  birth_year?: number;
+  birth_date?: string;
 
-  // 1. อายุ
-  age?: number;
-
-  // 2. เพศ
+  // 1. เพศ
   gender?: 'ชาย' | 'หญิง' | string;
 
-  // 3. HN
+  // 2. HN
   hn?: string;
 
-  // 4. หัตถการที่ทำ (multiple choice)
+  // 3. หัตถการที่ทำ (multiple choice)
   procedures?: string[];
 
   // 4.1 Sub-options สำหรับ Lefort I
@@ -38,32 +34,29 @@ export interface PatientFormData {
   // 4.5 Sub-options สำหรับ Biopsy
   biopsy_sub_options?: string[];  // excisional, incisional, enucleation
 
-  // 5. วันที่ผ่าตัด
+  // 4. วันที่ผ่าตัด
   surgery_date?: string;
 
-  // 5.1 วันที่ discharge
+  // 4.1 วันที่ discharge
   discharge_date?: string;
 
 
-  // 6. Special Procedures (หัตถการย่อยที่ทำ)
-  has_imf?: 'มีการมัดฟัน' | 'ไม่มีการมัดฟัน';
-  imf_type?: 'มัดลวด' | 'มัดยาง';
+  // 5. Special Procedures (หัตถการย่อยที่ทำ)
   imf_wire?: boolean;  // IMF มัดลวด
-  imf_elastic?: boolean;  // IMF มัดยาง
-  imf_loops?: number;     // Legacy/Combined
   imf_wire_loops?: number; // จำนวน Loop ของลวด
+  imf_elastic?: boolean;  // IMF มัดยาง
   imf_elastic_loops?: number; // จำนวน Loop ของยาง
 
-  special_icbg?: 'มี' | 'ไม่ทำ';
+  special_icbg?: boolean;
   special_icbg_description?: string;
 
-  special_ng_tube?: 'มี' | 'ไม่ทำ';
+  special_ng_tube?: boolean;
   special_ng_tube_description?: string;
 
   // Note: หมายเหตุสำหรับหมอ (เหตุการณ์พิเศษ เช่น แพ้ยา เลือดออกมาก)
   note?: string;
 
-  // 6. ระดับความปวด (0-10)
+  // 6. ระดับความปวด (0-10) - Symptoms section
   pain_score?: number;
   pain_description?: string;
   pain_score_description?: string;
