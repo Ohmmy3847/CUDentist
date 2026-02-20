@@ -18,7 +18,7 @@ const translateFieldValue = (key: string, value: string, language: string): stri
       return translatedSymptom; // Found symptom mapping
     }
   }
-  
+
   // Translation map for other field values (TH -> EN) - matching exactly with form options
   const translations: Record<string, string> = {
     // Common answers
@@ -28,11 +28,11 @@ const translateFieldValue = (key: string, value: string, language: string): stri
     'ไม่ใช่': 'No',
     'มี': en.form.symptoms.breathing.yes,
     'ไม่มี': en.form.symptoms.breathing.no,
-    
+
     // Gender - exact matches from BasicInfoForm
     'ชาย': en.form.basicInfo.genderOptions.male,
     'หญิง': en.form.basicInfo.genderOptions.female,
-    
+
     // Procedures - exact matches from BasicInfoForm
     'ผ่าตัดขากรรไกรบน  (Lefort I)': en.form.basicInfo.procedureOptions.lefort,
     'ผ่าตัดขากรรไกรล่าง (BSSRO-bilateral sagittal split osteotomy)': en.form.basicInfo.procedureOptions.bssro,
@@ -44,82 +44,82 @@ const translateFieldValue = (key: string, value: string, language: string): stri
     'การรักษาการแหว่งของสันเหงือกโดยการนำกระดูกสะโพกมาปลูก (Repair alveolar cleft with Iliac crest bone graft)': en.form.basicInfo.procedureOptions.cleftRepair,
     'ผ่าตัดปุ่มกระดูก (Torectomy)': en.form.basicInfo.procedureOptions.torectomy,
     'การผ่าตัดเพื่อนำแผ่นโลหะและสกรูออก (Off plate and screws)': en.form.basicInfo.procedureOptions.plateRemoval,
-    
+
     // Pain medication - exact matches from SymptomsForm
     'ดีขึ้น': en.form.symptoms.painMed.better,
     'ไม่ดีขึ้น': en.form.symptoms.painMed.notBetter,
     'ไม่ได้ทานยาแก้ปวด': en.form.symptoms.painMed.notTaken,
-    
+
     // Swelling - exact matches from SymptomsForm
     'ปัจจุบันหายบวมแล้ว': en.form.symptoms.swelling.gone,
     'บวมลดลง': en.form.symptoms.swelling.reduced,
     'บวมเท่าเดิม': en.form.symptoms.swelling.noChange,
     'บวมมากขึ้น': en.form.symptoms.swelling.increased,
     'บวมมากขึ้นมากๆจนกระทบการใช้ชีวิตประจำวัน': en.form.symptoms.swelling.severe,
-    
+
     // Bleeding - exact matches from SymptomsForm
     'ไม่มีเลือดซึมหรือไหลแล้ว': en.form.symptoms.bleeding.no,
     'เลือดซึม แต่หยุดได้เอง': en.form.symptoms.bleeding.slight,
     'เลือดสีแดงสดไหลไม่หยุดปริมาณมาก': en.form.symptoms.bleeding.heavy,
-    
+
     // Fever - exact matches from SymptomsForm
     'ไม่มีไข้': en.form.symptoms.fever.no,
     'มีไข้ (มากกว่า 38 องศาเซลเซียส)': en.form.symptoms.fever.yes,
     'มีไข้': en.form.symptoms.fever.yes,
-    
+
     // Numbness - exact matches from SymptomsForm
     'หายชาแล้วหลังทำหัตถการ': en.form.symptoms.numbness.resolved,
     'ยังชาอยู่แต่ชาน้อยลงเรื่อยๆ': en.form.symptoms.numbness.improving,
     'ยังรู้สึกชาเท่ากับตอนหลังทำหัตถการทันที': en.form.symptoms.numbness.unchanged,
-    
+
     // Phlebitis - exact matches from SymptomsForm
     'ไม่มีอาการปวด/บวม/แดง รอบรอยเข็ม': en.form.symptoms.phlebitis.no,
     'มีอาการปวด/บวม/แดง รอบรอยเข็ม': en.form.symptoms.phlebitis.yes,
-    
+
     // Suture - exact matches from SymptomsForm
     'ไหมแน่นดี / ไม่ได้สังเกต': en.form.symptoms.suture.secure,
     'ไหมหลุดหายไปบางส่วน แต่ไม่มีเลือดไหล': en.form.symptoms.suture.loose,
     'ไหมหลุดหายไปบางส่วน และมีอาการเลือดสีแดงสดไหล': en.form.symptoms.suture.bleeding,
-    
+
     // Antibiotics - exact matches from SymptomsForm
     'ครบตามแพทย์สั่ง': en.form.symptoms.antibiotic.all,
     'ลืมทานบางครั้ง': en.form.symptoms.antibiotic.missed,
     'ไม่ได้ทานเลย': en.form.symptoms.antibiotic.none,
     'ไม่ได้ทาน': en.form.symptoms.antibiotic.none,
-    
+
     // Compress - exact matches from SymptomsForm
     'ประคบเย็นอยู่': en.form.symptoms.compress.cold,
     'ประคบอุ่นอยู่': en.form.symptoms.compress.warm,
     'ไม่ได้ประคบอะไรเลย': en.form.symptoms.compress.none,
-    
+
     // IMF Wire - exact matches from SymptomsForm
     'ลวด/ยางมัดฟันแน่นดี': en.form.symptoms.imfWire.tight,
     'ลวด/ยางมัดฟันหลวม อ้าปากได้เล็กน้อย': en.form.symptoms.imfWire.loose,
     'ยางมัดฟันขาดไปบางเส้น แต่ยังอ้าปากไม่ได้': en.form.symptoms.imfWire.broken,
-    
+
     // Walking - exact matches from SymptomsForm
     'เดินได้ปกติ': en.form.symptoms.walking.normal,
     'เดินไม่ถนัด': en.form.symptoms.walking.difficult,
-    
+
     // Tooth brushing - exact matches from DailyLifeForm
     'แปรงฟันได้': en.form.dailyLife.brushing.good,
     'แปรงฟันไม่ถนัด': en.form.dailyLife.brushing.difficult,
-    
+
     // Mouth rinsing - exact matches from DailyLifeForm
     'บ้วนปากได้': en.form.dailyLife.rinsing.good,
     'บ้วนปากไม่ได้': en.form.dailyLife.rinsing.difficult,
     'ไม่ได้บ้วนปาก': en.form.dailyLife.rinsing.none,
-    
+
     // Food types - exact matches from DailyLifeForm
     'อาหารเหลวใสไม่มีกาก เช่น น้ำซุปใส น้ำผลไม้กรอง นม': en.form.dailyLife.foodTypes.liquid,
     'อาหารปั่นเหลวมีกาก เช่น โจ๊กปั่นเหลว ไก่ปั่น': en.form.dailyLife.foodTypes.pureed,
     'อาหารอ่อน เช่น โจ๊ก ข้าวต้ม ไข่ลวก ผักนึ่ง': en.form.dailyLife.foodTypes.soft,
     'อาหารปกติแต่เว้นอาหารรสจัด เผ็ด ร้อน แข็ง เหนียว': en.form.dailyLife.foodTypes.regular,
-    
+
     // Food amount - exact matches from DailyLifeForm
     'รับประทานอาหารปริมาณปกติ': en.form.dailyLife.foodAmount.normal,
     'รับประทานอาหารได้น้อยลง': en.form.dailyLife.foodAmount.less,
-    
+
     // NG Tube position - exact matches from DailyLifeForm
     'สายยางอยู่ในตำแหน่งเดิม,  เทปยึดจมูกกับสายแน่นดี ไม่เลื่อนหลุด': en.form.dailyLife.ngTube.secure,
     'สายยางเลื่อนตำแหน่ง, เทปยึดจมูกกับสายไม่แน่น, เลื่อนหลุด': en.form.dailyLife.ngTube.loose,
@@ -128,7 +128,7 @@ const translateFieldValue = (key: string, value: string, language: string): stri
   if (language === 'en' && translations[value]) {
     return translations[value];
   }
-  
+
   return value;
 };
 
@@ -553,11 +553,10 @@ export default function ResultPage() {
         {!isProcessing && result && (
           <>
             {/* Overall Summary */}
-            <div className={`mb-8 rounded-xl shadow-lg p-8 ${
-              overallRisk.color === 'red' ? 'bg-red-100 border-2 border-red-300' :
+            <div className={`mb-8 rounded-xl shadow-lg p-8 ${overallRisk.color === 'red' ? 'bg-red-100 border-2 border-red-300' :
               overallRisk.color === 'yellow' ? 'bg-yellow-100 border-2 border-yellow-300' :
-              overallRisk.color === 'purple' ? 'bg-purple-100 border-2 border-purple-300' :
-              'bg-green-100 border-2 border-green-300'
+                overallRisk.color === 'purple' ? 'bg-purple-100 border-2 border-purple-300' :
+                  'bg-green-100 border-2 border-green-300'
               }`}>
               <div className="flex items-center justify-between">
                 <div className="flex items-center">
@@ -575,11 +574,11 @@ export default function ResultPage() {
                       {t.result.summary.title}: {overallRisk.level}
                     </h2>
 
-                    {result.flows && Object.keys(result.flows).length < 17 && (
+                    {/* {result.flows && Object.keys(result.flows).length < 17 && (
                       <p className="text-sm text-orange-600 mt-1">
                         ⚠️ {t.result.summary.note.replace('{count}', String(Object.keys(result.flows).length))}
                       </p>
-                    )}
+                    )} */}
                     <p className="text-sm text-green-600 mt-2 flex items-center">
                       <CheckCircle className="w-4 h-4 mr-1" />
                       {t.result.summary.saved}

@@ -45,13 +45,13 @@ SUTURE_STATUS = [
 ]
 OTHER_SYMPTOMS = [
     [],
-    ["ช้ำ"],
-    ["มีน้ำมูก"],
-    ["คัดแน่นจมูก"],
-    ["คลื่นไส้/อาเจียน"],
-    ["ปวดหัว"],
-    ["มีเสมหะ"],
-    ["ปวดหน่วงบริเวณหน้าแก้ม ร่วมกับมีน้ำมูกสีเหลือง/เขียว เหม็นลงคอ"]
+    ["bruising"],
+    ["runny_nose"],
+    ["stuffy_nose"],
+    ["nausea_vomiting"],
+    ["headache"],
+    ["cough"],
+    ["sinus_pain"]
 ]
 ANTIBIOTIC = ["ครบทุกเม็ด", "ลืมทานบางครั้ง", "ไม่ได้ทานเลย"]
 COMPRESS = ["ประคบเย็นอยู่", "ประคบอุ่นอยู่", "ไม่ได้ประคบอะไรเลย"]
@@ -127,7 +127,7 @@ def generate_high_risk_case(case_id: int) -> Dict:
         "phlebitis_description": None,
         "suture_status": random.choice(["ไหมหลุดหายไปบางส่วน และมีอาการเลือดสีแดงสดไหล", "ไหมแน่นดี / ไม่ได้สังเกต"]),
         "suture_description": None,
-        "other_symptoms": random.choice([[], ["คลื่นไส้/อาเจียน"], ["ปวดหน่วงบริเวณหน้าแก้ม ร่วมกับมีน้ำมูกสีเหลือง/เขียว เหม็นลงคอ"]]),
+        "other_symptoms": random.choice([[], ["nausea_vomiting"], ["sinus_pain"]]),
         "other_symptoms_custom": None,
         "antibiotic_compliance": random.choice(ANTIBIOTIC),
         "antibiotic_description": None,
@@ -203,7 +203,7 @@ def generate_medium_risk_case(case_id: int) -> Dict:
         "phlebitis_description": None,
         "suture_status": random.choice(["ไหมหลุดหายไปบางส่วน แต่ไม่มีเลือดไหล", "ไหมแน่นดี / ไม่ได้สังเกต"]),
         "suture_description": None,
-        "other_symptoms": random.choice([[], ["คัดแน่นจมูก"], ["มีเสมหะ"], ["คลื่นไส้/อาเจียน"]]),
+        "other_symptoms": random.choice([[], ["stuffy_nose"], ["cough"], ["nausea_vomiting"]]),
         "other_symptoms_custom": None,
         "antibiotic_compliance": random.choice(["ครบตามแพทย์สั่ง", "ลืมทานบางครั้ง"]),
         "antibiotic_description": None,
@@ -279,7 +279,7 @@ def generate_low_risk_case(case_id: int) -> Dict:
         "phlebitis_description": None,
         "suture_status": "ไหมแน่นดี / ไม่ได้สังเกต",
         "suture_description": None,
-        "other_symptoms": random.choice([[], ["มีน้ำมูก"], ["ปวดหัว"]]),
+        "other_symptoms": random.choice([[], ["runny_nose"], ["headache"]]),
         "other_symptoms_custom": None,
         "antibiotic_compliance": "ครบตามแพทย์สั่ง",
         "antibiotic_description": None,
@@ -356,9 +356,9 @@ def generate_complicated_case(case_id: int) -> Dict:
         "suture_status": random.choice(SUTURE_STATUS),
         "suture_description": None,
         "other_symptoms": random.choice([
-            ["คลื่นไส้/อาเจียน", "ปวดหัว"],
-            ["ปวดหน่วงบริเวณหน้าแก้ม ร่วมกับมีน้ำมูกสีเหลือง/เขียว เหม็นลงคอ"],
-            ["คัดแน่นจมูก", "มีเสมหะ"],
+            ["nausea_vomiting", "headache"],
+            ["sinus_pain"],
+            ["stuffy_nose", "cough"],
         ]),  # มักมีหลายอาการ
         "other_symptoms_custom": None,
         "antibiotic_compliance": random.choice(ANTIBIOTIC),
@@ -389,15 +389,15 @@ def generate_complicated_case(case_id: int) -> Dict:
 def generate_test_cases(n_cases: int = 100) -> List[Dict]:
     """
     สร้าง test cases โดยแบ่งสัดส่วน:
-    - 30% High Risk
+    - 25% High Risk
     - 25% Medium Risk
     - 25% Complicated
-    - 20% Low Risk
+    - 25% Low Risk
     """
     cases = []
     
     # Stratified sampling
-    n_high = int(n_cases * 0.30)
+    n_high = int(n_cases * 0.25)
     n_medium = int(n_cases * 0.25)
     n_complicated = int(n_cases * 0.25)
     n_low = n_cases - n_high - n_medium - n_complicated

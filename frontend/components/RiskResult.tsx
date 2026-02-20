@@ -69,17 +69,33 @@ const getFlowDisplayName = (flowName: string, language: string): string => {
     bleeding: 'เลือดออก',
     fever: 'ไข้',
     numbness: 'อาการชา',
-    phlebitis: 'Phlebitis',
+    phlebitis: 'บริเวณที่เอาเข็มน้ำเกลือออกที่หลังมือหรือข้อมือ',
     suture: 'ไหมเย็บแผล',
+    other_symptoms: 'อาการอื่นๆ',
+    antibiotics_compliance: 'ยาฆ่าเชื้อ',
+    antibiotic: 'ยาฆ่าเชื้อ',
+    compress: 'การประคบ',
     imf: 'การมัดฟัน',
+    imf_wire: 'ลวดมัดฟัน',
     walking: 'การเดิน',
     ng_tube: 'สายยางให้อาหาร',
     brushing: 'การแปรงฟัน',
     rinsing: 'การบ้วนปาก',
+    food_type: 'ประเภทอาหาร',
     food_types: 'ประเภทอาหาร',
+    food_intake: 'ปริมาณอาหาร',
     food_amount: 'ปริมาณอาหาร',
-    antibiotic: 'ยาฆ่าเชื้อ',
-    compress: 'การประคบ'
+    // Symptoms from other_symptoms
+    sinus_pain: 'ปวดหน้าแก้ม',
+    nausea_vomiting: 'คลื่นไส้/อาเจียน',
+    cough: 'ไอ/เสมหะ',
+    stuffy_nose: 'คัดจมูก',
+    bruising: 'รอยช้ำ',
+    diarrhea: 'ท้องเสีย',
+    runny_nose: 'น้ำมูก',
+    sore_throat: 'เจ็บคอ',
+    weight_loss: 'น้ำหนักลด',
+    headache: 'ปวดหัว'
   };
 
   const flowNamesEN: { [key: string]: string } = {
@@ -88,17 +104,33 @@ const getFlowDisplayName = (flowName: string, language: string): string => {
     bleeding: 'Bleeding',
     fever: 'Fever',
     numbness: 'Numbness',
-    phlebitis: 'Phlebitis',
+    phlebitis: 'Phlebitis at needle site',
     suture: 'Suture',
+    other_symptoms: 'Other Symptoms',
+    antibiotics_compliance: 'Antibiotics',
+    antibiotic: 'Antibiotics',
+    compress: 'Compress',
     imf: 'IMF',
+    imf_wire: 'IMF Wire',
     walking: 'Walking (ICBG)',
     ng_tube: 'NG Tube',
     brushing: 'Brushing Teeth',
     rinsing: 'Mouth Rinsing',
+    food_type: 'Food Type',
     food_types: 'Food Types',
+    food_intake: 'Food Intake',
     food_amount: 'Food Amount',
-    antibiotic: 'Antibiotics',
-    compress: 'Compress'
+    // Symptoms from other_symptoms
+    sinus_pain: 'Sinus Pain',
+    nausea_vomiting: 'Nausea/Vomiting',
+    cough: 'Cough',
+    stuffy_nose: 'Stuffy Nose',
+    bruising: 'Bruising',
+    diarrhea: 'Diarrhea',
+    runny_nose: 'Runny Nose',
+    sore_throat: 'Sore Throat',
+    weight_loss: 'Weight Loss',
+    headache: 'Headache'
   };
 
   // Try exact match first

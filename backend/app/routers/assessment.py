@@ -7,14 +7,12 @@ import asyncio
 
 from app.models.schemas import PatientData
 from app.services.risk_service import (
-    classify_risk, 
+    classify_risk,
     FORM_COLUMNS,
     FIELD_LABELS,
-    analyze_description_field,
     summarize_all_risks,
-    FIELD_WITH_DESCRIPTION,
-    DESCRIPTION_LABELS
 )
+from app.core.constants import FIELD_WITH_DESCRIPTION, DESCRIPTION_LABELS
 from app.services.flow_parser import RuleEngine
 from app.core.config import settings
 from app.core.dependencies import get_llm
@@ -91,7 +89,7 @@ async def comprehensive_patient_assessment(patient: PatientData, llm = Depends(g
     
     results = {}
     errors = {}
-    description_analysis = {}
+
 
     async def process_flow(flow_name: str, flow: str):
         """Process a single flow asynchronously with RuleEngine"""
@@ -101,10 +99,10 @@ async def comprehensive_patient_assessment(patient: PatientData, llm = Depends(g
             # Check if this is a dynamically created symptom flow
             # (not in original flow_names, meaning it's from other_symptoms expansion)
             if flow_name not in RuleEngine.get_flow_names():
-                # Check if it's a custom symptom (starts with "อาการที่ผู้ป่วยระบุเพิ่มเติม:")
-                if flow_name.startswith("อาการที่ผู้ป่วยระบุเพิ่มเติม:"):
+                # Check if it's a custom symptom (starts with "custom_symptom:")
+                if flow_name.startswith("custom_symptom:"):
                     # Extract the custom symptoms text
-                    custom_text = flow_name.replace("อาการที่ผู้ป่วยระบุเพิ่มเติม:", "").strip()
+                    custom_text = flow_name.replace("custom_symptom:", "").strip()
                     
                     # Create temporary data with custom symptoms
                     temp_data = merged_data.copy()
@@ -115,7 +113,7 @@ async def comprehensive_patient_assessment(patient: PatientData, llm = Depends(g
                         classify_risk,
                         input_data=temp_data,
                         flow=flow,
-                        flow_name="อาการอื่นๆ (เลือกได้หลายคำตอบ)",  # Use original flow for evaluation
+                        flow_name="other_symptoms",  # Use original flow for evaluation
                         llm=llm,
                         language=patient.language
                     )
@@ -130,7 +128,7 @@ async def comprehensive_patient_assessment(patient: PatientData, llm = Depends(g
                         classify_risk,
                         input_data=temp_data,
                         flow=flow,
-                        flow_name="อาการอื่นๆ (เลือกได้หลายคำตอบ)",  # Use original flow for evaluation
+                        flow_name="other_symptoms",  # Use original flow for evaluation
                         llm=llm,
                         language=patient.language
                     )
@@ -182,7 +180,6 @@ async def comprehensive_patient_assessment(patient: PatientData, llm = Depends(g
         
         # Analyze with LLM
         analysis = await asyncio.to_thread(
-            analyze_description_field,
             main_field_label,
             desc_field_label,
             description,
@@ -227,7 +224,6 @@ async def comprehensive_patient_assessment(patient: PatientData, llm = Depends(g
         
         # Analyze with LLM
         analysis = await asyncio.to_thread(
-            analyze_description_field,
             field_label,
             field_label,
             custom_values,
@@ -251,7 +247,6 @@ async def comprehensive_patient_assessment(patient: PatientData, llm = Depends(g
         
         return field_name, result
     
-    async def analyze_descriptions():
         """
         วิเคราะห์ description fields และ custom text fields ด้วย LLM (parallel)
         
@@ -294,10 +289,10 @@ async def comprehensive_patient_assessment(patient: PatientData, llm = Depends(g
         logger.info("Phase 1: Running rule-based classification...")
         flow_names = RuleEngine.get_flow_names()
         
-        # Auto-expand "อาการอื่นๆ (เลือกได้หลายคำตอบ)" into individual flows
+        # Auto-expand "other_symptoms" into individual flows
         expanded_flows = []
         for flow_name in flow_names:
-            if flow_name == "อาการอื่นๆ (เลือกได้หลายคำตอบ)":
+            if flow_name == "other_symptoms":
                 # Get selected symptoms from choices
                 other_symptoms = merged_data.get('other_symptoms', [])
                 if isinstance(other_symptoms, list) and other_symptoms:
@@ -313,9 +308,9 @@ async def comprehensive_patient_assessment(patient: PatientData, llm = Depends(g
                 
                 if custom_symptoms:
                     # Create special flow for custom symptoms
-                    expanded_flows.append(f"อาการที่ผู้ป่วยระบุเพิ่มเติม: {custom_symptoms}")
+                    expanded_flows.append(f"custom_symptom:{custom_symptoms}")
                 
-                # Skip the original "อาการอื่นๆ" flow
+                # Skip the original "other_symptoms" flow
             else:
                 expanded_flows.append(flow_name)
         
@@ -344,7 +339,6 @@ async def comprehensive_patient_assessment(patient: PatientData, llm = Depends(g
             all_results=results,
             llm=llm,
             patient_data=patient.basic_info.dict(exclude_none=True),
-            description_analysis=None,
             procedures=procedures,
             language=patient.language
         )
