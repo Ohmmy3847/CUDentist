@@ -9,6 +9,7 @@ interface BasicInfoFormProps {
   onChange: (data: Partial<PatientFormData>) => void;
   onValidationChange?: (isValid: boolean) => void;
   lang?: 'th' | 'en';
+  isReadOnly?: boolean;
 }
 
 export function validateBasicInfo(): boolean {
@@ -17,7 +18,7 @@ export function validateBasicInfo(): boolean {
 
 
 
-export default function BasicInfoForm({ data, onChange, onValidationChange, lang = 'th' }: BasicInfoFormProps) {
+export default function BasicInfoForm({ data, onChange, onValidationChange, lang = 'th', isReadOnly = false }: BasicInfoFormProps) {
   const t = lang === 'th' ? th.form.basicInfo : en.form.basicInfo;
 
   const getOptionLabel = (option: string): string => {
@@ -137,7 +138,7 @@ export default function BasicInfoForm({ data, onChange, onValidationChange, lang
       <h2 className="text-2xl font-bold text-gray-800 mb-6">
         {t.title}
       </h2>
-
+      <fieldset disabled={isReadOnly} className={isReadOnly ? 'opacity-80 pointer-events-none' : ''}>
       {/* Basic Info */}
       <div className="space-y-4">
         {/* 1. First Name */}
@@ -577,6 +578,7 @@ export default function BasicInfoForm({ data, onChange, onValidationChange, lang
           rows={4}
         />
       </div>
+      </fieldset>
     </div>
   );
 }

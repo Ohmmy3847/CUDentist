@@ -141,21 +141,16 @@ export default function SymptomsForm({
     return map[option] || option;
   };
 
-  const [customSymptoms, setCustomSymptoms] = React.useState<Array<{ name: string, description: string }>>([]);
+  const [customSymptoms, setCustomSymptoms] = React.useState<Array<{ symptom: string, detail: string }>>([]);
 
   // Sync customSymptoms from data.other_symptoms_custom when component mounts or data changes
   React.useEffect(() => {
-    if (data.other_symptoms_custom && data.other_symptoms_custom.length > 0 && customSymptoms.length === 0) {
-      // Parse from string array to object array
-      const parsed = data.other_symptoms_custom.map(s => {
-        // Try to parse if it's in format "name: description"
-        const parts = s.split(':');
-        if (parts.length >= 2) {
-          return { name: parts[0].trim(), description: parts.slice(1).join(':').trim() };
-        }
-        return { name: s, description: '' };
-      });
-      setCustomSymptoms(parsed);
+    if (
+      data.other_symptoms_custom &&
+      data.other_symptoms_custom.length > 0 &&
+      customSymptoms.length === 0
+    ) {
+      setCustomSymptoms(data.other_symptoms_custom);
     }
   }, [data.other_symptoms_custom, customSymptoms.length]);
 
@@ -252,31 +247,49 @@ export default function SymptomsForm({
   };
 
   const handleAddSymptomField = () => {
-    if (customSymptoms.length === 0 || (customSymptoms[customSymptoms.length - 1].name.trim() !== '' || customSymptoms[customSymptoms.length - 1].description.trim() !== '')) {
-      setCustomSymptoms([...customSymptoms, { name: '', description: '' }]);
+    if (customSymptoms.length === 0 || (customSymptoms[customSymptoms.length - 1].symptom.trim() !== '' || customSymptoms[customSymptoms.length - 1].detail.trim() !== '')) {
+      setCustomSymptoms([...customSymptoms, { symptom: '', detail: '' }]);
     }
   };
 
   const handleRemoveSymptomField = (index: number) => {
     const updated = customSymptoms.filter((_, i) => i !== index);
+
     setCustomSymptoms(updated);
 
-    const customArray = updated
-      .filter(s => s.name.trim() || s.description.trim())
-      .map(s => s.name && s.description ? `${s.name}: ${s.description}` : s.name || s.description);
-    onChange({ other_symptoms_custom: customArray });
-  };
+    // กรองเฉพาะอันที่มีข้อมูลจริง
+    const filtered = updated.filter(
+      s => s.symptom.trim() || s.detail.trim()
+    );
 
-  const handleCustomSymptomChange = (index: number, field: 'name' | 'description', value: string) => {
+    onChange({
+      other_symptoms_custom: filtered,
+    });
+  }
+
+  const handleCustomSymptomChange = (
+    index: number,
+    field: 'symptom' | 'detail',
+    value: string
+  ) => {
     const updatedCustom = [...customSymptoms];
-    updatedCustom[index] = { ...updatedCustom[index], [field]: value };
+
+    updatedCustom[index] = {
+      ...updatedCustom[index],
+      [field]: value,
+    };
+
     setCustomSymptoms(updatedCustom);
 
-    const customArray = updatedCustom
-      .filter(s => s.name.trim() || s.description.trim())
-      .map(s => s.name && s.description ? `${s.name}: ${s.description}` : s.name || s.description);
-    onChange({ other_symptoms_custom: customArray });
-  };
+    // กรองเฉพาะอันที่มีข้อมูลจริง
+    const filtered = updatedCustom.filter(
+      s => s.symptom.trim() || s.detail.trim()
+    );
+
+    onChange({
+      other_symptoms_custom: filtered,
+    });
+  }
 
   // Dynamic question numbering
   const questionNumbers = React.useMemo(() => {
@@ -690,8 +703,8 @@ export default function SymptomsForm({
                   <div className="w-1/3">
                     <input
                       type="text"
-                      value={symptom.name || ''}
-                      onChange={(e) => handleCustomSymptomChange(index, 'name', e.target.value)}
+                      value={symptom.symptom || ''}
+                      onChange={(e) => handleCustomSymptomChange(index, 'symptom', e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       placeholder={t.other.namePlaceholder}
                     />
@@ -699,8 +712,8 @@ export default function SymptomsForm({
                   <div className="flex-1">
                     <input
                       type="text"
-                      value={symptom.description || ''}
-                      onChange={(e) => handleCustomSymptomChange(index, 'description', e.target.value)}
+                      value={symptom.detail || ''}
+                      onChange={(e) => handleCustomSymptomChange(index, 'detail', e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       placeholder={t.other.descPlaceholder}
                     />

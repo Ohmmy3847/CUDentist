@@ -1,0 +1,52 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: dental_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: app
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d app"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: dental_pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres
+
+  # risk_service_api: (ถ้าจะใส่ Docker ต้องเพิ่ม volumes ด้านล่าง)
+  #   volumes:
+  #     - rag_documents:/app/data/document   ← ไฟล์เอกสาร PDF/TXT
+  #     - ./risk_service_api/data:/app/data  ← BM25 index + manifest
+
+  chromadb:
+    image: chromadb/chroma:latest
+    container_name: dental_chromadb
+    restart: unless-stopped
+    ports:
+      - "8002:8000"
+    volumes:
+      - chroma_data:/chroma/chroma
+    environment:
+      - IS_PERSISTENT=TRUE
+
+volumes:
+  postgres_data:
+  chroma_data:
+  rag_documents:
+

@@ -51,7 +51,7 @@
 ### 📁 โครงสร้างไฟล์
 
 ```
-backend/
+risk_service_api/
 ├── app/
 │   ├── core/                    # ⚙️ Configuration & Constants
 │   │   ├── config.py           # Settings (API keys, URLs)
@@ -617,7 +617,7 @@ SPREADSHEET_ID=1abc...
 FRONTEND_URL=https://your-app.vercel.app
 
 # Frontend: .env.local
-NEXT_PUBLIC_API_URL=http://localhost:8000
+NEXT_PUBLIC_API_URL=http://localhost:8000/risk_service_api
 NEXT_PUBLIC_APP_NAME=Risk Assessment System
 ```
 

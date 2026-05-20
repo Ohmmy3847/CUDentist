@@ -1,3 +1,2 @@
-"""
-Core Configuration and Constants
-"""
+__all__ = []
+

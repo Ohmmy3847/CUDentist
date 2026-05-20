@@ -1,16 +1,17 @@
 # ระบบประเมินความเสี่ยงผู้ป่วยหลังผ่าตัด
 Post-Operative Patient Risk Assessment System
 
+source .venv/bin/activate
 ## 📁 โครงสร้างโปรเจกต์
 
 ```
 Senior_Project/
-├── backend/                      # FastAPI Backend
+├── risk_service_api/             # FastAPI Backend
 │   ├── main.py                   # REST API endpoints
-│   ├── riskClassification.py     # Risk classification logic
-│   ├── flow.py                   # Risk assessment flows
-│   ├── clean_raw_data.py         # Data processing utilities
-│   ├── data/                     # CSV data files
+│   ├── app/                      # Application package (routers/services/models)
+│   ├── scripts/                  # Utility scripts
+│   ├── data/                     # Data + vector DB files
+│   ├── logs/                     # Logs output directory
 │   ├── requirements.txt          # Python dependencies
 │   ├── Dockerfile                # Docker configuration
 │   └── .env.example              # Environment variables template
@@ -41,8 +42,8 @@ Senior_Project/
 ### Backend (FastAPI)
 
 ```bash
-# 1. เข้าโฟลเดอร์ backend
-cd backend
+# 1. เข้าโฟลเดอร์ risk_service_api
+cd risk_service_api
 
 # 2. สร้าง virtual environment (ถ้ายังไม่มี)
 python -m venv .venv
@@ -58,8 +59,8 @@ cp .env.example .env
 
 # 5. รัน API server
 python main.py
-# API จะรันที่ http://localhost:8000
-# ดู API docs ที่ http://localhost:8000/docs
+# API จะรันที่ http://localhost:8000/risk_service_api
+# ดู API docs ที่ http://localhost:8000/risk_service_api/docs
 ```
 
 ### Frontend (Next.js)
@@ -100,29 +101,35 @@ npm run dev
 
 ### Backend API
 
-**Base URL:** `http://localhost:8000`
+**Base URL:** `http://localhost:8000/risk_service_api`
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | GET | `/` | API information |
 | GET | `/flows` | รายชื่อ flows ทั้งหมด |
-| POST | `/classify` | ประเมิน 1 flow |
-| POST | `/classify-all-flows` | ประเมินทุก flows |
-| POST | `/classify-csv` | อัปโหลด CSV และประมวลผล |
+| POST | `/patient-assessment` | ประเมินความเสี่ยงผู้ป่วย (main endpoint) |
+| POST | `/log/submission` | บันทึกผลการประเมิน (logging) |
 
 **ตัวอย่างการเรียกใช้:**
 
 ```bash
-# Classify patient data
-curl -X POST http://localhost:8000/classify-all-flows \
+# Assess patient data
+curl -X POST http://localhost:8000/risk_service_api/patient-assessment \
   -H "Content-Type: application/json" \
-  -d '{"data": {"pain_score": 5, "fever_status": "ไม่มีไข้"}}'
-
-# Upload CSV
-curl -X POST http://localhost:8000/classify-csv \
-  -F "file=@data/66.csv" \
-  -F "max_concurrent=10" \
-  --output result.csv
+  -d '{
+    "basic_info": {
+      "first_name": "สมชาย",
+      "last_name": "ใจดี",
+      "birth_date": "2000-05-15",
+      "hn": "HN12345",
+      "procedures": ["BSSRO"],
+      "surgery_date": "2026-01-09"
+    },
+    "assessment_data": {
+      "pain_score": 5
+    },
+    "language": "th"
+  }'
 ```
 
 ## 📋 คำถามทั้ง 27 ข้อ
@@ -162,7 +169,7 @@ curl -X POST http://localhost:8000/classify-csv \
 ### Backend
 
 ```bash
-cd backend
+cd risk_service_api
 
 # Build image
 docker build -t risk-api .
@@ -186,7 +193,7 @@ npm install -g @railway/cli
 railway login
 
 # Deploy backend
-cd backend
+cd risk_service_api
 railway init
 railway up
 ```
@@ -202,7 +209,7 @@ railway up
 
 **Backend:**
 ```bash
-cd backend
+cd risk_service_api
 
 # Build and deploy
 gcloud run deploy risk-api \
@@ -255,7 +262,7 @@ vercel --prod
 
 ### ปรับปรุง Backend
 
-แก้ไข `backend/main.py` เพื่อ:
+แก้ไข `risk_service_api/main.py` เพื่อ:
 - เพิ่ม authentication
 - เพิ่ม rate limiting
 - Log การใช้งาน

@@ -1,24 +1,5 @@
-/**
- * Central export point for lib/
- * All imports should come from here for consistency
- */
-
-// API clients - import from api directory
-export { riskApi, logApi } from './api';
-export { riskApi as api } from './api';
-
-// Types - use type keyword for types only
-export type {
-  PatientFormData,
-  RiskAssessmentResult,
-  DescriptionAnalysis,
-  RiskSummary,
-  ThreeLayerResult,
-  ApiError,
-  ProgressCallback,
-} from './types';
-
-// Form options constants - regular export for runtime values
+// Re-export form types and constants for form components
+export type { PatientFormData } from './form.types'
 export {
   GENDER_OPTIONS,
   PROCEDURE_OPTIONS,
@@ -42,4 +23,4 @@ export {
   NG_TUBE_OPTIONS,
   MOUTH_RINSING_OPTIONS,
   BRUSHING_TEETH_OPTIONS,
-} from './types/form.types';
+} from './form.types'

@@ -1,3 +1,9 @@
-"""
-API Routers
-"""
+from app.routers.health import router as health_router  # noqa: F401
+from app.routers.auth import router as auth_router  # noqa: F401
+from app.routers.patients import router as patients_router  # noqa: F401
+from app.routers.assessments import router as assessments_router  # noqa: F401
+from app.routers.symptoms import router as symptoms_router  # noqa: F401
+from app.routers.dashboard import router as dashboard_router  # noqa: F401
+from app.routers.public_form import router as public_form_router  # noqa: F401
+from app.routers.line_webhook import router as line_webhook_router  # noqa: F401
+from app.routers.rag_admin import router as rag_admin_router  # noqa: F401

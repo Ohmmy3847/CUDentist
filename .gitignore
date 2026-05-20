@@ -32,6 +32,14 @@ frontend/.env.local
 
 
 
+# Node / Next.js
+node_modules/
+.next/
+frontend/tsconfig.tsbuildinfo
+
+# Claude Code memory
+.claude/
+
 # IDE
 .vscode/
 .idea/
@@ -54,3 +62,4 @@ frontend/.env.local
 Thumbs.db
 
 .test.py
+/e
