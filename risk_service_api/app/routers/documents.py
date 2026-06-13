@@ -86,6 +86,24 @@ async def upload_document(file: UploadFile = File(...)):
     return {"filename": dest.name, "size": len(data), "status": "uploaded"}
 
 
+# ---------------------------------------------------------------------------
+# POST /ask  — test RAG Q&A without patient context
+# (must be defined before /{filename} to avoid wildcard collision)
+# ---------------------------------------------------------------------------
+class AskRequest(BaseModel):
+    question: str
+
+
+@router.post("/ask", summary="Test RAG Q&A (no patient context)")
+async def ask_rag(body: AskRequest):
+    from app.services.rag.pipeline import answer_patient_question
+    result = await answer_patient_question(
+        question=body.question.strip(),
+        patient_context={},
+    )
+    return result
+
+
 @router.delete("/{filename}", status_code=status.HTTP_204_NO_CONTENT, summary="Delete a document and its ChromaDB chunks")
 async def delete_document(filename: str):
     # Prevent path traversal

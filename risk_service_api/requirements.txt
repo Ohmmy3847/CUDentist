@@ -20,6 +20,7 @@ openpyxl
 # Optional: for sentence-transformers embedding model
 # sentence-transformers>=2.2.0
 flashrank
+rank_bm25
 pymupdf
 python-docx
 
