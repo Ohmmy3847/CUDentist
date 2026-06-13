@@ -22,7 +22,7 @@ class Patient(Base):
     responsible_user_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("users.user_id", ondelete="SET NULL"), nullable=True)
     status: Mapped[str] = mapped_column(String(32), default="active")
     extra_info: Mapped[dict | None] = mapped_column(JSONB)
-    line_user_id: Mapped[str | None] = mapped_column(String(64), unique=True)
+    line_user_id: Mapped[str | None] = mapped_column(String(64), index=True)
     line_reg_code: Mapped[str | None] = mapped_column(String(8), unique=True)
     line_display_name: Mapped[str | None] = mapped_column(String(256))
     line_picture_url: Mapped[str | None] = mapped_column(String(1000))

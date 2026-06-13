@@ -205,6 +205,59 @@ async def send_patient_response_email(
     await send_email(to_email, subject, body)
 
 
+async def send_new_case_email(
+    to_email: str,
+    nurse_name: str,
+    patient_name: str,
+    patient_hn: str,
+    procedures: list | None,
+    frontend_url: str,
+) -> None:
+    proc_text = ""
+    if procedures:
+        items = "".join(
+            f'<li style="margin-bottom:4px;">{p.get("name", p) if isinstance(p, dict) else p}</li>'
+            for p in procedures
+        )
+        proc_text = f'<ul style="margin:8px 0 0;padding-left:20px;color:#374151;font-size:14px;line-height:1.7;">{items}</ul>'
+
+    subject = f"[เคสใหม่] {patient_name} (HN: {patient_hn}) — ระบบติดตามอาการผู้ป่วย"
+    body = f"""
+    <div style="font-family: 'Helvetica Neue', Arial, sans-serif; max-width: 560px; margin: auto; color: #1f2937;">
+      <div style="background: #2563eb; padding: 20px 24px; border-radius: 10px 10px 0 0;">
+        <h2 style="margin: 0; color: white; font-size: 18px;">มีเคสใหม่ในความรับผิดชอบของคุณ</h2>
+      </div>
+      <div style="background: white; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 10px 10px; padding: 24px;">
+        <p style="margin: 0 0 16px;">สวัสดี <strong>{nurse_name}</strong>,</p>
+        <p style="margin: 0 0 16px; color: #4b5563; font-size: 14px;">เคสผู้ป่วยใหม่ได้รับการมอบหมายให้อยู่ในความรับผิดชอบของคุณแล้ว</p>
+
+        <table style="border-collapse: collapse; width: 100%; font-size: 14px; border-radius: 8px; overflow: hidden; border: 1px solid #e5e7eb;">
+          <tr>
+            <td style="padding: 10px 14px; font-weight: 600; background: #f9fafb; border-bottom: 1px solid #e5e7eb; width: 130px; color: #6b7280; font-size: 12px; text-transform: uppercase; letter-spacing: .05em;">ชื่อผู้ป่วย</td>
+            <td style="padding: 10px 14px; border-bottom: 1px solid #e5e7eb; font-weight: 500;">{patient_name}</td>
+          </tr>
+          <tr>
+            <td style="padding: 10px 14px; font-weight: 600; background: #f9fafb; border-bottom: 1px solid #e5e7eb; color: #6b7280; font-size: 12px; text-transform: uppercase; letter-spacing: .05em;">HN</td>
+            <td style="padding: 10px 14px; border-bottom: 1px solid #e5e7eb; font-family: monospace; font-size: 15px;">{patient_hn}</td>
+          </tr>
+          <tr>
+            <td style="padding: 10px 14px; font-weight: 600; background: #f9fafb; color: #6b7280; font-size: 12px; text-transform: uppercase; letter-spacing: .05em;">หัตถการ</td>
+            <td style="padding: 10px 14px;">{proc_text or '<span style="color:#9ca3af;">—</span>'}</td>
+          </tr>
+        </table>
+
+        <div style="margin-top: 24px; padding-top: 20px; border-top: 1px solid #f3f4f6;">
+          <a href="{frontend_url}/patients/{patient_hn}" style="display: inline-block; background: #2563eb; color: white; padding: 11px 22px; border-radius: 7px; text-decoration: none; font-size: 14px; font-weight: 500;">
+            ดูข้อมูลเคส →
+          </a>
+        </div>
+        <p style="margin: 16px 0 0; color: #9ca3af; font-size: 12px;">อีเมลนี้ส่งจากระบบติดตามอาการผู้ป่วยหลังผ่าตัดทันตกรรม</p>
+      </div>
+    </div>
+    """
+    await send_email(to_email, subject, body)
+
+
 async def send_reset_password_email(to_email: str, full_name: str, reset_token: str) -> None:
     reset_url = f"{settings.FRONTEND_URL}/reset-password?token={reset_token}"
     subject = "รีเซ็ตรหัสผ่าน — ระบบติดตามอาการผู้ป่วย"

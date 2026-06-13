@@ -20,6 +20,9 @@ class PublicPatientInfo(BaseModel):
     phone: str | None = None
     procedures: list | None = None
     schedule_date: str | None = None
+    surgery_date: str | None = None
+    discharge_date: str | None = None
+    note: str | None = None
 
 
 class PublicAssessmentSubmit(BaseModel):

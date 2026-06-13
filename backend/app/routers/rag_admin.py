@@ -163,3 +163,22 @@ async def get_ingest_status(_=Depends(get_current_user)):
     except httpx.RequestError as exc:
         logger.error("RAG service unreachable: %s", exc)
         raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail="RAG service unavailable")
+
+
+# ---------------------------------------------------------------------------
+# POST /rag/ask  — test RAG Q&A without patient context (any authenticated user)
+# ---------------------------------------------------------------------------
+@router.post("/ask")
+async def ask_rag(body: dict, _=Depends(get_current_user)):
+    if not body.get("question", "").strip():
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="question is required")
+    try:
+        async with httpx.AsyncClient(timeout=120.0) as client:
+            resp = await client.post(_rag_url("/documents/ask"), json=body)
+            resp.raise_for_status()
+            return resp.json()
+    except httpx.HTTPStatusError as exc:
+        raise HTTPException(status_code=exc.response.status_code, detail=exc.response.text)
+    except httpx.RequestError as exc:
+        logger.error("RAG service unreachable: %s", exc)
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail="RAG service unavailable")

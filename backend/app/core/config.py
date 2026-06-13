@@ -48,5 +48,10 @@ class Settings:
     # How many hours before/after schedule time to still attempt sending (catch-up window)
     LINE_SEND_WINDOW_HOURS: int = int(os.getenv("LINE_SEND_WINDOW_HOURS", "2"))
 
+    # Supabase Storage (for RAG documents)
+    SUPABASE_URL: str = os.getenv("SUPABASE_URL", "")
+    SUPABASE_SERVICE_KEY: str = os.getenv("SUPABASE_SERVICE_KEY", "")
+    SUPABASE_STORAGE_BUCKET: str = os.getenv("SUPABASE_STORAGE_BUCKET", "documents")
+
 
 settings = Settings()

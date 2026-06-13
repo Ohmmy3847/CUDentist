@@ -5,8 +5,10 @@ from fastapi import APIRouter, HTTPException, Request, status, Depends
 from sqlalchemy import select
 
 from app.core.deps import require_admin, get_db
+from app.models.assessment import Assessment, AssessmentResult
 from app.models.patient import Patient
 from app.services.line_service import (
+    build_patient_result_message,
     fetch_line_profile,
     format_schedules_th,
     push_text,
@@ -122,6 +124,28 @@ async def _handle_registration(session_factory, line_user_id: str, text: str) ->
                 patient.line_display_name = profile.get("displayName") or patient.line_display_name
                 patient.line_picture_url = profile.get("pictureUrl") or patient.line_picture_url
             db.add(patient)
+            await db.commit()
+
+            # Send any assessment results that were processed before LINE was linked
+            pending = await db.execute(
+                select(AssessmentResult)
+                .join(Assessment, Assessment.assessment_id == AssessmentResult.assessment_id)
+                .where(
+                    Assessment.patient_hn == patient.hn,
+                    AssessmentResult.needs_review == False,  # noqa: E712
+                    AssessmentResult.patient_notified_at.is_(None),
+                )
+            )
+            for result in pending.scalars().all():
+                assessment_row = await db.get(Assessment, result.assessment_id)
+                text = build_patient_result_message(
+                    assessment_row.language if assessment_row else "th",
+                    result.overall_risk,
+                    result.clinical_summary,
+                )
+                await push_text(line_user_id, text)
+                result.patient_notified_at = datetime.now(timezone.utc)
+                db.add(result)
             await db.commit()
 
         schedules = patient.follow_up_schedules or []

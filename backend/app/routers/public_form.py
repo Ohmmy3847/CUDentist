@@ -7,11 +7,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import settings
 from app.core.deps import get_db
 from app.models.assessment import Assessment, AssessmentResult
+from app.models.consent_record import ConsentRecord
 from app.models.form_token import FormToken
 from app.models.patient import Patient
 from app.models.user import User
 from app.schemas.public_form import PublicAssessmentSubmit, PublicPatientInfo
 from app.services.assessment_service import call_risk_service
+from app.services.audit_service import audit
 from app.services.email_service import send_patient_response_email
 from app.services.line_service import build_patient_result_message, push_text
 
@@ -55,6 +57,7 @@ async def unlock_form(token: str, body: dict, db: AsyncSession = Depends(get_db)
     row, patient = await _get_valid_token(token, db)
     _verify_password(row, password)
 
+    extra = patient.extra_info or {}
     return PublicPatientInfo(
         first_name=patient.first_name,
         last_name=patient.last_name,
@@ -63,6 +66,9 @@ async def unlock_form(token: str, body: dict, db: AsyncSession = Depends(get_db)
         phone=patient.phone,
         procedures=patient.procedures,
         schedule_date=row.schedule_date,
+        surgery_date=extra.get("surgery_date"),
+        discharge_date=extra.get("discharge_date"),
+        note=extra.get("note"),
     )
 
 
@@ -163,6 +169,16 @@ async def submit_public_form(
     db.add(assessment)
     row.is_used = True
     db.add(row)
+
+    # PDPA: record patient consent at time of form submission
+    consent = ConsentRecord(
+        patient_hn=row.patient_hn,
+        method="public_form",
+        form_token=token,
+        ip_address=request.client.host if request.client else None,
+    )
+    db.add(consent)
+    await audit(db, "submit", "assessment", row.patient_hn, user_id=None, request=request)
     
     # Remove matching schedule from patient after form submission
     from datetime import timezone

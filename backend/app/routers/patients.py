@@ -3,7 +3,7 @@ import secrets
 import uuid
 from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy import select, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -13,6 +13,8 @@ from app.models.form_token import FormToken
 from app.models.patient import Patient
 from app.models.user import User
 from app.schemas.patient import PatientCreate, PatientOut, PatientUpdate
+from app.services.audit_service import audit
+from app.services.email_service import send_new_case_email
 
 router = APIRouter(prefix="/patients", tags=["patients"])
 
@@ -88,8 +90,9 @@ async def list_patients(
 @router.post("", response_model=PatientOut, status_code=status.HTTP_201_CREATED)
 async def create_patient(
     body: PatientCreate,
+    request: Request,
     db: AsyncSession = Depends(get_db),
-    _: User = Depends(require_permission("add_case")),
+    current_user: User = Depends(require_permission("add_case")),
 ):
     existing = await db.get(Patient, body.hn)
     if existing:
@@ -98,16 +101,37 @@ async def create_patient(
     db.add(patient)
     await db.flush()
     await _ensure_tokens_for_patient(patient, db)
+    await audit(db, "create", "patient", patient.hn, user_id=current_user.user_id, request=request)
     await db.commit()
     await db.refresh(patient)
+
+    if body.responsible_user_id:
+        nurse = await db.get(User, body.responsible_user_id)
+        if nurse and nurse.email:
+            await send_new_case_email(
+                to_email=nurse.email,
+                nurse_name=f"{nurse.first_name} {nurse.last_name}",
+                patient_name=f"{patient.first_name} {patient.last_name}",
+                patient_hn=patient.hn,
+                procedures=patient.procedures,
+                frontend_url=settings.FRONTEND_URL,
+            )
+
     return patient
 
 
 @router.get("/{hn}", response_model=PatientOut)
-async def get_patient(hn: str, db: AsyncSession = Depends(get_db), _: User = Depends(get_current_user)):
+async def get_patient(
+    hn: str,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     patient = await db.get(Patient, hn)
     if not patient:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Patient not found")
+    await audit(db, "view", "patient", hn, user_id=current_user.user_id, request=request)
+    await db.commit()
     return await _patient_out(patient, db)
 
 
@@ -115,18 +139,20 @@ async def get_patient(hn: str, db: AsyncSession = Depends(get_db), _: User = Dep
 async def update_patient(
     hn: str,
     body: PatientUpdate,
+    request: Request,
     db: AsyncSession = Depends(get_db),
-    _: User = Depends(require_permission("edit_case")),
+    current_user: User = Depends(require_permission("edit_case")),
 ):
     patient = await db.get(Patient, hn)
     if not patient:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Patient not found")
-    if patient.line_user_id:
+    updates = body.model_dump(exclude_none=True)
+    non_status_updates = {k: v for k, v in updates.items() if k != 'status'}
+    if patient.line_user_id and non_status_updates:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="ไม่สามารถแก้ไขข้อมูลได้หลังจากเชื่อม LINE แล้ว",
         )
-    updates = body.model_dump(exclude_none=True)
     # Auto-fill responsible_person from user when responsible_user_id is provided
     if 'responsible_user_id' in updates:
         nurse = await db.get(User, updates['responsible_user_id'])
@@ -135,17 +161,24 @@ async def update_patient(
     for field, value in updates.items():
         setattr(patient, field, value)
     await _ensure_tokens_for_patient(patient, db)
+    await audit(db, "update", "patient", hn, user_id=current_user.user_id, request=request, details={"fields": list(updates.keys())})
     await db.commit()
     await db.refresh(patient)
     return await _patient_out(patient, db)
 
 
 @router.delete("/{hn}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_patient(hn: str, db: AsyncSession = Depends(get_db), _: User = Depends(get_current_user)):
+async def delete_patient(
+    hn: str,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     patient = await db.get(Patient, hn)
     if not patient:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Patient not found")
-        
+
+    await audit(db, "delete", "patient", hn, user_id=current_user.user_id, request=request)
     await db.execute(delete(FormToken).where(FormToken.patient_hn == hn))
     await db.delete(patient)
     await db.commit()
