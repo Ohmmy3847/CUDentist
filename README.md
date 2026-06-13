@@ -1,7 +1,14 @@
 # ระบบประเมินความเสี่ยงผู้ป่วยหลังผ่าตัด
 Post-Operative Patient Risk Assessment System
-
+npm run dev
 source .venv/bin/activate
+python main.py
+# frontend
+cloudflared tunnel --url http://localhost:3000
+
+# backend (terminal แยก)
+cloudflared tunnel --url http://localhost:8001
+
 ## 📁 โครงสร้างโปรเจกต์
 
 ```
