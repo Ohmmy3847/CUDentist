@@ -109,12 +109,12 @@ export default function SymptomsPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
         <div>
           <h2 className="font-semibold text-gray-800">ข้อมูลอาการอื่น ๆ (เพิ่มเติม)</h2>
           <p className="text-xs text-gray-400">จัดการกลุ่มคำที่ผู้ป่วยแจ้งและคำแนะนำสำหรับการเพิ่มเติมข้อมูลผู้ป่วย</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 shrink-0">
           <button
             onClick={handleResync}
             disabled={resyncing}
@@ -122,7 +122,7 @@ export default function SymptomsPage() {
             title="Sync ข้อมูลทั้งหมดไปยัง Vector DB"
           >
             <RefreshCw className={`w-4 h-4 ${resyncing ? 'animate-spin' : ''}`} />
-            Sync Vector DB
+            <span className="hidden sm:inline">Sync Vector DB</span>
           </button>
           <button onClick={openNew} className="btn-primary flex items-center gap-1.5">
             <Plus className="w-4 h-4" /> เพิ่มอาการใหม่
@@ -130,12 +130,12 @@ export default function SymptomsPage() {
         </div>
       </div>
 
-      <div className="card mb-4 flex gap-3">
+      <div className="card mb-4 flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-          <input className="input pl-9" placeholder="ค้นหาชื่ออาการ..." value={search} onChange={(e) => setSearch(e.target.value)} />
+          <input className="input pl-9 w-full" placeholder="ค้นหาชื่ออาการ..." value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
-        <select className="input max-w-[160px]" value={riskFilter} onChange={(e) => setRiskFilter(e.target.value)}>
+        <select className="input w-full sm:max-w-[160px]" value={riskFilter} onChange={(e) => setRiskFilter(e.target.value)}>
           <option value="">ทั้งหมด (รวมทุกความเสี่ยง)</option>
           {RISK_OPTS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
         </select>
@@ -148,10 +148,10 @@ export default function SymptomsPage() {
           <table className="w-full text-sm">
             <thead className="bg-gray-50 border-b border-gray-100">
               <tr>
-                <th className="text-left px-4 py-3 font-medium text-gray-600">#</th>
+                <th className="text-left px-4 py-3 font-medium text-gray-600 hidden sm:table-cell">#</th>
                 <th className="text-left px-4 py-3 font-medium text-gray-600">ชื่ออาการ</th>
                 <th className="text-left px-4 py-3 font-medium text-gray-600">ความเสี่ยง</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600">คำแนะนำ</th>
+                <th className="text-left px-4 py-3 font-medium text-gray-600 hidden md:table-cell">คำแนะนำ</th>
                 <th className="text-left px-4 py-3 font-medium text-gray-600">Actions</th>
               </tr>
             </thead>
@@ -161,10 +161,10 @@ export default function SymptomsPage() {
               ) : (
                 paginated.map((s, i) => (
                   <tr key={s.symptom_id} className="hover:bg-gray-50/50">
-                    <td className="px-4 py-3 text-gray-400">{(page - 1) * perPage + i + 1}</td>
+                    <td className="px-4 py-3 text-gray-400 hidden sm:table-cell">{(page - 1) * perPage + i + 1}</td>
                     <td className="px-4 py-3 font-medium text-gray-800">{s.symptom_name}</td>
                     <td className="px-4 py-3"><RiskBadge risk={RISK_LABEL[s.risk_level] || s.risk_level} /></td>
-                    <td className="px-4 py-3 text-gray-600 max-w-[240px] truncate">{s.recommendation || '-'}</td>
+                    <td className="px-4 py-3 text-gray-600 max-w-[200px] truncate hidden md:table-cell">{s.recommendation || '-'}</td>
                     <td className="px-4 py-3">
                       <div className="flex gap-2">
                         <button onClick={() => openEdit(s)} className="text-gray-400 hover:text-primary transition-colors">
@@ -188,10 +188,10 @@ export default function SymptomsPage() {
       {modal.open && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-md">
-            <div className="px-6 py-4 border-b border-gray-100">
+            <div className="px-4 sm:px-6 py-4 border-b border-gray-100">
               <h2 className="font-semibold text-gray-800">{modal.editing ? 'แก้ไขอาการ' : 'เพิ่มอาการใหม่'}</h2>
             </div>
-            <div className="px-6 py-4 space-y-4">
+            <div className="px-4 sm:px-6 py-4 space-y-4">
               <div>
                 <label className="label">ชื่ออาการ <span className="text-red-500">*</span></label>
                 <div className="space-y-2">
@@ -227,7 +227,7 @@ export default function SymptomsPage() {
                 <textarea className="input resize-none" rows={2} value={modal.form.recommendation || ''} onChange={(e) => setModal((m) => ({ ...m, form: { ...m.form, recommendation: e.target.value } }))} />
               </div>
             </div>
-            <div className="px-6 py-4 border-t border-gray-100 flex gap-3 justify-end">
+            <div className="px-4 sm:px-6 py-4 border-t border-gray-100 flex gap-3 justify-end">
               <button onClick={closeModal} className="btn-outline">ยกเลิก</button>
               <button onClick={save} disabled={saving} className="btn-primary flex items-center gap-2">
                 {saving && <Spinner className="w-3 h-3" />}

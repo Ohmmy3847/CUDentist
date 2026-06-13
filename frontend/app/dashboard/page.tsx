@@ -25,6 +25,27 @@ function formatDate(iso: string | null) {
   return new Date(iso).toLocaleString('th-TH', { dateStyle: 'short', timeStyle: 'short' })
 }
 
+function getPatientStatus(p: DashboardPatient): { label: string; className: string } {
+  const today = new Date(); today.setHours(0, 0, 0, 0)
+  const hasFuture = (p.follow_up_schedules ?? []).some(d => new Date(d) >= today)
+  if (!hasFuture) return { label: 'เสร็จสิ้น', className: 'bg-gray-100 text-gray-500' }
+  if (p.last_assessment_id) return { label: 'รอดำเนินการ', className: 'bg-blue-50 text-blue-600' }
+  return { label: 'ค้างตอบ', className: 'bg-red-50 text-red-600 border border-red-200 font-semibold' }
+}
+
+function urgencyScore(p: DashboardPatient): number {
+  const { label } = getPatientStatus(p)
+  if (label === 'ค้างตอบ') {
+    if (p.overall_risk === 'ความเสี่ยงสูง') return 0
+    if (p.overall_risk === 'ความเสี่ยงกลาง') return 1
+    return 2
+  }
+  if (p.needs_review) return 3
+  if (label === 'รอดำเนินการ') return 4
+  return 5
+}
+
+
 export default function DashboardPage() {
   const router = useRouter()
   const [stats, setStats] = useState<DashboardStats | null>(null)
@@ -60,7 +81,7 @@ export default function DashboardPage() {
     try {
       const [s, res] = await Promise.all([getDashboardStats(), getDashboardPatients({ limit: perPage, skip: 0 })])
       setStats(s)
-      setPatients(res.patients)
+      setPatients([...res.patients].sort((a, b) => urgencyScore(a) - urgencyScore(b)))
       setTotal(res.total)
     } finally {
       setLoading(false)
@@ -69,14 +90,13 @@ export default function DashboardPage() {
 
   const fetchPatients = async () => {
     const res = await getDashboardPatients({ search: search || undefined, risk: riskFilter || undefined, limit: perPage, skip: (page - 1) * perPage })
-    setPatients(res.patients)
+    setPatients([...res.patients].sort((a, b) => urgencyScore(a) - urgencyScore(b)))
     setTotal(res.total)
   }
 
   const high = stats?.risk_counts?.['ความเสี่ยงสูง'] ?? 0
   const medium = stats?.risk_counts?.['ความเสี่ยงกลาง'] ?? 0
   const low = stats?.risk_counts?.['ความเสี่ยงต่ำ'] ?? 0
-
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
@@ -84,7 +104,7 @@ export default function DashboardPage() {
       <main className="max-w-screen-xl mx-auto px-4 py-6">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h1 className="text-xl font-semibold text-gray-800">Dashboard ติดตามผู้ป่วย</h1>
+            <h1 className="text-xl font-semibold text-gray-800">ติดตามผู้ป่วย</h1>
             <p className="text-sm text-gray-500">ติดตามสถานะและอาการของผู้ป่วยหลังรับการรักษา</p>
           </div>
           {me?.roles?.includes('add_case') && (
@@ -103,7 +123,7 @@ export default function DashboardPage() {
             </div>
             <div>
               <div className="text-xs text-gray-500">ผู้ป่วยทั้งหมด</div>
-              <div className="text-2xl font-bold text-gray-800">{stats?.total_patients ?? '-'} คน</div>
+              <div className="text-lg sm:text-2xl font-bold text-gray-800">{stats?.total_patients ?? '-'} คน</div>
             </div>
           </div>
           <div className="card flex items-center gap-3">
@@ -112,7 +132,7 @@ export default function DashboardPage() {
             </div>
             <div>
               <div className="text-xs text-gray-500">เสี่ยงสูง</div>
-              <div className="text-2xl font-bold text-red-600">{high} คน</div>
+              <div className="text-lg sm:text-2xl font-bold text-red-600">{high} คน</div>
             </div>
           </div>
           <div className="card flex items-center gap-3">
@@ -121,7 +141,7 @@ export default function DashboardPage() {
             </div>
             <div>
               <div className="text-xs text-gray-500">เสี่ยงกลาง</div>
-              <div className="text-2xl font-bold text-yellow-600">{medium} คน</div>
+              <div className="text-lg sm:text-2xl font-bold text-yellow-600">{medium} คน</div>
             </div>
           </div>
           <div className="card flex items-center gap-3">
@@ -130,7 +150,7 @@ export default function DashboardPage() {
             </div>
             <div>
               <div className="text-xs text-gray-500">เสี่ยงต่ำ</div>
-              <div className="text-2xl font-bold text-green-600">{low} คน</div>
+              <div className="text-lg sm:text-2xl font-bold text-green-600">{low} คน</div>
             </div>
           </div>
         </div>
@@ -147,7 +167,7 @@ export default function DashboardPage() {
                 onChange={(e) => setSearch(e.target.value)}
               />
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               {RISK_FILTERS.map((f) => (
                 <button
                   key={f.value}
@@ -191,54 +211,53 @@ export default function DashboardPage() {
                     <td colSpan={8} className="text-center py-10 text-gray-400">ไม่พบข้อมูลผู้ป่วย</td>
                   </tr>
                 ) : (
-                  patients.map((p) => (
-                    <tr key={p.hn} className="hover:bg-gray-50/50 transition-colors">
-                      <td className="px-4 py-3">
-                        <RiskBadge risk={p.overall_risk} />
-                      </td>
-                      <td className="px-4 py-3 font-mono text-gray-700">{p.hn}</td>
-                      <td className="px-4 py-3 font-medium text-gray-800">
-                        {p.first_name} {p.last_name}
-                      </td>
-                      <td className="px-4 py-3 text-gray-600 hidden sm:table-cell">{p.phone || '-'}</td>
-                      <td className="px-4 py-3 text-gray-600 hidden md:table-cell max-w-[180px] truncate">
-                        {p.procedures?.join(', ') || '-'}
-                      </td>
-                      <td className="px-4 py-3 text-gray-500 hidden lg:table-cell text-xs">
-                        {formatDate(p.last_assessment_at)}
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-1.5">
-                          {(() => {
-                            const today = new Date(); today.setHours(0,0,0,0)
-                            const hasFuture = (p.follow_up_schedules ?? []).some(d => new Date(d) >= today)
-                            if (!hasFuture) return <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">เสร็จสิ้น</span>
-                            if (p.last_assessment_id) return <span className="text-xs bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full">รอส่ง</span>
-                            return <span className="text-xs bg-orange-50 text-orange-600 px-2 py-0.5 rounded-full">ค้างตอบ</span>
-                          })()}
-                          {p.line_user_id ? (
-                            <span className="text-xs bg-green-50 text-green-700 border border-green-200 px-2 py-0.5 rounded-full">
-                              LINE ✓
+                  patients.map((p) => {
+                    const status = getPatientStatus(p)
+                    return (
+                      <tr key={p.hn} className="hover:bg-gray-50/50 transition-colors">
+                        <td className="px-4 py-3">
+                          <RiskBadge risk={p.overall_risk} />
+                        </td>
+                        <td className="px-4 py-3 font-mono text-gray-700 text-xs sm:text-sm">{p.hn}</td>
+                        <td className="px-4 py-3 font-medium text-gray-800 max-w-[120px] sm:max-w-none truncate">
+                          {p.first_name} {p.last_name}
+                        </td>
+                        <td className="px-4 py-3 text-gray-600 hidden sm:table-cell">{p.phone || '-'}</td>
+                        <td className="px-4 py-3 text-gray-600 hidden md:table-cell max-w-[180px] truncate">
+                          {p.procedures?.join(', ') || '-'}
+                        </td>
+                        <td className="px-4 py-3 text-gray-500 hidden lg:table-cell text-xs">
+                          {formatDate(p.last_assessment_at)}
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-1.5">
+                            <span className={`text-xs px-2 py-0.5 rounded-full ${status.className}`}>
+                              {status.label}
                             </span>
-                          ) : p.line_reg_code ? (
-                            <span className="text-xs bg-yellow-50 text-yellow-800 border border-yellow-200 px-2 py-0.5 rounded-full font-mono">
-                              {p.line_reg_code.toUpperCase()}
-                            </span>
-                          ) : null}
-                          {p.needs_review && (
-                            <span title="รอตรวจสอบ AI" className="text-xs bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-full flex items-center gap-1">
-                              <AlertTriangle className="w-3 h-3 shrink-0" /> รอตรวจสอบ
-                            </span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3">
-                        <Link href={`/patients/${p.hn}`} className="text-gray-400 hover:text-primary transition-colors">
-                          <ChevronRight className="w-5 h-5" />
-                        </Link>
-                      </td>
-                    </tr>
-                  ))
+                            {p.line_user_id ? (
+                              <span className="text-xs bg-green-50 text-green-700 border border-green-200 px-2 py-0.5 rounded-full">
+                                LINE ✓
+                              </span>
+                            ) : p.line_reg_code ? (
+                              <span className="text-xs bg-yellow-50 text-yellow-800 border border-yellow-200 px-2 py-0.5 rounded-full font-mono">
+                                {p.line_reg_code.toUpperCase()}
+                              </span>
+                            ) : null}
+                            {p.needs_review && (
+                              <span title="รอตรวจสอบ AI" className="text-xs bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-full flex items-center gap-1">
+                                <AlertTriangle className="w-3 h-3 shrink-0" /> รอตรวจสอบ
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <Link href={`/patients/${p.hn}`} className="text-gray-400 hover:text-primary transition-colors">
+                            <ChevronRight className="w-5 h-5" />
+                          </Link>
+                        </td>
+                      </tr>
+                    )
+                  })
                 )}
               </tbody>
             </table>

@@ -37,9 +37,31 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
           <h1 className="text-lg font-semibold text-gray-800">ตั้งค่า</h1>
         </div>
 
+        {/* Mobile: horizontal tabs */}
+        <div className="md:hidden mb-4 overflow-x-auto">
+          <div className="flex gap-2 pb-1">
+            {allItems.map((item) => {
+              const Icon = item.icon
+              const active = pathname === item.href
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`shrink-0 flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${
+                    active ? 'bg-primary text-white' : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50'
+                  }`}
+                >
+                  <Icon className="w-4 h-4 shrink-0" />
+                  {item.label}
+                </Link>
+              )
+            })}
+          </div>
+        </div>
+
         <div className="flex gap-6 items-start">
-          {/* Sidebar */}
-          <aside className="w-52 shrink-0">
+          {/* Sidebar — desktop only */}
+          <aside className="hidden md:block w-52 shrink-0">
             <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
               {allItems.map((item) => {
                 const Icon = item.icon

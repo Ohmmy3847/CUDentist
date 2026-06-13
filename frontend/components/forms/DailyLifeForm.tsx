@@ -121,13 +121,13 @@ export default function DailyLifeForm({
 
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold text-gray-800 mb-6">
+      <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-6">
         {t.title}
       </h2>
 
       {/* Brushing Teeth */}
       <div>
-        <label className="block text-gray-700 font-medium mb-2">
+        <label className="block text-sm sm:text-base text-gray-700 font-medium mb-2">
           {questionNumbers.brushing}. {t.brushing.label} <span className="text-red-500">*</span>
         </label>
         <div className="space-y-2">
@@ -141,7 +141,7 @@ export default function DailyLifeForm({
                 onChange={(e) => onChange({ brushing_teeth: e.target.value })}
                 className="w-4 h-4 text-blue-600"
               />
-              <span className="ml-2 text-gray-700">{getOptionLabel(option)}</span>
+              <span className="ml-2 text-sm sm:text-base text-gray-700">{getOptionLabel(option)}</span>
             </label>
           ))}
         </div>
@@ -153,7 +153,7 @@ export default function DailyLifeForm({
             <textarea
               value={data.brushing_description || ''}
               onChange={(e) => onChange({ brushing_description: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
               rows={1}
             />
           </div>
@@ -162,7 +162,7 @@ export default function DailyLifeForm({
 
       {/* Mouth Rinsing */}
       <div>
-        <label className="block text-gray-700 font-medium mb-2">
+        <label className="block text-sm sm:text-base text-gray-700 font-medium mb-2">
           {questionNumbers.rinsing}. {t.rinsing.label} <span className="text-red-500">*</span>
         </label>
         <div className="space-y-2">
@@ -176,7 +176,7 @@ export default function DailyLifeForm({
                 onChange={(e) => onChange({ mouth_rinsing: e.target.value })}
                 className="w-4 h-4 text-blue-600"
               />
-              <span className="ml-2 text-gray-700">{getOptionLabel(option)}</span>
+              <span className="ml-2 text-sm sm:text-base text-gray-700">{getOptionLabel(option)}</span>
             </label>
           ))}
         </div>
@@ -188,7 +188,7 @@ export default function DailyLifeForm({
             <textarea
               value={data.rinsing_description || ''}
               onChange={(e) => onChange({ rinsing_description: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
               rows={1}
             />
           </div>
@@ -197,7 +197,7 @@ export default function DailyLifeForm({
 
       {/* Food Types */}
       <div>
-        <label className="block text-gray-700 font-medium mb-2">
+        <label className="block text-sm sm:text-base text-gray-700 font-medium mb-2">
           {questionNumbers.foodTypes}. {t.foodTypes.label} <span className="text-red-500">*</span>
         </label>
         <div className="space-y-2 border border-gray-200 rounded-lg p-4">
@@ -217,7 +217,7 @@ export default function DailyLifeForm({
                 }}
                 className="w-4 h-4 text-blue-600 mt-1"
               />
-              <span className="ml-2 text-gray-700">{getOptionLabel(option)}</span>
+              <span className="ml-2 text-sm sm:text-base text-gray-700">{getOptionLabel(option)}</span>
             </label>
           ))}
           <div className="flex items-start">
@@ -235,7 +235,7 @@ export default function DailyLifeForm({
                 }}
                 className="w-4 h-4 text-blue-600 mt-1"
               />
-              <span className="ml-2 text-gray-700">{t.foodTypes.other}:</span>
+              <span className="ml-2 text-sm sm:text-base text-gray-700">{t.foodTypes.other}:</span>
             </label>
             <input
               type="text"
@@ -260,7 +260,7 @@ export default function DailyLifeForm({
 
       {/* Food Amount */}
       <div>
-        <label className="block text-gray-700 font-medium mb-2">
+        <label className="block text-sm sm:text-base text-gray-700 font-medium mb-2">
           {questionNumbers.foodAmount}. {t.foodAmount.label} <span className="text-red-500">*</span>
         </label>
         <div className="space-y-2">
@@ -274,7 +274,7 @@ export default function DailyLifeForm({
                 onChange={(e) => onChange({ food_amount: e.target.value as typeof data.food_amount })}
                 className="w-4 h-4 text-blue-600"
               />
-              <span className="ml-2 text-gray-700">{getOptionLabel(option)}</span>
+              <span className="ml-2 text-sm sm:text-base text-gray-700">{getOptionLabel(option)}</span>
             </label>
           ))}
         </div>
@@ -286,7 +286,7 @@ export default function DailyLifeForm({
             <textarea
               value={data.food_amount_description || ''}
               onChange={(e) => onChange({ food_amount_description: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
               rows={1}
             />
           </div>
@@ -295,7 +295,7 @@ export default function DailyLifeForm({
 
       {/* Additional Questions */}
       <div>
-        <label className="block text-gray-700 font-medium mb-2">
+        <label className="block text-sm sm:text-base text-gray-700 font-medium mb-2">
           {questionNumbers.questions}. {t.questions.label}
         </label>
         <textarea
@@ -310,7 +310,7 @@ export default function DailyLifeForm({
       {/* NG Tube (Conditional) */}
       {data.special_ng_tube && (
         <div className="animate-in fade-in slide-in-from-top-2">
-          <label className="block text-gray-700 font-medium mb-2">
+          <label className="block text-sm sm:text-base text-gray-700 font-medium mb-2">
             {questionNumbers.ngTube}. {t.ngTube.label} <span className="text-red-500">*</span>
           </label>
           <div className="space-y-2">
@@ -324,7 +324,7 @@ export default function DailyLifeForm({
                   onChange={(e) => onChange({ ng_tube_position: e.target.value as typeof data.ng_tube_position })}
                   className="w-4 h-4 text-blue-600"
                 />
-                <span className="ml-2 text-gray-700">{getOptionLabel(option)}</span>
+                <span className="ml-2 text-sm sm:text-base text-gray-700">{getOptionLabel(option)}</span>
               </label>
             ))}
           </div>
@@ -336,7 +336,7 @@ export default function DailyLifeForm({
               <textarea
                 value={data.ng_tube_description || ''}
                 onChange={(e) => onChange({ ng_tube_description: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
                 rows={1}
               />
             </div>

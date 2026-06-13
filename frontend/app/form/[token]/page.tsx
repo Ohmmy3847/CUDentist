@@ -2,10 +2,9 @@
 
 import { Suspense, useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
-import { ArrowLeft, ArrowRight, CheckCircle, Loader2, AlertCircle, Lock } from 'lucide-react'
+import { ArrowLeft, ArrowRight, CheckCircle, Loader2, AlertCircle, Lock, User, Phone, Calendar, Stethoscope } from 'lucide-react'
 import type { PatientFormData } from '@/lib'
 import { th, en } from '@/lib/locales'
-import BasicInfoForm from '@/components/forms/BasicInfoForm'
 import SymptomsForm from '@/components/forms/SymptomsForm'
 import DailyLifeForm from '@/components/forms/DailyLifeForm'
 import { checkFormToken, unlockPublicForm, submitPublicForm } from '@/lib/api'
@@ -47,6 +46,80 @@ const UI = {
     submitting: 'Submitting...',
     langToggle: 'ภาษาไทย',
   },
+}
+
+function PatientConfirmStep({ data, lang, onReady }: {
+  data: PatientFormData
+  lang: 'th' | 'en'
+  onReady: (valid: boolean) => void
+}) {
+  useEffect(() => { onReady(true) }, [onReady])
+
+  const labels = lang === 'th'
+    ? { title: 'ตรวจสอบข้อมูลของคุณ', subtitle: 'กรุณาตรวจสอบข้อมูลด้านล่างก่อนเริ่มกรอกแบบประเมิน', name: 'ชื่อ-นามสกุล', phone: 'เบอร์โทรศัพท์', dob: 'วันเกิด', gender: 'เพศ', surgeryDate: 'วันที่ผ่าตัด', dischargeDate: 'วันที่จำหน่าย', procedures: 'หัตถการที่รับการรักษา', note: 'หมายเหตุ', infoCorrect: 'หากข้อมูลไม่ถูกต้อง กรุณาติดต่อเจ้าหน้าที่' }
+    : { title: 'Confirm Your Information', subtitle: 'Please verify your details below before starting the assessment', name: 'Full Name', phone: 'Phone', dob: 'Date of Birth', gender: 'Gender', surgeryDate: 'Surgery Date', dischargeDate: 'Discharge Date', procedures: 'Procedures', note: 'Note', infoCorrect: 'If any information is incorrect, please contact the staff.' }
+
+  const formatDate = (d?: string) => {
+    if (!d) return null
+    return new Date(d).toLocaleDateString(lang === 'th' ? 'th-TH' : 'en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
+  }
+
+  const rows = [
+    { icon: <User className="w-4 h-4" />, label: labels.name, value: [data.first_name, data.last_name].filter(Boolean).join(' ') || '-' },
+    { icon: <Phone className="w-4 h-4" />, label: labels.phone, value: data.phone || '-' },
+    { icon: <Calendar className="w-4 h-4" />, label: labels.dob, value: formatDate(data.birth_date) || '-' },
+    { icon: <User className="w-4 h-4" />, label: labels.gender, value: data.gender || '-' },
+    ...(data.surgery_date ? [{ icon: <Calendar className="w-4 h-4" />, label: labels.surgeryDate, value: formatDate(data.surgery_date) || data.surgery_date }] : []),
+    ...(data.discharge_date ? [{ icon: <Calendar className="w-4 h-4" />, label: labels.dischargeDate, value: formatDate(data.discharge_date) || data.discharge_date }] : []),
+  ]
+
+  return (
+    <div>
+      <div className="flex items-center gap-2 mb-1">
+        <CheckCircle className="w-5 h-5 text-primary" />
+        <h2 className="font-semibold text-gray-900 text-base">{labels.title}</h2>
+      </div>
+      <p className="text-sm text-gray-500 mb-5">{labels.subtitle}</p>
+
+      <div className="space-y-3 mb-5">
+        {rows.map(row => (
+          <div key={row.label} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
+            <span className="text-gray-400 mt-0.5 shrink-0">{row.icon}</span>
+            <div className="min-w-0">
+              <div className="text-xs text-gray-400 mb-0.5">{row.label}</div>
+              <div className="text-sm font-medium text-gray-800 break-words">{row.value}</div>
+            </div>
+          </div>
+        ))}
+
+        {(data.procedures?.length ?? 0) > 0 && (
+          <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
+            <span className="text-gray-400 mt-0.5 shrink-0"><Stethoscope className="w-4 h-4" /></span>
+            <div className="min-w-0">
+              <div className="text-xs text-gray-400 mb-1">{labels.procedures}</div>
+              <div className="flex flex-wrap gap-1.5">
+                {data.procedures!.map(p => (
+                  <span key={p} className="inline-block text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">{p}</span>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {data.note && (
+          <div className="flex items-start gap-3 p-3 bg-amber-50 rounded-lg border border-amber-100">
+            <span className="text-amber-400 mt-0.5 shrink-0"><Stethoscope className="w-4 h-4" /></span>
+            <div className="min-w-0">
+              <div className="text-xs text-amber-500 mb-0.5">{labels.note}</div>
+              <div className="text-sm text-amber-800 break-words">{data.note}</div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <p className="text-xs text-gray-400 text-center">{labels.infoCorrect}</p>
+    </div>
+  )
 }
 
 function PublicFormContent() {
@@ -105,6 +178,9 @@ function PublicFormContent() {
         gender: info.gender ?? undefined,
         birth_date: info.date_of_birth ?? undefined,
         procedures: info.procedures ?? undefined,
+        surgery_date: info.surgery_date ?? undefined,
+        discharge_date: info.discharge_date ?? undefined,
+        note: info.note ?? undefined,
       })
       setUnlocked(true)
     } catch (err: unknown) {
@@ -308,7 +384,7 @@ function PublicFormContent() {
   const renderStep = () => {
     switch (currentStep) {
       case 1: return (
-        <BasicInfoForm data={formData} onChange={handleFormDataChange} onValidationChange={setIsCurrentStepValid} lang={lang} isReadOnly={true} />
+        <PatientConfirmStep data={formData} lang={lang} onReady={setIsCurrentStepValid} />
       )
       case 2: return (
         <SymptomsForm data={formData} onChange={handleFormDataChange} onValidationChange={setIsCurrentStepValid} startingQuestionNumber={13} lang={lang} />

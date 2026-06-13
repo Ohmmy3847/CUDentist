@@ -59,7 +59,7 @@ function AddUserModal({ onClose, onCreated, existingUsernames, isSuperuser }: { 
         </div>
         <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
           <div className="overflow-y-auto flex-1 p-5 space-y-4">
-            <div className="flex gap-4">
+            <div className="flex flex-col sm:flex-row gap-4">
               <div className="flex-1">
                 <label className="block text-sm font-medium text-gray-700 mb-1">ชื่อ <span className="text-red-500">*</span></label>
                 <input className="input w-full" value={form.first_name} onChange={e => setForm(f => ({ ...f, first_name: e.target.value }))} required />
@@ -220,7 +220,7 @@ function EditUserModal({ user, onClose, onUpdated, isSuperuser }: {
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">สิทธิ์การใช้งาน <span className="text-red-500">*</span></label>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {PERMISSIONS.map(p => {
                 const superuserOwn = p.value === 'manage_users' && user.is_superuser
                 const notAllowed = p.value === 'manage_users' && !isSuperuser
@@ -331,7 +331,7 @@ export default function UsersSettingsPage() {
         </div>
 
         {/* Search + filter bar */}
-        <div className="flex gap-2 mb-4">
+        <div className="flex flex-col sm:flex-row gap-2 mb-4">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
             <input
@@ -393,7 +393,7 @@ export default function UsersSettingsPage() {
               <tr>
                 <th className="text-left px-4 py-3 font-medium text-gray-600">ชื่อ</th>
                 <th className="text-left px-4 py-3 font-medium text-gray-600">ชื่อผู้ใช้</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600">อีเมล</th>
+                <th className="text-left px-4 py-3 font-medium text-gray-600 hidden sm:table-cell">อีเมล</th>
                 <th className="px-4 py-3" />
               </tr>
             </thead>
@@ -409,7 +409,7 @@ export default function UsersSettingsPage() {
                     </div>
                   </td>
                   <td className="px-4 py-3 text-gray-500">{user.username}</td>
-                  <td className="px-4 py-3 text-gray-500">{user.email ?? <span className="text-gray-300">—</span>}</td>
+                  <td className="px-4 py-3 text-gray-500 hidden sm:table-cell">{user.email ?? <span className="text-gray-300">—</span>}</td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex items-center justify-end gap-2">
                       <button onClick={() => setEditUser(user)} className="text-gray-300 hover:text-primary transition-colors" title="แก้ไขข้อมูล">

@@ -7,6 +7,7 @@ import Navbar from '@/components/layout/Navbar'
 const SIDEBAR = [
   { href: '/data/symptoms', label: 'ข้อมูลอาการอื่น ๆ (เพิ่มเติม)' },
   { href: '/data/documents', label: 'คลังเอกสารสำหรับตอบคำถาม' },
+  { href: '/data/qa-test', label: 'ทดสอบ AI ตอบคำถาม' },
 ]
 
 export default function DataLayout({ children }: { children: React.ReactNode }) {
@@ -16,9 +17,29 @@ export default function DataLayout({ children }: { children: React.ReactNode }) 
       <Navbar />
       <div className="max-w-screen-xl mx-auto px-4 py-6">
         <h1 className="text-xl font-semibold text-gray-800 mb-4">หัวข้อคลังข้อมูล/เอกสาร</h1>
+
+        {/* Mobile: horizontal scrollable tabs */}
+        <div className="md:hidden mb-4 overflow-x-auto">
+          <div className="flex gap-2 pb-1">
+            {SIDEBAR.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`shrink-0 px-3 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap ${
+                  pathname === item.href
+                    ? 'bg-primary text-white'
+                    : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                {item.label}
+              </Link>
+            ))}
+          </div>
+        </div>
+
+        {/* Desktop: sidebar + main */}
         <div className="flex gap-6">
-          {/* Sidebar */}
-          <aside className="w-56 shrink-0">
+          <aside className="hidden md:block w-56 shrink-0">
             <div className="card p-2 space-y-1">
               {SIDEBAR.map((item) => (
                 <Link
@@ -35,7 +56,6 @@ export default function DataLayout({ children }: { children: React.ReactNode }) 
               ))}
             </div>
           </aside>
-          {/* Main */}
           <div className="flex-1 min-w-0">{children}</div>
         </div>
       </div>

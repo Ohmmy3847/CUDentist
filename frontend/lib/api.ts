@@ -144,6 +144,13 @@ export const updateTextDocument = (filename: string, content: string) =>
 export const getIngestStatus = () =>
   client.get<IngestStatus>('/rag/ingest/status').then(r => r.data)
 
+export const askRag = (question: string) =>
+  client.post<{
+    answer: string
+    source: string
+    used_chunks: { content: string; metadata: Record<string, string> }[]
+  }>('/rag/ask', { question }).then(r => r.data)
+
 // Symptoms
 export const listSymptoms = () => client.get<Symptom[]>('/symptoms').then((r) => r.data)
 
@@ -209,6 +216,9 @@ export const unlockPublicForm = (token: string, password: string) =>
     phone: string | null
     procedures: string[] | null
     schedule_date: string | null
+    surgery_date: string | null
+    discharge_date: string | null
+    note: string | null
   }>(`/public/form/${token}/unlock`, { password }).then((r) => r.data)
 
 export const submitPublicForm = (token: string, data: {

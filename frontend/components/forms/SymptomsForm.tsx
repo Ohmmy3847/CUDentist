@@ -25,8 +25,7 @@ interface SymptomsFormProps {
   lang?: 'th' | 'en';
 }
 
-export function validateSymptoms(data: PatientFormData): boolean {
-  console.log(data.birth_date);
+export function validateSymptoms(_data: PatientFormData): boolean {
   // const hasIMF = data.imf_wire || data.imf_elastic;
   // const hasPain = (data.pain_score || 0) > 0;
   // const forgotAntibiotic = data.antibiotic_compliance === 'ลืมทานบางครั้ง';
@@ -317,7 +316,7 @@ export default function SymptomsForm({
 
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold text-gray-800 mb-6">
+      <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-6">
         {t.title}
       </h2>
 
@@ -369,7 +368,7 @@ export default function SymptomsForm({
             <textarea
               value={data.pain_score_description || ''}
               onChange={(e) => onChange({ pain_score_description: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
               rows={1}
             />
           </div>
@@ -379,7 +378,7 @@ export default function SymptomsForm({
       {/* Pain Medication Effect (Conditional) */}
       {(data.pain_score || 0) > 0 && (
         <div className="animate-in fade-in slide-in-from-top-2">
-          <label className="block text-gray-700 font-medium mb-2">
+          <label className="block text-sm sm:text-base text-gray-700 font-medium mb-2">
             {questionNumbers.painMed}. {t.painMed.label} <span className="text-red-500">*</span>
           </label>
           <div className="space-y-2">
@@ -393,7 +392,7 @@ export default function SymptomsForm({
                   onChange={(e) => onChange({ pain_medication_effect: e.target.value as typeof data.pain_medication_effect })}
                   className="w-4 h-4 text-blue-600"
                 />
-                <span className="ml-2 text-gray-700">{getOptionLabel(option)}</span>
+                <span className="ml-2 text-sm sm:text-base text-gray-700">{getOptionLabel(option)}</span>
               </label>
             ))}
           </div>
@@ -405,7 +404,7 @@ export default function SymptomsForm({
             <textarea
               value={data.pain_description || ''}
               onChange={(e) => onChange({ pain_description: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
               rows={1}
             />
           </div>
@@ -414,7 +413,7 @@ export default function SymptomsForm({
 
       {/* Swelling */}
       <div>
-        <label className="block text-gray-700 font-medium mb-2">
+        <label className="block text-sm sm:text-base text-gray-700 font-medium mb-2">
           {questionNumbers.swelling}. {t.swelling.label} <span className="text-red-500">*</span>
         </label>
         <div className="space-y-2">
@@ -428,7 +427,7 @@ export default function SymptomsForm({
                 onChange={(e) => onChange({ swelling_status: e.target.value as typeof data.swelling_status })}
                 className="w-4 h-4 text-blue-600"
               />
-              <span className="ml-2 text-gray-700">{getOptionLabel(option)}</span>
+              <span className="ml-2 text-sm sm:text-base text-gray-700">{getOptionLabel(option)}</span>
             </label>
           ))}
         </div>
@@ -440,7 +439,7 @@ export default function SymptomsForm({
             <textarea
               value={data.swelling_description || ''}
               onChange={(e) => onChange({ swelling_description: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
               rows={1}
             />
           </div>
@@ -449,7 +448,7 @@ export default function SymptomsForm({
 
       {/* Breathing */}
       <div>
-        <label className="block text-gray-700 font-medium mb-2">
+        <label className="block text-sm sm:text-base text-gray-700 font-medium mb-2">
           {questionNumbers.breathing}. {t.breathing.label} <span className="text-red-500">*</span>
         </label>
         <div className="space-y-2">
@@ -462,7 +461,7 @@ export default function SymptomsForm({
               onChange={(e) => onChange({ breathing_or_swallowing_difficulty: e.target.value })}
               className="w-4 h-4 text-blue-600"
             />
-            <span className="ml-2 text-gray-700">{t.breathing.no}</span>
+            <span className="ml-2 text-sm sm:text-base text-gray-700">{t.breathing.no}</span>
           </label>
           <label className="flex items-center cursor-pointer">
             <input
@@ -473,7 +472,7 @@ export default function SymptomsForm({
               onChange={(e) => onChange({ breathing_or_swallowing_difficulty: e.target.value })}
               className="w-4 h-4 text-blue-600"
             />
-            <span className="ml-2 text-gray-700">{t.breathing.yes}</span>
+            <span className="ml-2 text-sm sm:text-base text-gray-700">{t.breathing.yes}</span>
           </label>
         </div>
         {data.breathing_or_swallowing_difficulty && (
@@ -484,7 +483,7 @@ export default function SymptomsForm({
             <textarea
               value={data.breathing_description || ''}
               onChange={(e) => onChange({ breathing_description: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
               rows={1}
             />
           </div>
@@ -493,7 +492,7 @@ export default function SymptomsForm({
 
       {/* Bleeding */}
       <div>
-        <label className="block text-gray-700 font-medium mb-2">
+        <label className="block text-sm sm:text-base text-gray-700 font-medium mb-2">
           {questionNumbers.bleeding}. {t.bleeding.label} <span className="text-red-500">*</span>
         </label>
         <div className="space-y-2">
@@ -507,7 +506,7 @@ export default function SymptomsForm({
                 onChange={(e) => onChange({ bleeding_status: e.target.value as typeof data.bleeding_status })}
                 className="w-4 h-4 text-blue-600"
               />
-              <span className="ml-2 text-gray-700">{getOptionLabel(option)}</span>
+              <span className="ml-2 text-sm sm:text-base text-gray-700">{getOptionLabel(option)}</span>
             </label>
           ))}
         </div>
@@ -519,7 +518,7 @@ export default function SymptomsForm({
             <textarea
               value={data.bleeding_description || ''}
               onChange={(e) => onChange({ bleeding_description: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
               rows={1}
             />
           </div>
@@ -528,7 +527,7 @@ export default function SymptomsForm({
 
       {/* Fever */}
       <div>
-        <label className="block text-gray-700 font-medium mb-2">
+        <label className="block text-sm sm:text-base text-gray-700 font-medium mb-2">
           {questionNumbers.fever}. {t.fever.label} <span className="text-red-500">*</span>
         </label>
         <div className="space-y-2">
@@ -541,7 +540,7 @@ export default function SymptomsForm({
               onChange={(e) => onChange({ fever_status: e.target.value })}
               className="w-4 h-4 text-blue-600"
             />
-            <span className="ml-2 text-gray-700">{t.fever.no}</span>
+            <span className="ml-2 text-sm sm:text-base text-gray-700">{t.fever.no}</span>
           </label>
           <label className="flex items-center cursor-pointer">
             <input
@@ -552,7 +551,7 @@ export default function SymptomsForm({
               onChange={(e) => onChange({ fever_status: e.target.value })}
               className="w-4 h-4 text-blue-600"
             />
-            <span className="ml-2 text-gray-700">{t.fever.yes}</span>
+            <span className="ml-2 text-sm sm:text-base text-gray-700">{t.fever.yes}</span>
           </label>
         </div>
         {data.fever_status && (
@@ -563,7 +562,7 @@ export default function SymptomsForm({
             <textarea
               value={data.fever_description || ''}
               onChange={(e) => onChange({ fever_description: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
               rows={1}
             />
           </div>
@@ -572,7 +571,7 @@ export default function SymptomsForm({
 
       {/* Numbness */}
       <div>
-        <label className="block text-gray-700 font-medium mb-2">
+        <label className="block text-sm sm:text-base text-gray-700 font-medium mb-2">
           {questionNumbers.numbness}. {t.numbness.label} <span className="text-red-500">*</span>
         </label>
         <div className="space-y-2">
@@ -586,7 +585,7 @@ export default function SymptomsForm({
                 onChange={(e) => onChange({ numbness_status: e.target.value as typeof data.numbness_status })}
                 className="w-4 h-4 text-blue-600"
               />
-              <span className="ml-2 text-gray-700">{getOptionLabel(option)}</span>
+              <span className="ml-2 text-sm sm:text-base text-gray-700">{getOptionLabel(option)}</span>
             </label>
           ))}
         </div>
@@ -598,7 +597,7 @@ export default function SymptomsForm({
             <textarea
               value={data.numbness_description || ''}
               onChange={(e) => onChange({ numbness_description: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
               placeholder={t.numbness.desc}
               rows={1}
             />
@@ -608,7 +607,7 @@ export default function SymptomsForm({
 
       {/* Phlebitis */}
       <div>
-        <label className="block text-gray-700 font-medium mb-2">
+        <label className="block text-sm sm:text-base text-gray-700 font-medium mb-2">
           {questionNumbers.phlebitis}. {t.phlebitis.label} <span className="text-red-500">*</span>
         </label>
         <div className="space-y-2">
@@ -622,7 +621,7 @@ export default function SymptomsForm({
                 onChange={(e) => onChange({ phlebitis: e.target.value as typeof data.phlebitis })}
                 className="w-4 h-4 text-blue-600"
               />
-              <span className="ml-2 text-gray-700">{getOptionLabel(option)}</span>
+              <span className="ml-2 text-sm sm:text-base text-gray-700">{getOptionLabel(option)}</span>
             </label>
           ))}
         </div>
@@ -634,7 +633,7 @@ export default function SymptomsForm({
             <textarea
               value={data.phlebitis_description || ''}
               onChange={(e) => onChange({ phlebitis_description: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
               rows={1}
             />
           </div>
@@ -643,7 +642,7 @@ export default function SymptomsForm({
 
       {/* Suture */}
       <div>
-        <label className="block text-gray-700 font-medium mb-2">
+        <label className="block text-sm sm:text-base text-gray-700 font-medium mb-2">
           {questionNumbers.suture}. {t.suture.label} <span className="text-red-500">*</span>
         </label>
         <div className="space-y-2">
@@ -657,7 +656,7 @@ export default function SymptomsForm({
                 onChange={(e) => onChange({ suture_status: e.target.value as typeof data.suture_status })}
                 className="w-4 h-4 text-blue-600"
               />
-              <span className="ml-2 text-gray-700">{getOptionLabel(option)}</span>
+              <span className="ml-2 text-sm sm:text-base text-gray-700">{getOptionLabel(option)}</span>
             </label>
           ))}
         </div>
@@ -669,7 +668,7 @@ export default function SymptomsForm({
             <textarea
               value={data.suture_description || ''}
               onChange={(e) => onChange({ suture_description: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
               rows={1}
             />
           </div>
@@ -678,7 +677,7 @@ export default function SymptomsForm({
 
       {/* Other Symptoms */}
       <div>
-        <label className="block text-gray-700 font-medium mb-2">
+        <label className="block text-sm sm:text-base text-gray-700 font-medium mb-2">
           {questionNumbers.otherSymptoms}. {t.other.label}
         </label>
         <div className="space-y-3 border border-gray-200 rounded-lg p-4">
@@ -690,7 +689,7 @@ export default function SymptomsForm({
                 onChange={(e) => handleOtherSymptomsChange(key, e.target.checked)}
                 className="w-4 h-4 text-blue-600 mt-1"
               />
-              <span className="ml-2 text-gray-700">{getSymptomLabel(key, lang)}</span>
+              <span className="ml-2 text-sm sm:text-base text-gray-700">{getSymptomLabel(key, lang)}</span>
             </label>
           ))}
 
@@ -699,29 +698,25 @@ export default function SymptomsForm({
             <label className="block text-gray-700 font-medium mb-3">{t.other.customLabel}</label>
             <div className="space-y-3">
               {customSymptoms.map((symptom, index) => (
-                <div key={index} className="flex items-start gap-2">
-                  <div className="w-1/3">
-                    <input
-                      type="text"
-                      value={symptom.symptom || ''}
-                      onChange={(e) => handleCustomSymptomChange(index, 'symptom', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder={t.other.namePlaceholder}
-                    />
-                  </div>
-                  <div className="flex-1">
-                    <input
-                      type="text"
-                      value={symptom.detail || ''}
-                      onChange={(e) => handleCustomSymptomChange(index, 'detail', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder={t.other.descPlaceholder}
-                    />
-                  </div>
+                <div key={index} className="flex flex-col sm:flex-row items-start gap-2">
+                  <input
+                    type="text"
+                    value={symptom.symptom || ''}
+                    onChange={(e) => handleCustomSymptomChange(index, 'symptom', e.target.value)}
+                    className="w-full sm:w-1/3 px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                    placeholder={t.other.namePlaceholder}
+                  />
+                  <input
+                    type="text"
+                    value={symptom.detail || ''}
+                    onChange={(e) => handleCustomSymptomChange(index, 'detail', e.target.value)}
+                    className="w-full flex-1 px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                    placeholder={t.other.descPlaceholder}
+                  />
                   <button
                     type="button"
                     onClick={() => handleRemoveSymptomField(index)}
-                    className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                    className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors self-end sm:self-auto"
                   >
                     <X className="w-5 h-5" />
                   </button>
@@ -745,7 +740,7 @@ export default function SymptomsForm({
 
       {/* Antibiotic */}
       <div>
-        <label className="block text-gray-700 font-medium mb-2">
+        <label className="block text-sm sm:text-base text-gray-700 font-medium mb-2">
           {questionNumbers.antibiotic}. {t.antibiotic.label} <span className="text-red-500">*</span>
         </label>
         <div className="space-y-2">
@@ -759,7 +754,7 @@ export default function SymptomsForm({
                 onChange={(e) => onChange({ antibiotic_compliance: e.target.value as typeof data.antibiotic_compliance })}
                 className="w-4 h-4 text-blue-600"
               />
-              <span className="ml-2 text-gray-700">{getOptionLabel(option)}</span>
+              <span className="ml-2 text-sm sm:text-base text-gray-700">{getOptionLabel(option)}</span>
             </label>
           ))}
         </div>
@@ -775,7 +770,7 @@ export default function SymptomsForm({
               required
               value={data.antibiotic_description || ''}
               onChange={(e) => onChange({ antibiotic_description: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
             />
           </div>
         )}
@@ -783,7 +778,7 @@ export default function SymptomsForm({
 
       {/* Compress */}
       <div>
-        <label className="block text-gray-700 font-medium mb-2">
+        <label className="block text-sm sm:text-base text-gray-700 font-medium mb-2">
           {questionNumbers.compress}. {t.compress.label} <span className="text-red-500">*</span>
         </label>
         <div className="space-y-2">
@@ -797,7 +792,7 @@ export default function SymptomsForm({
                 onChange={(e) => onChange({ compress_type: e.target.value as typeof data.compress_type })}
                 className="w-4 h-4 text-blue-600"
               />
-              <span className="ml-2 text-gray-700">{getOptionLabel(option)}</span>
+              <span className="ml-2 text-sm sm:text-base text-gray-700">{getOptionLabel(option)}</span>
             </label>
           ))}
         </div>
@@ -806,7 +801,7 @@ export default function SymptomsForm({
       {/* IMF (Conditional) */}
       {(data.imf_wire || data.imf_elastic) && (
         <div className="animate-in fade-in slide-in-from-top-2">
-          <label className="block text-gray-700 font-medium mb-2">
+          <label className="block text-sm sm:text-base text-gray-700 font-medium mb-2">
             {questionNumbers.imfWire}. {t.imfWire.label} <span className="text-red-500">*</span>
           </label>
           <div className="space-y-2">
@@ -820,7 +815,7 @@ export default function SymptomsForm({
                   onChange={(e) => onChange({ imf_wire_status: e.target.value as typeof data.imf_wire_status })}
                   className="w-4 h-4 text-blue-600"
                 />
-                <span className="ml-2 text-gray-700">{getOptionLabel(option)}</span>
+                <span className="ml-2 text-sm sm:text-base text-gray-700">{getOptionLabel(option)}</span>
               </label>
             ))}
           </div>
@@ -832,7 +827,7 @@ export default function SymptomsForm({
               <textarea
                 value={data.imf_wire_description || ''}
                 onChange={(e) => onChange({ imf_wire_description: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
                 rows={1}
               />
             </div>
@@ -843,7 +838,7 @@ export default function SymptomsForm({
       {/* Walking (Conditional) - ICBG */}
       {data.special_icbg && (
         <div className="animate-in fade-in slide-in-from-top-2">
-          <label className="block text-gray-700 font-medium mb-2">
+          <label className="block text-sm sm:text-base text-gray-700 font-medium mb-2">
             {questionNumbers.walking}. {t.walking.label} <span className="text-red-500">*</span>
           </label>
           <div className="space-y-2">
@@ -857,7 +852,7 @@ export default function SymptomsForm({
                   onChange={(e) => onChange({ walking_status: e.target.value as typeof data.walking_status })}
                   className="w-4 h-4 text-blue-600"
                 />
-                <span className="ml-2 text-gray-700">{getOptionLabel(option)}</span>
+                <span className="ml-2 text-sm sm:text-base text-gray-700">{getOptionLabel(option)}</span>
               </label>
             ))}
           </div>
@@ -869,7 +864,7 @@ export default function SymptomsForm({
               <textarea
                 value={data.walking_description || ''}
                 onChange={(e) => onChange({ walking_description: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
                 rows={1}
               />
             </div>

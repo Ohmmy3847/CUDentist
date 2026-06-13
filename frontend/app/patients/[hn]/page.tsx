@@ -3,18 +3,27 @@
 import { useEffect, useState } from 'react'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import {
-  ChevronLeft, Download, ChevronUp, ChevronDown, Calendar, Pencil, ChevronRight, Link2, Copy, Check, Lock, AlertTriangle, QrCode, X,
+  ChevronLeft, ChevronUp, ChevronDown, Calendar, Pencil, ChevronRight, Link2, Copy, Check, Lock, AlertTriangle, QrCode, X,
   FolderOpen, FileText, User as UserIcon, Phone, MessageCircle, ClipboardList
 } from 'lucide-react'
 import { QRCodeSVG } from 'qrcode.react'
 import Navbar from '@/components/layout/Navbar'
 import RiskBadge from '@/components/ui/RiskBadge'
 import Spinner from '@/components/ui/Spinner'
+import ConfirmModal from '@/components/ui/ConfirmModal'
+import { useToast } from '@/components/ui/Toast'
 import { getAssessment, getPatient, listAssessments, deletePatient, updatePatient, getFormTokens, getMe, updateAssessmentResult } from '@/lib/api'
 import { isLoggedIn } from '@/lib/auth'
 import type { Assessment, Patient, FlowResult } from '@/lib/types'
 import { SYMPTOM_VALUE_EN } from '@/lib/symptom-translations'
-import { SYMPTOM_FIELDS, SYMPTOM_SKIP_KEYS } from '@/lib/symptom-config'
+import { SYMPTOM_FIELDS, SYMPTOM_SKIP_KEYS, SYMPTOM_LABEL_MAP } from '@/lib/symptom-config'
+import { OTHER_SYMPTOMS_MAPPINGS } from '@/lib/symptomMappings'
+
+const FLOW_LABEL_MAP: Record<string, string> = {
+  ...SYMPTOM_LABEL_MAP,
+  ...Object.fromEntries(OTHER_SYMPTOMS_MAPPINGS.map(m => [m.key, m.labelTH])),
+  other_symptoms_custom_flow: 'อาการอื่นๆ (ระบุเพิ่มเติม)',
+}
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -70,7 +79,7 @@ function FlowSquare({ flowName, flow }: { flowName: string; flow: FlowResult }) 
       <div className="w-4 h-4 rounded-sm cursor-pointer" style={{ backgroundColor: color }} />
       {show && (
         <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 bg-gray-900 text-white text-xs rounded-lg p-3 z-50 shadow-xl pointer-events-none">
-          <div className="font-semibold mb-1 text-yellow-300">{flowName}</div>
+          <div className="font-semibold mb-1 text-yellow-300">{FLOW_LABEL_MAP[flowName] ?? flowName}</div>
           <div className="mb-1"><span className="text-gray-400">ระดับ: </span>{flow.risk_level}</div>
           {flow.reason && <div className="mb-1"><span className="text-gray-400">เหตุผล: </span>{flow.reason}</div>}
           {flow.recommendation && <div><span className="text-gray-400">คำแนะนำ: </span>{flow.recommendation}</div>}
@@ -100,10 +109,13 @@ function SymptomDataPanel({ assessment, flowResults }: { assessment: Assessment;
         <div className="flex items-center gap-3">
           <span className="flex items-center gap-1.5 text-sm font-semibold text-gray-800"><FolderOpen className="w-4 h-4 text-gray-500" /> ข้อมูลที่กรอกมา</span>
           {flows.length > 0 && (
-            <div className="flex gap-0.5">
-              {flows.map(([name, flow]) => (
-                <FlowSquare key={name} flowName={name} flow={flow} />
-              ))}
+            <div className="flex items-center gap-1.5">
+              <span className="text-[11px] text-gray-400">ความเสี่ยงรายอาการ:</span>
+              <div className="flex gap-0.5">
+                {flows.map(([name, flow]) => (
+                  <FlowSquare key={name} flowName={name} flow={flow} />
+                ))}
+              </div>
             </div>
           )}
         </div>
@@ -113,7 +125,7 @@ function SymptomDataPanel({ assessment, flowResults }: { assessment: Assessment;
       </div>
       {open && (
         <div className="px-5 pb-5">
-          <div className="grid grid-cols-2 gap-x-8 gap-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4">
             {entries.map(([key, val]) => (
               <div key={key}>
                 <div className="text-xs font-medium text-gray-500 mb-0.5">
@@ -147,6 +159,7 @@ function SymptomDataPanel({ assessment, flowResults }: { assessment: Assessment;
 
 function SummaryPanel({ assessment, onUpdated }: { assessment: Assessment; onUpdated: (a: Assessment) => void }) {
   const result = assessment.result
+  const { success, error } = useToast()
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState('')
   const [saving, setSaving] = useState(false)
@@ -167,6 +180,9 @@ function SummaryPanel({ assessment, onUpdated }: { assessment: Assessment; onUpd
       const updated = await updateAssessmentResult(assessment.assessment_id, { clinical_summary: draft })
       onUpdated(updated)
       setEditing(false)
+      success('บันทึกสรุปผลเรียบร้อยแล้ว')
+    } catch {
+      error('บันทึกไม่สำเร็จ กรุณาลองใหม่')
     } finally {
       setSaving(false)
     }
@@ -177,6 +193,9 @@ function SummaryPanel({ assessment, onUpdated }: { assessment: Assessment; onUpd
     try {
       const updated = await updateAssessmentResult(assessment.assessment_id, { needs_review: false, confirm_question: true, confirm_custom: true, confirm_conflict: true })
       onUpdated(updated)
+      success('ยืนยันการตรวจสอบเรียบร้อยแล้ว')
+    } catch {
+      error('เกิดข้อผิดพลาด กรุณาลองใหม่')
     } finally {
       setSaving(false)
     }
@@ -186,7 +205,7 @@ function SummaryPanel({ assessment, onUpdated }: { assessment: Assessment; onUpd
     <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
       <div className="flex items-center justify-between mb-3">
         <h2 className="font-semibold text-gray-800">สรุปผลการประเมินและคำแนะนำจาก AI</h2>
-        {!editing && hasCustomSymptoms && (
+        {!editing && needsReview && (
           <button onClick={startEdit} className="text-xs text-gray-400 hover:text-primary flex items-center gap-1 transition-colors">
             <Pencil className="w-3 h-3" /> แก้ไข
           </button>
@@ -240,6 +259,7 @@ function SummaryPanel({ assessment, onUpdated }: { assessment: Assessment; onUpd
 
 function QAPanel({ assessment, onUpdated }: { assessment: Assessment; onUpdated: (a: Assessment) => void }) {
   const result = assessment.result
+  const { success, error } = useToast()
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState('')
   const [saving, setSaving] = useState(false)
@@ -264,6 +284,9 @@ function QAPanel({ assessment, onUpdated }: { assessment: Assessment; onUpdated:
       })
       onUpdated(updated)
       setEditing(false)
+      success(markDone ? 'บันทึกและยืนยันเรียบร้อยแล้ว' : 'บันทึกคำตอบเรียบร้อยแล้ว')
+    } catch {
+      error('บันทึกไม่สำเร็จ กรุณาลองใหม่')
     } finally {
       setSaving(false)
     }
@@ -274,6 +297,9 @@ function QAPanel({ assessment, onUpdated }: { assessment: Assessment; onUpdated:
     try {
       const updated = await updateAssessmentResult(assessment.assessment_id, { needs_review: false, confirm_question: true, confirm_custom: true, confirm_conflict: true })
       onUpdated(updated)
+      success('ยืนยันการตรวจสอบเรียบร้อยแล้ว')
+    } catch {
+      error('เกิดข้อผิดพลาด กรุณาลองใหม่')
     } finally {
       setSaving(false)
     }
@@ -454,6 +480,7 @@ export default function PatientDetailPage() {
   const { hn } = useParams<{ hn: string }>()
   const searchParams = useSearchParams()
   const assessmentIdParam = searchParams.get('assessment')
+  const { success, error } = useToast()
 
   const [patient, setPatient] = useState<Patient | null>(null)
   const [assessments, setAssessments] = useState<Assessment[]>([])
@@ -463,6 +490,7 @@ export default function PatientDetailPage() {
   const [generatedLinks, setGeneratedLinks] = useState<Record<string, { url: string; password: string; token?: string }>>({})
   const [copiedKey, setCopiedKey] = useState<string | null>(null)
   const [showQR, setShowQR] = useState(false)
+  const [confirmModal, setConfirmModal] = useState<{ type: 'cancel' | 'close' } | null>(null)
 
   useEffect(() => {
     if (!isLoggedIn()) { router.push('/login'); return }
@@ -504,24 +532,35 @@ export default function PatientDetailPage() {
   }
 
   const handleCancelCase = async () => {
-    if (!confirm('คุณแน่ใจหรือไม่ที่จะลบเคสนี้?')) return
-    await deletePatient(hn)
-    router.push('/')
+    setConfirmModal(null)
+    try {
+      await deletePatient(hn)
+      success('ลบเคสเรียบร้อยแล้ว')
+      router.push('/')
+    } catch {
+      error('ลบเคสไม่สำเร็จ กรุณาลองใหม่')
+    }
   }
 
   const handleCloseCase = async () => {
-    if (!confirm('ต้องการปิดเคสและย้ายไปประวัติใช่หรือไม่?')) return
-    await updatePatient(hn, { status: 'history' })
-    router.push('/')
+    setConfirmModal(null)
+    try {
+      await updatePatient(hn, { status: 'history' })
+      success('ปิดเคสเรียบร้อยแล้ว')
+      router.push('/')
+    } catch {
+      error('ปิดเคสไม่สำเร็จ กรุณาลองใหม่')
+    }
   }
 
-
-
-
   const handleCopy = async (key: string, text: string) => {
-    await navigator.clipboard.writeText(text)
-    setCopiedKey(key)
-    setTimeout(() => setCopiedKey(null), 2000)
+    try {
+      await navigator.clipboard.writeText(text)
+      setCopiedKey(key)
+      setTimeout(() => setCopiedKey(null), 2000)
+    } catch {
+      error('คัดลอกไม่สำเร็จ')
+    }
   }
 
   if (loading) return (
@@ -546,7 +585,7 @@ export default function PatientDetailPage() {
         const deepLink = `https://line.me/R/ti/p/${lineOaId}`
         return (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setShowQR(false)}>
-            <div className="bg-white rounded-2xl shadow-xl p-6 w-80 flex flex-col items-center gap-4" onClick={(e) => e.stopPropagation()}>
+            <div className="bg-white rounded-2xl shadow-xl p-6 w-[90vw] max-w-xs flex flex-col items-center gap-4" onClick={(e) => e.stopPropagation()}>
               <div className="flex items-center justify-between w-full">
                 <h3 className="font-bold text-gray-800">ลงทะเบียน LINE OA</h3>
                 <button onClick={() => setShowQR(false)} className="text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
@@ -606,21 +645,8 @@ export default function PatientDetailPage() {
                 {/* LINE registration status */}
                 <div className="mt-2 flex items-center gap-2">
                   {patient.line_user_id ? (
-                    <span className="inline-flex items-center gap-2 px-2.5 py-1 rounded-lg bg-green-50 border border-green-200 text-green-700 text-xs font-semibold">
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-green-50 border border-green-200 text-green-700 text-xs font-semibold">
                       <MessageCircle className="w-3.5 h-3.5 shrink-0" /> เชื่อม LINE แล้ว
-                      <span className="text-green-700/80 font-normal">ID:</span>
-                      <span className="font-mono text-[11px] max-w-[220px] truncate">{patient.line_user_id}</span>
-                      <button
-                        onClick={() => handleCopy('line-user-id', patient.line_user_id!)}
-                        className="text-green-700 hover:text-green-900"
-                        title="คัดลอก LINE userId"
-                      >
-                        {copiedKey === 'line-user-id' ? (
-                          <Check className="w-3 h-3 text-green-600" />
-                        ) : (
-                          <Copy className="w-3 h-3" />
-                        )}
-                      </button>
                     </span>
                   ) : patient.line_reg_code ? (
                     <span className="inline-flex items-center gap-2 px-2.5 py-1 rounded-lg bg-yellow-50 border border-yellow-300 text-yellow-800 text-xs font-semibold">
@@ -637,18 +663,19 @@ export default function PatientDetailPage() {
                 </div>
               </div>
             </div>
-            <div className="flex items-center gap-2 flex-wrap justify-end shrink-0">
+            <div className="flex flex-col items-end gap-1.5 shrink-0">
               <button
                 onClick={() => router.push(`/patients/${hn}/edit`)}
                 disabled={Boolean(patient.line_user_id)}
                 className="btn-outline flex items-center gap-1.5 bg-white text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                title={patient.line_user_id ? 'ปิดการแก้ไขหลังเชื่อม LINE แล้ว' : undefined}
               >
                 <Pencil className="w-4 h-4" /> แก้ไขข้อมูล
               </button>
-              <button className="btn-primary flex items-center gap-1.5 text-sm">
-                <Download className="w-4 h-4" /> เอกสารสรุป
-              </button>
+              {patient.line_user_id && (
+                <span className="flex items-center gap-1 text-[11px] text-gray-400">
+                  <Lock className="w-3 h-3" /> ล็อคหลังเชื่อม LINE แล้ว
+                </span>
+              )}
             </div>
           </div>
 
@@ -662,7 +689,7 @@ export default function PatientDetailPage() {
                 <div className="font-medium text-gray-800">{patient.extra_info?.surgery_date || <span className="text-gray-400 font-normal">-</span>}</div>
               </div>
               <div>
-                <div className="text-xs text-gray-400 mb-1">วันที่ Discharge</div>
+                <div className="text-xs text-gray-400 mb-1">วันที่จำหน่าย</div>
                 <div className="font-medium text-gray-800">{patient.extra_info?.discharge_date || <span className="text-gray-400 font-normal">-</span>}</div>
               </div>
               <div>
@@ -783,7 +810,7 @@ export default function PatientDetailPage() {
           {/* LEFT: Timeline */}
           <div className="space-y-4">
             <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
-              <h2 className="font-semibold text-gray-800 mb-3 text-sm">Assessment Timeline</h2>
+              <h2 className="font-semibold text-gray-800 mb-3 text-sm">ประวัติการประเมิน</h2>
               {assessments.length === 0
                 ? <p className="text-sm text-gray-400">ยังไม่มีการประเมิน</p>
                 : (
@@ -800,7 +827,7 @@ export default function PatientDetailPage() {
                           <div className="text-xs font-semibold text-gray-700">
                             {new Date(a.submitted_at).toLocaleDateString('th-TH', { day: '2-digit', month: 'long', year: 'numeric' })}
                           </div>
-                          <div className="text-[11px] text-gray-400 mt-0.5">Recorded: {new Date(a.submitted_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })}</div>
+                          <div className="text-[11px] text-gray-400 mt-0.5">บันทึกเวลา {new Date(a.submitted_at).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })} น.</div>
                           {ar.overall_risk && <div className="mt-1"><RiskBadge risk={ar.overall_risk} /></div>}
                         </button>
                       )
@@ -813,7 +840,7 @@ export default function PatientDetailPage() {
             {/* Upcoming Schedule (Only show if active) */}
             {patient?.status === 'active' && (
               <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5 mt-6">
-                <h2 className="text-base font-bold text-gray-900 mb-4">Upcoming Schedule</h2>
+                <h2 className="text-base font-bold text-gray-900 mb-4">กำหนดการติดตาม</h2>
                 {patient?.follow_up_schedules?.length ? (
                   <div className="space-y-3">
                     {patient.follow_up_schedules.map((dateStr, idx) => (
@@ -822,7 +849,7 @@ export default function PatientDetailPage() {
                           <div className="flex items-start gap-2 text-sm">
                             <Calendar className="w-4 h-4 text-primary shrink-0 mt-0.5" />
                             <div>
-                              <div className="font-medium text-gray-700">Follow-up Visit {idx + 1}</div>
+                              <div className="font-medium text-gray-700">นัดติดตามครั้งที่ {idx + 1}</div>
                               <div className="text-gray-500 text-xs mt-0.5">
                                 {new Date(dateStr).toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short' })}
                               </div>
@@ -847,7 +874,7 @@ export default function PatientDetailPage() {
                       <div className="flex items-start gap-2 text-sm">
                         <Calendar className="w-4 h-4 text-primary shrink-0 mt-0.5" />
                         <div>
-                          <div className="font-medium text-gray-700">Follow-up Visit</div>
+                          <div className="font-medium text-gray-700">นัดติดตาม</div>
                           <div className="text-gray-500 text-xs mt-0.5">
                             {new Date(patient.follow_up_date).toLocaleString('th-TH', { dateStyle: 'medium', timeStyle: 'short' })}
                           </div>
@@ -903,15 +930,15 @@ export default function PatientDetailPage() {
                 {/* Bottom actions */}
                 <div className="flex justify-end gap-3 pt-2">
                   {patient.status === 'history' ? (
-                    <button onClick={handleCancelCase} className="btn-outline text-red-500 border-red-300 hover:bg-red-50 hover:text-red-600 hover:border-red-400">
+                    <button onClick={() => setConfirmModal({ type: 'cancel' })} className="btn-outline text-red-500 border-red-300 hover:bg-red-50 hover:text-red-600 hover:border-red-400">
                       ลบเคส
                     </button>
                   ) : (
                     <>
-                      <button onClick={handleCancelCase} className="btn-outline text-red-500 border-red-300 hover:bg-red-50 hover:text-red-600 hover:border-red-400">
+                      <button onClick={() => setConfirmModal({ type: 'cancel' })} className="btn-outline text-red-500 border-red-300 hover:bg-red-50 hover:text-red-600 hover:border-red-400">
                         ยกเลิกเคส
                       </button>
-                      <button onClick={handleCloseCase} className="btn-primary bg-gray-700 hover:bg-gray-800">
+                      <button onClick={() => setConfirmModal({ type: 'close' })} className="btn-primary bg-gray-700 hover:bg-gray-800">
                         ปิดเคส
                       </button>
                     </>
@@ -927,11 +954,11 @@ export default function PatientDetailPage() {
                 {/* Bottom actions */}
                 <div className="flex justify-end gap-3 pt-2">
                   {patient.status === 'history' ? (
-                    <button onClick={handleCancelCase} className="btn-outline text-red-500 border-red-300 hover:bg-red-50 hover:text-red-600 hover:border-red-400">
+                    <button onClick={() => setConfirmModal({ type: 'cancel' })} className="btn-outline text-red-500 border-red-300 hover:bg-red-50 hover:text-red-600 hover:border-red-400">
                       ลบเคส
                     </button>
                   ) : (
-                    <button onClick={handleCancelCase} className="btn-outline text-red-500 border-red-300 hover:bg-red-50 hover:text-red-600 hover:border-red-400">
+                    <button onClick={() => setConfirmModal({ type: 'cancel' })} className="btn-outline text-red-500 border-red-300 hover:bg-red-50 hover:text-red-600 hover:border-red-400">
                       ยกเลิกเคส
                     </button>
                   )}
@@ -942,6 +969,23 @@ export default function PatientDetailPage() {
         </div>
       </main>
 
+      <ConfirmModal
+        open={confirmModal?.type === 'cancel'}
+        title={patient.status === 'history' ? 'ลบเคส' : 'ยกเลิกเคส'}
+        message={patient.status === 'history' ? 'เคสนี้จะถูกลบถาวร ไม่สามารถกู้คืนได้' : 'เคสจะถูกลบออกจากระบบ ต้องการดำเนินการต่อหรือไม่?'}
+        confirmLabel={patient.status === 'history' ? 'ลบเคส' : 'ยกเลิกเคส'}
+        danger
+        onConfirm={handleCancelCase}
+        onCancel={() => setConfirmModal(null)}
+      />
+      <ConfirmModal
+        open={confirmModal?.type === 'close'}
+        title="ปิดเคส"
+        message="เคสจะถูกย้ายไปยังประวัติ ยังสามารถดูข้อมูลย้อนหลังได้"
+        confirmLabel="ปิดเคส"
+        onConfirm={handleCloseCase}
+        onCancel={() => setConfirmModal(null)}
+      />
     </div>
   )
 }

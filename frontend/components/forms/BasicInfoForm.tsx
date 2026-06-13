@@ -135,7 +135,7 @@ export default function BasicInfoForm({ data, onChange, onValidationChange, lang
 
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold text-gray-800 mb-6">
+      <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-6">
         {t.title}
       </h2>
       <fieldset disabled={isReadOnly} className={isReadOnly ? 'opacity-80 pointer-events-none' : ''}>
@@ -143,56 +143,56 @@ export default function BasicInfoForm({ data, onChange, onValidationChange, lang
       <div className="space-y-4">
         {/* 1. First Name */}
         <div>
-          <label className="block text-gray-700 font-medium mb-2">
+          <label className="block text-sm sm:text-base text-gray-700 font-medium mb-2">
             {++qNum}. {t.firstName} <span className="text-red-500">*</span>
           </label>
           <input
             type="text"
             value={data.first_name || ''}
             onChange={(e) => onChange({ first_name: e.target.value })}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
             placeholder={t.firstName}
           />
         </div>
 
         {/* 2. Last Name */}
         <div>
-          <label className="block text-gray-700 font-medium mb-2">
+          <label className="block text-sm sm:text-base text-gray-700 font-medium mb-2">
             {++qNum}. {t.lastName} <span className="text-red-500">*</span>
           </label>
           <input
             type="text"
             value={data.last_name || ''}
             onChange={(e) => onChange({ last_name: e.target.value })}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
             placeholder={t.lastName}
           />
         </div>
 
         {/* 3. Phone */}
         <div>
-          <label className="block text-gray-700 font-medium mb-2">
+          <label className="block text-sm sm:text-base text-gray-700 font-medium mb-2">
             {++qNum}. {t.phone} <span className="text-red-500">*</span>
           </label>
           <input
             type="tel"
             value={data.phone || ''}
             onChange={(e) => onChange({ phone: e.target.value })}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
             placeholder={t.phone}
           />
         </div>
 
         {/* 4. Birth Date */}
         <div>
-          <label className="block text-gray-700 font-medium mb-2">
+          <label className="block text-sm sm:text-base text-gray-700 font-medium mb-2">
             {++qNum}. {t.birthDate} <span className="text-red-500">*</span>
           </label>
           <input
             type="date"
             value={data.birth_date || ''}
             onChange={(e) => onChange({ birth_date: e.target.value })}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
             max={new Date().toISOString().split('T')[0]}
           />
         </div>
@@ -200,7 +200,7 @@ export default function BasicInfoForm({ data, onChange, onValidationChange, lang
 
       {/* Gender */}
       <div>
-        <label className="block text-gray-700 font-medium mb-2">
+        <label className="block text-sm sm:text-base text-gray-700 font-medium mb-2">
           {++qNum}. {t.gender} <span className="text-red-500">*</span>
         </label>
         <div className="space-y-2">
@@ -214,7 +214,7 @@ export default function BasicInfoForm({ data, onChange, onValidationChange, lang
                 onChange={(e) => onChange({ gender: e.target.value })}
                 className="w-4 h-4 text-blue-600"
               />
-              <span className="ml-2 text-gray-700">{getOptionLabel(option)}</span>
+              <span className="ml-2 text-sm sm:text-base text-gray-700">{getOptionLabel(option)}</span>
             </label>
           ))}
           <div className="flex items-center">
@@ -226,7 +226,7 @@ export default function BasicInfoForm({ data, onChange, onValidationChange, lang
                 onChange={() => onChange({ gender: ' ' })}
                 className="w-4 h-4 text-blue-600"
               />
-              <span className="ml-2 text-gray-700">{t.genderOther}:</span>
+              <span className="ml-2 text-sm sm:text-base text-gray-700">{t.genderOther}:</span>
             </label>
             <input
               type="text"
@@ -245,21 +245,21 @@ export default function BasicInfoForm({ data, onChange, onValidationChange, lang
 
       {/* HN */}
       <div>
-        <label className="block text-gray-700 font-medium mb-2">
+        <label className="block text-sm sm:text-base text-gray-700 font-medium mb-2">
           {++qNum}. {t.hn} <span className="text-red-500">*</span>
         </label>
         <input
           type="number"
           value={data.hn || ''}
           onChange={(e) => onChange({ hn: e.target.value })}
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
           placeholder=""
         />
       </div>
 
       {/* Procedures */}
       <div>
-        <label className="block text-gray-700 font-medium mb-2">
+        <label className="block text-sm sm:text-base text-gray-700 font-medium mb-2">
           {++qNum}. {t.procedures} <span className="text-red-500">*</span>
         </label>
         <div className="space-y-3 border border-gray-200 rounded-lg p-4">
@@ -272,7 +272,7 @@ export default function BasicInfoForm({ data, onChange, onValidationChange, lang
                   onChange={(e) => handleProcedureChange(procedure, e.target.checked)}
                   className="w-4 h-4 text-blue-600 mt-1"
                 />
-                <span className="ml-2 text-gray-700">{getOptionLabel(procedure)}</span>
+                <span className="ml-2 text-sm sm:text-base text-gray-700">{getOptionLabel(procedure)}</span>
               </label>
               {/* Sub-options for Lefort I */}
               {procedure.includes('Lefort I') && hasLefortI && (
@@ -399,7 +399,7 @@ export default function BasicInfoForm({ data, onChange, onValidationChange, lang
 
       {/* Special Procedures */}
       <div>
-        <label className="block text-gray-700 font-medium mb-2">
+        <label className="block text-sm sm:text-base text-gray-700 font-medium mb-2">
           {++qNum}. {t.specialProcedures}
         </label>
         <div className="space-y-3 border border-gray-200 rounded-lg p-4">
@@ -541,33 +541,33 @@ export default function BasicInfoForm({ data, onChange, onValidationChange, lang
 
       {/* Surgery Date */}
       <div>
-        <label className="block text-gray-700 font-medium mb-2">
+        <label className="block text-sm sm:text-base text-gray-700 font-medium mb-2">
           {++qNum}. {t.surgeryDate} <span className="text-red-500">*</span>
         </label>
         <input
           type="date"
           value={data.surgery_date || ''}
           onChange={(e) => onChange({ surgery_date: e.target.value })}
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
         />
       </div>
 
       {/* Discharge Date */}
       <div>
-        <label className="block text-gray-700 font-medium mb-2">
+        <label className="block text-sm sm:text-base text-gray-700 font-medium mb-2">
           {++qNum}. {t.dischargeDate} <span className="text-red-500">*</span>
         </label>
         <input
           type="date"
           value={data.discharge_date || ''}
           onChange={(e) => onChange({ discharge_date: e.target.value })}
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
         />
       </div>
 
       {/* Note */}
       <div>
-        <label className="block text-gray-700 font-medium mb-2">
+        <label className="block text-sm sm:text-base text-gray-700 font-medium mb-2">
           {++qNum}. {t.note}
         </label>
         <textarea

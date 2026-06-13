@@ -301,7 +301,7 @@ export default function NewPatientPage() {
           {/* ─── Basic info ─── */}
           <div className="card">
             <h2 className="font-semibold text-gray-800 mb-4">ข้อมูลผู้ป่วย</h2>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="label">HN <span className="text-red-500">*</span></label>
                 <input className={`input ${fieldErrors.hn ? 'border-red-300 focus:border-red-400' : ''}`} value={form.hn} onChange={e => set('hn', e.target.value)} required />
@@ -535,7 +535,7 @@ export default function NewPatientPage() {
           {/* ─── Special devices ─── */}
           <div className="card">
             <h2 className="font-semibold text-gray-800 mb-3">อุปกรณ์พิเศษ</h2>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input type="checkbox" className="accent-primary" checked={form.imf_wire} onChange={e => set('imf_wire', e.target.checked)} />

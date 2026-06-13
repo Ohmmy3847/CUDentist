@@ -10,6 +10,16 @@
   }
 }
 
+@layer utilities {
+  @keyframes slide-up {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .animate-slide-up {
+    animation: slide-up 0.2s ease-out both;
+  }
+}
+
 @layer components {
   .btn-primary {
     @apply bg-primary hover:bg-primary-dark text-white font-medium px-4 py-2 rounded-lg transition-colors text-sm;

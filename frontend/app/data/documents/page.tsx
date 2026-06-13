@@ -181,7 +181,7 @@ export default function DocumentsPage() {
       </div>
 
       {/* Ingest action buttons */}
-      <div className="flex items-center gap-3 mb-4">
+      <div className="flex flex-wrap items-center gap-3 mb-4">
         <button
           type="button"
           disabled={ingesting}
@@ -230,7 +230,7 @@ export default function DocumentsPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         {/* Drop zone */}
         <div
-          className={`border-2 border-dashed rounded-xl p-8 flex flex-col items-center gap-3 transition-colors cursor-pointer ${dragOver ? 'border-primary bg-primary-bg' : 'border-gray-300 bg-white hover:border-primary/50'}`}
+          className={`border-2 border-dashed rounded-xl p-5 sm:p-8 flex flex-col items-center gap-3 transition-colors cursor-pointer ${dragOver ? 'border-primary bg-primary-bg' : 'border-gray-300 bg-white hover:border-primary/50'}`}
           onDragOver={(e) => { e.preventDefault(); setDragOver(true) }}
           onDragLeave={() => setDragOver(false)}
           onDrop={onDrop}
@@ -254,12 +254,12 @@ export default function DocumentsPage() {
               </button>
             </>
           )}
-          <input ref={fileRef} type="file" className="hidden" accept=".pdf,.txt,.docx" multiple onChange={(e) => handleFiles(e.target.files)} />
+          <input ref={fileRef} type="file" className="hidden" accept=".pdf,.txt,.md,.docx" multiple onChange={(e) => handleFiles(e.target.files)} />
         </div>
 
         {/* Text editor entry */}
         <div
-          className="border-2 border-dashed border-gray-300 rounded-xl p-8 flex flex-col items-center gap-3 bg-white hover:border-primary/50 transition-colors cursor-pointer"
+          className="border-2 border-dashed border-gray-300 rounded-xl p-5 sm:p-8 flex flex-col items-center gap-3 bg-white hover:border-primary/50 transition-colors cursor-pointer"
           onClick={openCreate}
         >
           <div className="bg-blue-50 rounded-full p-4">
@@ -282,11 +282,11 @@ export default function DocumentsPage() {
           <table className="w-full text-sm">
             <thead className="bg-gray-50 border-b border-gray-100">
               <tr>
-                <th className="text-left px-4 py-3 font-medium text-gray-600">#</th>
+                <th className="text-left px-4 py-3 font-medium text-gray-600 hidden sm:table-cell">#</th>
                 <th className="text-left px-4 py-3 font-medium text-gray-600">ชื่อไฟล์</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600">ขนาด</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600">สถานะในระบบ AI</th>
-                <th className="text-left px-4 py-3 font-medium text-gray-600">เปิดใช้งานล่าสุด</th>
+                <th className="text-left px-4 py-3 font-medium text-gray-600 hidden sm:table-cell">ขนาด</th>
+                <th className="text-left px-4 py-3 font-medium text-gray-600">สถานะ</th>
+                <th className="text-left px-4 py-3 font-medium text-gray-600 hidden md:table-cell">เปิดใช้งานล่าสุด</th>
                 <th className="text-left px-4 py-3 font-medium text-gray-600">Actions</th>
               </tr>
             </thead>
@@ -298,16 +298,16 @@ export default function DocumentsPage() {
               ) : (
                 docs.slice((page - 1) * perPage, page * perPage).map((d, i) => (
                   <tr key={d.filename} className="hover:bg-gray-50/50">
-                    <td className="px-4 py-3 text-gray-400">{(page - 1) * perPage + i + 1}</td>
+                    <td className="px-4 py-3 text-gray-400 hidden sm:table-cell">{(page - 1) * perPage + i + 1}</td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
-                        <span className={`text-xs font-bold px-1.5 py-0.5 rounded ${d.extension === '.pdf' ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'}`}>
+                        <span className={`text-xs font-bold px-1.5 py-0.5 rounded shrink-0 ${d.extension === '.pdf' ? 'bg-red-100 text-red-600' : d.extension === '.md' ? 'bg-purple-100 text-purple-600' : 'bg-blue-100 text-blue-600'}`}>
                           {d.extension.replace('.', '').toUpperCase() || 'FILE'}
                         </span>
-                        <span className="text-gray-800 font-medium max-w-[260px] truncate">{d.filename}</span>
+                        <span className="text-gray-800 font-medium max-w-[160px] sm:max-w-[260px] truncate">{d.filename}</span>
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-gray-500">{fileSize(d.size)}</td>
+                    <td className="px-4 py-3 text-gray-500 hidden sm:table-cell">{fileSize(d.size)}</td>
                     <td className="px-4 py-3">
                       {d.is_indexed ? (
                         <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-green-100 text-green-700">พร้อมใช้งาน</span>
@@ -315,7 +315,7 @@ export default function DocumentsPage() {
                         <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-gray-100 text-gray-500">ยังไม่เปิดใช้งาน</span>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-gray-500">{fmt(d.last_ingested)}</td>
+                    <td className="px-4 py-3 text-gray-500 hidden md:table-cell">{fmt(d.last_ingested)}</td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
                         {(d.extension === '.txt' || d.extension === '.md') && (
@@ -349,14 +349,14 @@ export default function DocumentsPage() {
       {editor.open && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-3xl flex flex-col max-h-[90vh]">
-            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+            <div className="px-4 sm:px-6 py-4 border-b border-gray-100 flex items-center justify-between">
               <h2 className="font-semibold text-gray-800">
                 {editor.mode === 'create' ? 'เพิ่มเนื้อหาใหม่' : `แก้ไข: ${editor.filename}`}
               </h2>
               <button onClick={() => setEditor({ open: false })} className="text-gray-400 hover:text-gray-600 text-xl leading-none">×</button>
             </div>
 
-            <div className="px-6 py-4 flex flex-col gap-4 flex-1 overflow-hidden">
+            <div className="px-4 sm:px-6 py-4 flex flex-col gap-4 flex-1 overflow-hidden">
               {editor.mode === 'create' && (
                 <div>
                   <label className="label">ชื่อเอกสาร <span className="text-red-500">*</span></label>
@@ -386,7 +386,7 @@ export default function DocumentsPage() {
               </div>
             </div>
 
-            <div className="px-6 py-4 border-t border-gray-100 flex gap-3 justify-end">
+            <div className="px-4 sm:px-6 py-4 border-t border-gray-100 flex gap-3 justify-end">
               <button onClick={() => setEditor({ open: false })} className="btn-outline">ยกเลิก</button>
               <button
                 onClick={saveEditor}

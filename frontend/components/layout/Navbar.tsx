@@ -100,7 +100,7 @@ export default function Navbar() {
           </button>
 
           {menuOpen && (
-            <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-100 py-1 z-50 text-gray-700">
+            <div className="absolute right-0 top-full mt-1 w-48 max-w-[calc(100vw-1rem)] bg-white rounded-lg shadow-lg border border-gray-100 py-1 z-50 text-gray-700">
               {user && (
                 <div className="px-3 py-2 border-b border-gray-100">
                   <div className="text-xs font-semibold text-gray-800 truncate">{`${user.first_name} ${user.last_name}`}</div>
