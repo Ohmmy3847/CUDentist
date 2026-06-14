@@ -170,6 +170,14 @@ export default function DocumentsPage() {
     })
   }
 
+  const allSelected = docs.length > 0 && docs.every(d => selected.has(d.storage_key))
+  const someSelected = docs.some(d => selected.has(d.storage_key))
+
+  const toggleAll = () => {
+    if (allSelected) setSelected(new Set())
+    else setSelected(new Set(docs.map(d => d.storage_key)))
+  }
+
   const handleIngest = async (mode: 'reingest' | 'append') => {
     if (mode === 'reingest') {
       if (!confirm('สร้างฐานข้อมูล AI ใหม่ทั้งหมด?\n\nAI จะลืมเอกสารเดิมทั้งหมด และเริ่มต้นใหม่จากศูนย์')) return
@@ -364,24 +372,14 @@ export default function DocumentsPage() {
             <thead className="bg-gray-50 border-b border-gray-100">
               <tr>
                 <th className="px-4 py-3 w-10">
-                  {(() => {
-                    const allKeys = docs.map(d => d.storage_key)
-                    const allSel = allKeys.length > 0 && allKeys.every(k => selected.has(k))
-                    const someSel = allKeys.some(k => selected.has(k))
-                    return (
-                      <input
-                        type="checkbox"
-                        checked={allSel}
-                        ref={el => { if (el) el.indeterminate = someSel && !allSel }}
-                        onChange={() => {
-                          if (allSel) setSelected(new Set())
-                          else setSelected(new Set(allKeys))
-                        }}
-                        className="rounded border-gray-300"
-                        title="เลือกทั้งหมด"
-                      />
-                    )
-                  })()}
+                  <input
+                    type="checkbox"
+                    checked={allSelected}
+                    ref={el => { if (el) el.indeterminate = someSelected && !allSelected }}
+                    onChange={toggleAll}
+                    className="rounded border-gray-300"
+                    title="เลือกทั้งหมด"
+                  />
                 </th>
                 <th className="text-left px-4 py-3 font-medium text-gray-600 hidden sm:table-cell">#</th>
                 <th className="text-left px-4 py-3 font-medium text-gray-600">ชื่อไฟล์</th>
