@@ -125,10 +125,10 @@ export default function DocumentsPage() {
     handleFiles(e.dataTransfer.files)
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const remove = async (filename: string) => {
-    if (!confirm(`ยืนยันการลบ "${filename}"?`)) return
-    await deleteRagDocument(filename)
-    setDocs(prev => prev.filter(d => d.filename !== filename))
+  const remove = async (doc: { filename: string; storage_key: string }) => {
+    if (!confirm(`ยืนยันการลบ "${doc.filename}"?`)) return
+    await deleteRagDocument(doc.storage_key)
+    setDocs(prev => prev.filter(d => d.storage_key !== doc.storage_key))
   }
 
   const handleIngest = async (mode: 'reingest' | 'append') => {
@@ -328,7 +328,7 @@ export default function DocumentsPage() {
                           </button>
                         )}
                         <button
-                          onClick={() => remove(d.filename)}
+                          onClick={() => remove(d)}
                           className="text-gray-400 hover:text-red-500 transition-colors"
                           title="ลบเอกสาร"
                         >

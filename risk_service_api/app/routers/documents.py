@@ -15,6 +15,7 @@ from app.services.rag.chunker import (
     SUPPORTED_EXTENSIONS,
     ingest,
     load_manifest,
+    save_manifest,
     read_status,
 )
 from app.services.storage_service import (
@@ -40,20 +41,21 @@ async def list_documents():
 
     result = []
     for f in storage_files:
-        name = f.get("name", "")
-        ext = Path(name).suffix.lower()
+        key = f.get("name", "")
+        ext = Path(key).suffix.lower()
         if ext not in ALLOWED_EXTENSIONS:
             continue
-        info = manifest.get(name, {})
+        info = manifest.get(key, {})
         metadata = f.get("metadata") or {}
+        display_name = info.get("original_name") or key
         result.append({
-            "filename": name,
+            "filename": display_name,
+            "storage_key": key,
             "size": metadata.get("size", 0),
             "extension": ext,
-            "relative_path": name,
             "sha256": info.get("sha256"),
             "last_ingested": info.get("last_ingested"),
-            "is_indexed": name in manifest,
+            "is_indexed": key in manifest,
         })
     return sorted(result, key=lambda x: x["filename"].lower())
 
@@ -78,11 +80,18 @@ async def upload_document(file: UploadFile = File(...)):
             return {"filename": existing_name, "size": len(data), "status": "already_exists"}
 
     try:
-        upload_file(file.filename, data, file.content_type or "application/octet-stream")
+        key = upload_file(file.filename, data, file.content_type or "application/octet-stream")
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=f"Storage upload failed: {e}")
 
-    return {"filename": file.filename, "size": len(data), "status": "uploaded"}
+    # Persist original filename so the list endpoint can display it
+    manifest = load_manifest()
+    entry = manifest.get(key, {})
+    entry["original_name"] = file.filename
+    manifest[key] = entry
+    save_manifest(manifest)
+
+    return {"filename": file.filename, "storage_key": key, "size": len(data), "status": "uploaded"}
 
 
 # ---------------------------------------------------------------------------

@@ -121,10 +121,10 @@ export interface Document {
 }
 
 export interface RagDocument {
-  filename: string
+  filename: string       // display name (original, may contain Thai)
+  storage_key: string   // ASCII-safe key used for delete/ingest operations
   size: number
   extension: string
-  relative_path: string
   sha256: string | null
   last_ingested: string | null
   is_indexed: boolean
