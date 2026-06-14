@@ -62,13 +62,30 @@ COLLECTION_NAME = "post_op_propositions"
 
 
 def _get_chroma_client():
-    """Return HttpClient (Docker ChromaDB) or PersistentClient as fallback."""
+    """Return Chroma client.
+
+    Priority:
+      1. Chroma Cloud — if CHROMA_API_KEY + CHROMA_TENANT + CHROMA_DATABASE are set
+      2. HttpClient   — if CHROMA_HOST is reachable (Docker / self-hosted)
+      3. PersistentClient — local fallback (dev / single-server deploy)
+    """
     import chromadb as _c
+
+    api_key  = getattr(settings, "CHROMA_API_KEY", "")
+    tenant   = getattr(settings, "CHROMA_TENANT", "")
+    database = getattr(settings, "CHROMA_DATABASE", "")
+
+    if api_key and tenant and database:
+        client = _c.CloudClient(tenant=tenant, database=database, api_key=api_key)
+        logger.info("[chroma] Using Chroma Cloud")
+        return client
+
     host = getattr(settings, "CHROMA_HOST", "localhost")
     port = int(getattr(settings, "CHROMA_PORT", 8002))
     try:
         client = _c.HttpClient(host=host, port=port)
-        client.heartbeat()  # raises if server not reachable
+        client.heartbeat()
+        logger.info(f"[chroma] Using HttpClient at {host}:{port}")
         return client
     except Exception:
         logger.warning("[chroma] HttpClient unreachable — falling back to PersistentClient")

@@ -59,9 +59,13 @@ class Settings:
     DATA_DIR: Path = BASE_DIR / "data"
     LOGS_DIR: Path = BASE_DIR / "logs"
     
-    # ChromaDB
+    # ChromaDB — local/Docker
     CHROMA_HOST: str = os.getenv("CHROMA_HOST", "localhost")
     CHROMA_PORT: int = int(os.getenv("CHROMA_PORT", "8002"))
+    # ChromaDB Cloud (overrides host/port when all three are set)
+    CHROMA_API_KEY: str = os.getenv("CHROMA_API_KEY", "")
+    CHROMA_TENANT: str = os.getenv("CHROMA_TENANT", "")
+    CHROMA_DATABASE: str = os.getenv("CHROMA_DATABASE", "")
 
     # Supabase Storage
     SUPABASE_URL: str = os.getenv("SUPABASE_URL", "")
