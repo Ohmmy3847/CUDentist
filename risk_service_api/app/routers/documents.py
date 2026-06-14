@@ -3,8 +3,6 @@ Document management + ingest trigger endpoints for risk_service_api.
 These are internal endpoints (no auth) — called via backend proxy.
 """
 import asyncio
-import hashlib
-import shutil
 from pathlib import Path
 
 from fastapi import APIRouter, BackgroundTasks, HTTPException, UploadFile, File, status
@@ -19,6 +17,12 @@ from app.services.rag.chunker import (
     load_manifest,
     read_status,
 )
+from app.services.storage_service import (
+    upload_file,
+    delete_file,
+    list_files,
+    sha256_of_bytes,
+)
 
 router = APIRouter(prefix="/documents", tags=["rag-documents"])
 
@@ -26,34 +30,35 @@ ALLOWED_EXTENSIONS = SUPPORTED_EXTENSIONS  # {".pdf", ".txt", ".md", ".docx"}
 MAX_SIZE = 50 * 1024 * 1024  # 50 MB
 
 
-def _list_doc_files() -> list[Path]:
-    files = []
-    for ext in ALLOWED_EXTENSIONS:
-        files.extend(DOCUMENT_DIR.rglob(f"*{ext}"))
-    return sorted(files, key=lambda f: f.name.lower())
-
-
-@router.get("", summary="List documents in the RAG document directory")
+@router.get("", summary="List documents in Supabase Storage")
 async def list_documents():
     manifest = load_manifest()
-    DOCUMENT_DIR.mkdir(parents=True, exist_ok=True)
-    files = _list_doc_files()
+    try:
+        storage_files = list_files()
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=f"Storage error: {e}")
+
     result = []
-    for f in files:
-        info = manifest.get(f.name, {})
+    for f in storage_files:
+        name = f.get("name", "")
+        ext = Path(name).suffix.lower()
+        if ext not in ALLOWED_EXTENSIONS:
+            continue
+        info = manifest.get(name, {})
+        metadata = f.get("metadata") or {}
         result.append({
-            "filename": f.name,
-            "size": f.stat().st_size,
-            "extension": f.suffix.lower(),
-            "relative_path": str(f.relative_to(DOCUMENT_DIR)),
+            "filename": name,
+            "size": metadata.get("size", 0),
+            "extension": ext,
+            "relative_path": name,
             "sha256": info.get("sha256"),
             "last_ingested": info.get("last_ingested"),
-            "is_indexed": f.name in manifest,
+            "is_indexed": name in manifest,
         })
-    return result
+    return sorted(result, key=lambda x: x["filename"].lower())
 
 
-@router.post("", status_code=status.HTTP_201_CREATED, summary="Upload a document to RAG directory")
+@router.post("", status_code=status.HTTP_201_CREATED, summary="Upload a document to Supabase Storage")
 async def upload_document(file: UploadFile = File(...)):
     ext = Path(file.filename or "").suffix.lower()
     if ext not in ALLOWED_EXTENSIONS:
@@ -65,25 +70,19 @@ async def upload_document(file: UploadFile = File(...)):
     if len(data) > MAX_SIZE:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="File exceeds 50 MB limit")
 
-    # Save to DOCUMENT_DIR root (flat structure for uploaded files)
-    DOCUMENT_DIR.mkdir(parents=True, exist_ok=True)
-    dest = DOCUMENT_DIR / file.filename
-    # Deduplicate: if file exists with same content, skip; else add _1 _2 suffix
-    if dest.exists():
-        existing_hash = hashlib.sha256(dest.read_bytes()).hexdigest()
-        new_hash = hashlib.sha256(data).hexdigest()
-        if existing_hash == new_hash:
-            return {"filename": file.filename, "size": len(data), "status": "already_exists"}
-        # Different content: add suffix
-        stem = dest.stem
-        suffix = dest.suffix
-        counter = 1
-        while dest.exists():
-            dest = DOCUMENT_DIR / f"{stem}_{counter}{suffix}"
-            counter += 1
+    # Check for duplicate by sha256 against manifest
+    new_hash = sha256_of_bytes(data)
+    manifest = load_manifest()
+    for existing_name, info in manifest.items():
+        if info.get("sha256") == new_hash:
+            return {"filename": existing_name, "size": len(data), "status": "already_exists"}
 
-    dest.write_bytes(data)
-    return {"filename": dest.name, "size": len(data), "status": "uploaded"}
+    try:
+        upload_file(file.filename, data, file.content_type or "application/octet-stream")
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=f"Storage upload failed: {e}")
+
+    return {"filename": file.filename, "size": len(data), "status": "uploaded"}
 
 
 # ---------------------------------------------------------------------------
@@ -110,18 +109,16 @@ async def delete_document(filename: str):
     if "/" in filename or "\\" in filename or ".." in filename:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid filename")
 
-    # Find the file (search recursively since docs may be in subdirectories)
-    target = None
-    for f in _list_doc_files():
-        if f.name == filename:
-            target = f
-            break
-
-    if target is None:
+    # Remove from Supabase Storage
+    try:
+        delete_file(filename)
+    except Exception:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="File not found")
 
-    # Remove from disk
-    target.unlink(missing_ok=True)
+    # Also remove local cache if exists
+    local = DOCUMENT_DIR / filename
+    if local.exists():
+        local.unlink(missing_ok=True)
 
     # Remove from ChromaDB
     try:

@@ -562,12 +562,22 @@ async def ingest(mode: str = "reingest", *, reset: bool = False):
         import chromadb as _chromadb
         from chromadb.errors import NotFoundError
 
-        # ── 1. Determine files to process ────────────────────────────
-        if not DOCUMENT_DIR.exists():
-            write_status("error", mode=mode, error=f"Document directory not found: {DOCUMENT_DIR}")
-            logger.error(f"Document directory not found: {DOCUMENT_DIR}")
-            return
+        # ── 1. Sync files from Supabase Storage → local DOCUMENT_DIR ──
+        DOCUMENT_DIR.mkdir(parents=True, exist_ok=True)
+        try:
+            from app.services.storage_service import list_files as storage_list, download_to_temp
+            storage_files = storage_list()
+            for sf in storage_files:
+                name = sf.get("name", "")
+                if Path(name).suffix.lower() in SUPPORTED_EXTENSIONS:
+                    local_path = DOCUMENT_DIR / name
+                    if not local_path.exists():
+                        logger.info(f"  ↓ Downloading {name} from Supabase Storage…")
+                        download_to_temp(name, DOCUMENT_DIR)
+        except Exception as e:
+            logger.warning(f"  ⚠ Supabase Storage sync skipped: {e}")
 
+        # ── 2. Determine files to process ────────────────────────────
         all_files: list[Path] = []
         for ext in SUPPORTED_EXTENSIONS:
             all_files.extend(DOCUMENT_DIR.rglob(f"*{ext}"))
