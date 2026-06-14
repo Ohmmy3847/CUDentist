@@ -365,19 +365,20 @@ export default function DocumentsPage() {
               <tr>
                 <th className="px-4 py-3 w-10">
                   {(() => {
-                    const pageKeys = docs.slice((page - 1) * perPage, page * perPage).map(d => d.storage_key)
-                    const allSel = pageKeys.length > 0 && pageKeys.every(k => selected.has(k))
-                    const someSel = pageKeys.some(k => selected.has(k))
+                    const allKeys = docs.map(d => d.storage_key)
+                    const allSel = allKeys.length > 0 && allKeys.every(k => selected.has(k))
+                    const someSel = allKeys.some(k => selected.has(k))
                     return (
                       <input
                         type="checkbox"
                         checked={allSel}
                         ref={el => { if (el) el.indeterminate = someSel && !allSel }}
                         onChange={() => {
-                          if (allSel) setSelected(prev => { const n = new Set(prev); pageKeys.forEach(k => n.delete(k)); return n })
-                          else setSelected(prev => new Set([...prev, ...pageKeys]))
+                          if (allSel) setSelected(new Set())
+                          else setSelected(new Set(allKeys))
                         }}
                         className="rounded border-gray-300"
+                        title="เลือกทั้งหมด"
                       />
                     )
                   })()}
