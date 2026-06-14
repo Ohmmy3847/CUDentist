@@ -61,6 +61,8 @@ export default function DocumentsPage() {
   const [editor, setEditor] = useState<EditorModal>({ open: false })
   const [saving, setSaving] = useState(false)
   const [editorLoading, setEditorLoading] = useState(false)
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [deleting, setDeleting] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
 
   const loadDocs = useCallback(async () => {
@@ -71,6 +73,7 @@ export default function DocumentsPage() {
     } finally {
       setLoading(false)
     }
+    setSelected(new Set())
   }, [])
 
   const loadStatus = useCallback(async () => {
@@ -134,6 +137,28 @@ export default function DocumentsPage() {
     if (!confirm(`ยืนยันการลบ "${doc.filename}"?`)) return
     await deleteRagDocument(doc.storage_key)
     setDocs(prev => prev.filter(d => d.storage_key !== doc.storage_key))
+    setSelected(prev => { const n = new Set(prev); n.delete(doc.storage_key); return n })
+  }
+
+  const removeSelected = async () => {
+    if (selected.size === 0) return
+    const names = docs.filter(d => selected.has(d.storage_key)).map(d => d.filename)
+    if (!confirm(`ยืนยันการลบ ${selected.size} ไฟล์?\n${names.slice(0, 5).join('\n')}${names.length > 5 ? `\n...และอีก ${names.length - 5} ไฟล์` : ''}`)) return
+    setDeleting(true)
+    try {
+      await Promise.all([...selected].map(key => deleteRagDocument(key)))
+      await loadDocs()
+    } finally {
+      setDeleting(false)
+    }
+  }
+
+  const toggleOne = (key: string) => {
+    setSelected(prev => {
+      const n = new Set(prev)
+      n.has(key) ? n.delete(key) : n.add(key)
+      return n
+    })
   }
 
   const handleIngest = async (mode: 'reingest' | 'append') => {
@@ -190,6 +215,17 @@ export default function DocumentsPage() {
 
       {/* Ingest action buttons */}
       <div className="flex flex-wrap items-center gap-3 mb-4">
+        {selected.size > 0 && (
+          <button
+            type="button"
+            onClick={removeSelected}
+            disabled={deleting}
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border border-red-300 bg-red-50 text-red-600 hover:bg-red-100 disabled:opacity-50 transition-colors"
+          >
+            {deleting ? <Spinner className="w-4 h-4" /> : <Trash2 className="w-4 h-4" />}
+            ลบที่เลือก ({selected.size})
+          </button>
+        )}
         <button
           type="button"
           disabled={ingesting}
@@ -318,6 +354,25 @@ export default function DocumentsPage() {
           <table className="w-full text-sm">
             <thead className="bg-gray-50 border-b border-gray-100">
               <tr>
+                <th className="px-4 py-3 w-10">
+                  {(() => {
+                    const pageKeys = docs.slice((page - 1) * perPage, page * perPage).map(d => d.storage_key)
+                    const allSel = pageKeys.length > 0 && pageKeys.every(k => selected.has(k))
+                    const someSel = pageKeys.some(k => selected.has(k))
+                    return (
+                      <input
+                        type="checkbox"
+                        checked={allSel}
+                        ref={el => { if (el) el.indeterminate = someSel && !allSel }}
+                        onChange={() => {
+                          if (allSel) setSelected(prev => { const n = new Set(prev); pageKeys.forEach(k => n.delete(k)); return n })
+                          else setSelected(prev => new Set([...prev, ...pageKeys]))
+                        }}
+                        className="rounded border-gray-300"
+                      />
+                    )
+                  })()}
+                </th>
                 <th className="text-left px-4 py-3 font-medium text-gray-600 hidden sm:table-cell">#</th>
                 <th className="text-left px-4 py-3 font-medium text-gray-600">ชื่อไฟล์</th>
                 <th className="text-left px-4 py-3 font-medium text-gray-600 hidden sm:table-cell">ขนาด</th>
@@ -329,11 +384,19 @@ export default function DocumentsPage() {
             <tbody className="divide-y divide-gray-50">
               {docs.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="text-center py-10 text-gray-400">ยังไม่มีเอกสาร</td>
+                  <td colSpan={7} className="text-center py-10 text-gray-400">ยังไม่มีเอกสาร</td>
                 </tr>
               ) : (
                 docs.slice((page - 1) * perPage, page * perPage).map((d, i) => (
-                  <tr key={d.filename} className="hover:bg-gray-50/50">
+                  <tr key={d.filename} className={`hover:bg-gray-50/50 ${selected.has(d.storage_key) ? 'bg-blue-50/50' : ''}`}>
+                    <td className="px-4 py-3">
+                      <input
+                        type="checkbox"
+                        checked={selected.has(d.storage_key)}
+                        onChange={() => toggleOne(d.storage_key)}
+                        className="rounded border-gray-300"
+                      />
+                    </td>
                     <td className="px-4 py-3 text-gray-400 hidden sm:table-cell">{(page - 1) * perPage + i + 1}</td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">

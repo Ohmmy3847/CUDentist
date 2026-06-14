@@ -34,6 +34,8 @@ export default function SymptomsPage() {
   const [aliasInput, setAliasInput] = useState('')
   const [page, setPage] = useState(1)
   const [perPage, setPerPage] = useState(25)
+  const [selected, setSelected] = useState<Set<number>>(new Set())
+  const [deleting, setDeleting] = useState(false)
 
   useEffect(() => {
     if (!isLoggedIn()) { router.push('/login'); return }
@@ -48,6 +50,7 @@ export default function SymptomsPage() {
     const data = await listSymptoms()
     setSymptoms(data)
     setLoading(false)
+    setSelected(new Set())
   }
 
   const openNew = () => { setAliasInput(''); setModal({ open: true, editing: null, form: { ...BLANK } }) }
@@ -83,6 +86,19 @@ export default function SymptomsPage() {
     if (!confirm('ยืนยันการลบ?')) return
     await deleteSymptom(id)
     setSymptoms((prev) => prev.filter((s) => s.symptom_id !== id))
+    setSelected(prev => { const n = new Set(prev); n.delete(id); return n })
+  }
+
+  const removeSelected = async () => {
+    if (selected.size === 0) return
+    if (!confirm(`ยืนยันการลบ ${selected.size} อาการที่เลือก?`)) return
+    setDeleting(true)
+    try {
+      await Promise.all([...selected].map(id => deleteSymptom(id)))
+      await load()
+    } finally {
+      setDeleting(false)
+    }
   }
 
   const handleResync = async () => {
@@ -107,6 +123,26 @@ export default function SymptomsPage() {
   })
   const paginated = filtered.slice((page - 1) * perPage, page * perPage)
 
+  const pageIds = paginated.map(s => s.symptom_id)
+  const allPageSelected = pageIds.length > 0 && pageIds.every(id => selected.has(id))
+  const somePageSelected = pageIds.some(id => selected.has(id))
+
+  const toggleAll = () => {
+    if (allPageSelected) {
+      setSelected(prev => { const n = new Set(prev); pageIds.forEach(id => n.delete(id)); return n })
+    } else {
+      setSelected(prev => new Set([...prev, ...pageIds]))
+    }
+  }
+
+  const toggleOne = (id: number) => {
+    setSelected(prev => {
+      const n = new Set(prev)
+      n.has(id) ? n.delete(id) : n.add(id)
+      return n
+    })
+  }
+
   return (
     <div>
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
@@ -115,6 +151,16 @@ export default function SymptomsPage() {
           <p className="text-xs text-gray-400">จัดการกลุ่มคำที่ผู้ป่วยแจ้งและคำแนะนำสำหรับการเพิ่มเติมข้อมูลผู้ป่วย</p>
         </div>
         <div className="flex gap-2 shrink-0">
+          {selected.size > 0 && (
+            <button
+              onClick={removeSelected}
+              disabled={deleting}
+              className="flex items-center gap-1.5 px-3 py-2 text-sm rounded-lg border border-red-300 text-red-600 bg-red-50 hover:bg-red-100 disabled:opacity-50 transition-colors"
+            >
+              {deleting ? <Spinner className="w-4 h-4" /> : <Trash2 className="w-4 h-4" />}
+              ลบที่เลือก ({selected.size})
+            </button>
+          )}
           <button
             onClick={handleResync}
             disabled={resyncing}
@@ -148,6 +194,15 @@ export default function SymptomsPage() {
           <table className="w-full text-sm">
             <thead className="bg-gray-50 border-b border-gray-100">
               <tr>
+                <th className="px-4 py-3 w-10">
+                  <input
+                    type="checkbox"
+                    checked={allPageSelected}
+                    ref={el => { if (el) el.indeterminate = somePageSelected && !allPageSelected }}
+                    onChange={toggleAll}
+                    className="rounded border-gray-300"
+                  />
+                </th>
                 <th className="text-left px-4 py-3 font-medium text-gray-600 hidden sm:table-cell">#</th>
                 <th className="text-left px-4 py-3 font-medium text-gray-600">ชื่ออาการ</th>
                 <th className="text-left px-4 py-3 font-medium text-gray-600">ความเสี่ยง</th>
@@ -157,10 +212,18 @@ export default function SymptomsPage() {
             </thead>
             <tbody className="divide-y divide-gray-50">
               {paginated.length === 0 ? (
-                <tr><td colSpan={5} className="text-center py-10 text-gray-400">ไม่พบข้อมูลอาการ</td></tr>
+                <tr><td colSpan={6} className="text-center py-10 text-gray-400">ไม่พบข้อมูลอาการ</td></tr>
               ) : (
                 paginated.map((s, i) => (
-                  <tr key={s.symptom_id} className="hover:bg-gray-50/50">
+                  <tr key={s.symptom_id} className={`hover:bg-gray-50/50 ${selected.has(s.symptom_id) ? 'bg-blue-50/50' : ''}`}>
+                    <td className="px-4 py-3">
+                      <input
+                        type="checkbox"
+                        checked={selected.has(s.symptom_id)}
+                        onChange={() => toggleOne(s.symptom_id)}
+                        className="rounded border-gray-300"
+                      />
+                    </td>
                     <td className="px-4 py-3 text-gray-400 hidden sm:table-cell">{(page - 1) * perPage + i + 1}</td>
                     <td className="px-4 py-3 font-medium text-gray-800">{s.symptom_name}</td>
                     <td className="px-4 py-3"><RiskBadge risk={RISK_LABEL[s.risk_level] || s.risk_level} /></td>
