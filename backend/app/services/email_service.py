@@ -5,9 +5,21 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from functools import partial
 
+import httpx
+
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
+
+
+async def _send_via_resend(to_email: str, subject: str, body_html: str) -> None:
+    async with httpx.AsyncClient(timeout=15) as client:
+        resp = await client.post(
+            "https://api.resend.com/emails",
+            headers={"Authorization": f"Bearer {settings.RESEND_API_KEY}"},
+            json={"from": settings.SMTP_FROM, "to": [to_email], "subject": subject, "html": body_html},
+        )
+        resp.raise_for_status()
 
 
 def _send_sync(to_email: str, subject: str, body_html: str) -> None:
@@ -17,7 +29,7 @@ def _send_sync(to_email: str, subject: str, body_html: str) -> None:
     msg["To"] = to_email
     msg.attach(MIMEText(body_html, "html", "utf-8"))
 
-    with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT) as smtp:
+    with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT, timeout=10) as smtp:
         if settings.SMTP_TLS:
             smtp.starttls()
         if settings.SMTP_USER and settings.SMTP_PASSWORD:
@@ -26,15 +38,24 @@ def _send_sync(to_email: str, subject: str, body_html: str) -> None:
 
 
 async def send_email(to_email: str, subject: str, body_html: str) -> None:
+    # Prefer Resend (HTTP API) over SMTP — Railway blocks outbound SMTP
+    if settings.RESEND_API_KEY:
+        try:
+            await _send_via_resend(to_email, subject, body_html)
+            logger.info(f"Email sent via Resend to {to_email}: {subject}")
+        except Exception as exc:
+            logger.error(f"Resend failed to {to_email}: {exc}")
+        return
+
     if not settings.SMTP_HOST:
-        logger.warning(f"SMTP not configured. Would send to {to_email}: {subject}")
+        logger.warning(f"No email provider configured. Would send to {to_email}: {subject}")
         return
     try:
         loop = asyncio.get_event_loop()
         await loop.run_in_executor(None, partial(_send_sync, to_email, subject, body_html))
-        logger.info(f"Email sent to {to_email}: {subject}")
+        logger.info(f"Email sent via SMTP to {to_email}: {subject}")
     except Exception as exc:
-        logger.error(f"Failed to send email to {to_email}: {exc}")
+        logger.error(f"SMTP failed to {to_email}: {exc}")
 
 
 async def send_welcome_email(to_email: str, full_name: str, username: str, temp_password: str) -> None:
