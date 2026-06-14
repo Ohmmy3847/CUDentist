@@ -94,9 +94,17 @@ async def create_assessment(
     if patient_note:
         basic_info["patient_note"] = patient_note
 
+    assessment_data = dict(body.symptom_values or {})
+
+    # Set custom_symptoms on assessment (for needs_review_custom tracking)
+    # Keep original {symptom, detail} objects in assessment_data — flow_parser handles them
+    raw_custom = assessment_data.get("other_symptoms_custom", [])
+    if raw_custom and isinstance(raw_custom, list) and not assessment.custom_symptoms:
+        assessment.custom_symptoms = [i for i in raw_custom if i]
+
     risk_payload = {
         "basic_info": basic_info,
-        "assessment_data": body.symptom_values or {},
+        "assessment_data": assessment_data,
         "language": body.language,
         "patient_question": body.additional_questions or "",
     }

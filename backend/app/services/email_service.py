@@ -86,9 +86,10 @@ async def send_welcome_email(to_email: str, full_name: str, username: str, temp_
     await send_email(to_email, subject, body)
 
 
-async def send_otp_email(to_email: str, full_name: str, code: str, purpose: str) -> None:
+async def send_otp_email(to_email: str, full_name: str, code: str, purpose: str, ref_code: str = "") -> None:
     purpose_text = {"login": "เข้าสู่ระบบ", "change_password": "เปลี่ยนรหัสผ่าน", "change_email": "เปลี่ยนอีเมล"}.get(purpose, purpose)
     subject = f"รหัส OTP สำหรับ{purpose_text} — ระบบติดตามอาการผู้ป่วย"
+    ref_line = f'<p style="color: #6b7280; font-size: 13px;">Ref: <strong style="font-family: monospace;">{ref_code}</strong></p>' if ref_code else ""
     body = f"""
     <div style="font-family: sans-serif; max-width: 480px; margin: auto;">
       <h2 style="color: #1f2937;">รหัสยืนยันตัวตน (OTP)</h2>
@@ -99,6 +100,7 @@ async def send_otp_email(to_email: str, full_name: str, code: str, purpose: str)
                   color: #1d4ed8; font-family: monospace;">
         {code}
       </div>
+      {ref_line}
       <p style="color: #6b7280;">รหัสนี้มีอายุ <strong>5 นาที</strong> ใช้ได้เพียงครั้งเดียว</p>
       <p style="color: #9ca3af; font-size: 12px; margin-top: 16px;">หากไม่ได้ดำเนินการนี้ กรุณาเพิกเฉยอีเมลนี้</p>
     </div>
@@ -158,8 +160,21 @@ async def send_patient_response_email(
     needs_review: bool = False,
     clinical_summary: str | None = None,
     qa_answer: str | None = None,
+    patient_question: str | None = None,
 ) -> None:
-    risk_map = {'low': ('ต่ำ', '#16a34a', '#dcfce7'), 'medium': ('กลาง', '#d97706', '#fef9c3'), 'high': ('สูง', '#dc2626', '#fee2e2')}
+    risk_map = {
+        'low': ('ต่ำ', '#16a34a', '#dcfce7'),
+        'medium': ('กลาง', '#d97706', '#fef9c3'),
+        'high': ('สูง', '#dc2626', '#fee2e2'),
+        'ความเสี่ยงสูง': ('สูง', '#dc2626', '#fee2e2'),
+        'ความเสี่ยงปานกลาง': ('กลาง', '#d97706', '#fef9c3'),
+        'ความเสี่ยงต่ำ': ('ต่ำ', '#16a34a', '#dcfce7'),
+        'ซับซ้อน': ('ซับซ้อน', '#7c3aed', '#ede9fe'),
+        'High Risk': ('สูง', '#dc2626', '#fee2e2'),
+        'Medium Risk': ('กลาง', '#d97706', '#fef9c3'),
+        'Low Risk': ('ต่ำ', '#16a34a', '#dcfce7'),
+        'Complicated': ('ซับซ้อน', '#7c3aed', '#ede9fe'),
+    }
     risk_label, risk_color, risk_bg = risk_map.get(overall_risk, ('ไม่ระบุ', '#6b7280', '#f9fafb'))
 
     review_notice = ''
@@ -172,22 +187,48 @@ async def send_patient_response_email(
 
     summary_section = ''
     if clinical_summary:
-        lines = [f'<li style="margin-bottom:6px;">{line.lstrip("•-– ").strip()}</li>'
-                 for line in clinical_summary.split('\n') if line.strip()]
+        html_parts: list[str] = []
+        in_list = False
+        for line in clinical_summary.split('\n'):
+            stripped = line.strip()
+            if not stripped:
+                if in_list:
+                    html_parts.append('</ul>')
+                    in_list = False
+                continue
+            if stripped.startswith(('•', '-', '–')):
+                if not in_list:
+                    html_parts.append('<ul style="margin:4px 0 8px;padding-left:20px;color:#374151;font-size:14px;line-height:1.7;">')
+                    in_list = True
+                html_parts.append(f'<li style="margin-bottom:6px;">{stripped.lstrip("•-– ").strip()}</li>')
+            else:
+                if in_list:
+                    html_parts.append('</ul>')
+                    in_list = False
+                html_parts.append(f'<p style="margin:4px 0 6px;color:#374151;font-size:14px;line-height:1.7;">{stripped}</p>')
+        if in_list:
+            html_parts.append('</ul>')
         summary_section = f'''
         <div style="margin-top:20px;">
           <p style="margin:0 0 8px;font-weight:bold;color:#1f2937;font-size:14px;">คำแนะนำจากระบบ</p>
-          <ul style="margin:0;padding-left:20px;color:#374151;font-size:14px;line-height:1.7;">
-            {''.join(lines)}
-          </ul>
+          {''.join(html_parts)}
         </div>'''
 
     qa_section = ''
-    if qa_answer:
+    if qa_answer or patient_question:
+        question_html = (
+            f'<p style="margin:0 0 6px;color:#6b7280;font-size:13px;">คำถามของผู้ป่วย: <em>{patient_question}</em></p>'
+            if patient_question else ''
+        )
+        answer_html = (
+            f'<p style="margin:0;color:#374151;font-size:14px;line-height:1.7;">{qa_answer}</p>'
+            if qa_answer else ''
+        )
         qa_section = f'''
         <div style="margin-top:16px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:12px 16px;">
-          <p style="margin:0 0 6px;font-weight:bold;color:#1f2937;font-size:14px;">คำตอบสำหรับคำถามเพิ่มเติม</p>
-          <p style="margin:0;color:#374151;font-size:14px;line-height:1.7;">{qa_answer}</p>
+          <p style="margin:0 0 6px;font-weight:bold;color:#1f2937;font-size:14px;">คำถามและคำตอบเพิ่มเติม</p>
+          {question_html}
+          {answer_html}
         </div>'''
 
     subject = f"[{'ต้องตรวจสอบ' if needs_review else 'แบบประเมิน'}] {patient_name} (HN: {patient_hn}) — ระดับความเสี่ยง: {risk_label}"

@@ -460,6 +460,36 @@ def map_symptom(
 
 # ─── Multi-symptom mapping ────────────────────────────────────────────────────
 
+def _extract_original_phrases(free_text: str) -> List[str]:
+    """
+    Extract the original symptom phrases from the input before LLM splitting.
+
+    If free_text is a JSON array of {symptom, detail} objects (from the form),
+    return each non-empty symptom+detail concatenation as an original phrase.
+    For plain strings return [free_text] itself.
+    """
+    stripped = free_text.strip()
+    if stripped.startswith("[") or stripped.startswith("{"):
+        try:
+            parsed = json.loads(stripped)
+            if not isinstance(parsed, list):
+                parsed = [parsed]
+            phrases = []
+            for item in parsed:
+                if not isinstance(item, dict):
+                    continue
+                symptom = (item.get("symptom") or "").strip()
+                detail  = (item.get("detail")  or "").strip()
+                if symptom:
+                    phrase = f"{symptom} {detail}".strip() if detail else symptom
+                    phrases.append(phrase)
+            return phrases
+        except (json.JSONDecodeError, TypeError):
+            pass
+    # Plain string — use as-is
+    return [stripped] if stripped else []
+
+
 def map_symptoms(
     free_text: str,
     collection: chromadb.Collection,
@@ -472,6 +502,7 @@ def map_symptoms(
 
     Pipeline:
       Step 1 [LLM Extract]:  LLM แยก symptom phrases → fallback: regex split
+      Step 1b [Fallback guard]: เพิ่ม original phrases เผื่อ LLM split ผิด
       Step 2 [Per-segment]:  retrieve top-5 → LLM classify ต่อ segment
       Step 3 [Dedup]:        collapse ผลลัพธ์ที่ canonical label เดียวกัน
     """
@@ -489,6 +520,16 @@ def map_symptoms(
 
     if not segments:
         return [MappingResult(query=free_text, matched=False, tier="rejected", reason="no valid segments")]
+
+    # ── Step 1b: Fallback guard — also try original phrases ────────────────────
+    # If LLM split a phrase, the original unsplit text is added as an extra
+    # candidate so a wrong split doesn't lose a valid match.
+    original_phrases = _extract_original_phrases(free_text)
+    already = {s.strip().lower() for s in segments}
+    for phrase in original_phrases:
+        if phrase.strip().lower() not in already and len(phrase.strip()) >= 2:
+            segments.append(phrase)
+            logger.debug(f"[map_symptoms] Added original phrase as fallback: '{phrase}'")
 
     # ── Step 2: Map each segment ───────────────────────────────────────────────
     raw_results: List[MappingResult] = []

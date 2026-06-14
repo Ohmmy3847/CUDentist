@@ -412,24 +412,40 @@ class RuleEngine:
             symptoms = [symptoms]
         
         # ตรวจสอบว่ามี custom symptoms หรือไม่ (ต้องเช็คก่อนเสมอ)
-        custom_symptoms = data.get('other_symptoms_custom', '')
-        logger.info(f"custom_symptoms: {custom_symptoms}")
-        # แปลง list เป็น string
-        if isinstance(custom_symptoms, list):
-            custom_symptoms = ', '.join(str(item) for item in custom_symptoms if item)
-        custom_symptoms = str(custom_symptoms).strip()
-        
+        raw_custom = data.get('other_symptoms_custom', '')
+        logger.info(f"custom_symptoms raw: {raw_custom}")
+
+        # Build text to pass to map_symptoms / llm_extract_symptoms:
+        # - list of {symptom, detail} objects → serialize as JSON so LLM sees proper format
+        # - list of strings → comma-join
+        # - plain string → use as-is
+        # Never use str(dict) which produces Python repr like {'key': 'val'}
+        if isinstance(raw_custom, list) and raw_custom:
+            if isinstance(raw_custom[0], dict):
+                import json as _json
+                custom_symptoms_text = _json.dumps(
+                    [i for i in raw_custom if i], ensure_ascii=False
+                )
+            else:
+                custom_symptoms_text = ', '.join(
+                    str(i).strip() for i in raw_custom if str(i).strip()
+                )
+        else:
+            custom_symptoms_text = str(raw_custom).strip()
+
+        custom_symptoms = custom_symptoms_text  # keep for fallback error messages
+
         # ถ้ามี custom symptoms = นำไปผ่าน custom_symptom_mapping.py และส่งผลกลับเป็น flow ใหม่แยกย่อย
-        if custom_symptoms:
+        if custom_symptoms_text:
             from app.services.symptom.mapping import map_symptoms, get_collection
             try:
                 col = get_collection()
                 # Run map_symptoms which does multi-symptom LLM extraction and per-segment mapping
                 mapping_results = map_symptoms(
-                    custom_symptoms, 
-                    col, 
-                    top_k=5, 
-                    language=language, 
+                    custom_symptoms_text,
+                    col,
+                    top_k=5,
+                    language=language,
                     enable_llm=True
                 )
                 

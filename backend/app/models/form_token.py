@@ -16,4 +16,5 @@ class FormToken(Base):
     password_hash: Mapped[str | None] = mapped_column(String(64))
     is_used: Mapped[bool] = mapped_column(Boolean, default=False)
     line_sent: Mapped[bool] = mapped_column(Boolean, default=False)
+    form_url: Mapped[str | None] = mapped_column(String(512))  # stored at creation time
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)

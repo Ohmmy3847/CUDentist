@@ -39,9 +39,12 @@ async def list_documents():
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=f"Storage error: {e}")
 
+    from app.services.rag.chunker import MANIFEST_STORAGE_KEY
     result = []
     for f in storage_files:
         key = f.get("name", "")
+        if key == MANIFEST_STORAGE_KEY:
+            continue  # skip the internal manifest file
         ext = Path(key).suffix.lower()
         if ext not in ALLOWED_EXTENSIONS:
             continue
@@ -55,7 +58,7 @@ async def list_documents():
             "extension": ext,
             "sha256": info.get("sha256"),
             "last_ingested": info.get("last_ingested"),
-            "is_indexed": key in manifest,
+            "is_indexed": bool(info.get("last_ingested")),
         })
     return sorted(result, key=lambda x: x["filename"].lower())
 

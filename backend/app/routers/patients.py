@@ -32,12 +32,14 @@ def _norm_schedule(s: str | None) -> str | None:
 def _make_token(patient_hn: str, schedule_date: str | None, now: datetime, expire_days: int) -> FormToken:
     token_str = str(uuid.uuid4())
     plain_password = token_str[:6]
+    form_url = f"{settings.FRONTEND_URL.rstrip('/')}/form/{token_str}"
     return FormToken(
         token=token_str,
         patient_hn=patient_hn,
         schedule_date=schedule_date,
         password_hash=hashlib.sha256(plain_password.encode()).hexdigest(),
         expires_at=now + timedelta(days=expire_days),
+        form_url=form_url,
         created_at=now,
     )
 

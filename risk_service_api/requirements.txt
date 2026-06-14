@@ -26,3 +26,6 @@ python-docx
 
 
 supabase>=2.0.0
+pythainlp>=5.0.0
+langchain-google-genai>=2.0.0
+requests>=2.31.0

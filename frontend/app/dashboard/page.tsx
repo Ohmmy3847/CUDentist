@@ -240,7 +240,7 @@ export default function DashboardPage() {
                               </span>
                             ) : p.line_reg_code ? (
                               <span className="text-xs bg-yellow-50 text-yellow-800 border border-yellow-200 px-2 py-0.5 rounded-full font-mono">
-                                {p.line_reg_code.toUpperCase()}
+                                {p.line_reg_code}
                               </span>
                             ) : null}
                             {p.needs_review && (

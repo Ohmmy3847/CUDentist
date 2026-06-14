@@ -586,7 +586,7 @@ export default function PatientDetailPage() {
               </div>
               <p className="text-sm text-gray-500 text-center">
                 {patient.first_name} {patient.last_name}<br />
-                <span className="text-green-600 font-medium">สแกน QR → LINE เปิด → ส่งรหัสอัตโนมัติ</span>
+                <span className="text-green-600 font-medium">สแกน QR เพื่อเพิ่มเพื่อน LINE OA แล้วพิมพ์รหัสด้านล่าง</span>
               </p>
               <QRCodeSVG value={deepLink} size={200} />
               <div className="flex items-center gap-3 bg-yellow-50 border border-yellow-200 rounded-xl px-4 py-2.5 w-full justify-between">

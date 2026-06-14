@@ -686,7 +686,7 @@ export default function NewPatientPage() {
             <button type="button" onClick={() => router.back()} className="btn-outline">ยกเลิก</button>
             <button type="submit" disabled={loading} className="btn-primary flex items-center gap-2">
               {loading && <Spinner className="w-4 h-4" />}
-              {loading ? 'กำลังประมวลผล AI...' : 'บันทึก'}
+              {loading ? 'กำลังบันทึก...' : 'บันทึก'}
             </button>
           </div>
         </form>

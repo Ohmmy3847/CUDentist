@@ -1,5 +1,5 @@
 import hashlib
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks, Request
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -30,7 +30,29 @@ async def _get_valid_token(token: str, db: AsyncSession) -> tuple[FormToken, Pat
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="ลิงก์ไม่ถูกต้อง")
     if row.is_used:
         raise HTTPException(status_code=status.HTTP_410_GONE, detail="แบบประเมินนี้ถูกส่งไปแล้ว")
-        
+
+    # Block early submission: allow only from 2 hours before schedule (Thailand = UTC+7)
+    if row.schedule_date:
+        try:
+            from dateutil.parser import isoparse
+            THAI_TZ = timezone(timedelta(hours=7))
+            sched = isoparse(row.schedule_date.replace("Z", "+00:00"))
+            if sched.tzinfo is None:
+                # Naive string → assume Thai local time (UTC+7), not UTC
+                sched = sched.replace(tzinfo=THAI_TZ)
+            now = datetime.now(timezone.utc)
+            earliest = sched - timedelta(hours=2)
+            if now < earliest:
+                sched_th = sched.astimezone(THAI_TZ)
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail=f"ยังไม่ถึงเวลาประเมิน กรุณารอจนถึงวันที่ {sched_th.strftime('%d/%m/%Y เวลา %H:%M')} น."
+                )
+        except HTTPException:
+            raise
+        except Exception:
+            pass
+
     patient = await db.get(Patient, row.patient_hn)
     if not patient or patient.status != "active":
         raise HTTPException(status_code=status.HTTP_410_GONE, detail="เคสนี้ถูกปิดไปแล้ว ไม่สามารถประเมินได้")
@@ -126,6 +148,7 @@ async def process_risk_and_save(session_factory, assessment_id: int, risk_payloa
                     patient_name = f"{patient.first_name} {patient.last_name}"
                     qa_data = risk_result.get("qa_answer")
                     qa_text = (qa_data.get("answer") or "").strip() if isinstance(qa_data, dict) else None
+                    patient_question = (risk_payload.get("patient_question") or "").strip() or None
                     await send_patient_response_email(
                         to_email=nurse.email,
                         nurse_name=f"{nurse.first_name} {nurse.last_name}",
@@ -136,6 +159,7 @@ async def process_risk_and_save(session_factory, assessment_id: int, risk_payloa
                         needs_review=result.needs_review,
                         clinical_summary=summary.get("summary"),
                         qa_answer=qa_text or None,
+                        patient_question=patient_question,
                     )
         except Exception as exc:
             print(f"Background risk processing failed for assessment {assessment_id}: {exc}")

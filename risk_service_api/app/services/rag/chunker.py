@@ -92,8 +92,9 @@ def _get_chroma_client():
         CHROMADB_DIR.mkdir(parents=True, exist_ok=True)
         return _c.PersistentClient(path=str(CHROMADB_DIR))
 
-MANIFEST_FILE = CHROMADB_DIR / "doc_manifest.json"
-STATUS_FILE   = CHROMADB_DIR / "ingest_status.json"
+MANIFEST_FILE         = CHROMADB_DIR / "doc_manifest.json"
+STATUS_FILE           = CHROMADB_DIR / "ingest_status.json"
+MANIFEST_STORAGE_KEY  = "_manifest.json"  # persisted in Supabase bucket
 
 # ── BM25 Thai Tokenizer ─────────────────────────────────────────────
 from app.services.common.thai_tokenizer import bm25_thai_preprocess  # noqa: F401
@@ -525,15 +526,44 @@ def compute_file_hash(file_path: Path) -> str:
 
 
 def load_manifest() -> dict:
+    # 1. Local cache (fast path — warm after first load or ingest)
     if MANIFEST_FILE.exists():
-        with open(MANIFEST_FILE) as f:
-            return json.load(f)
-    return {}
+        try:
+            with open(MANIFEST_FILE) as f:
+                return json.load(f)
+        except Exception:
+            pass
+    # 2. Supabase Storage — survives Railway restarts / ephemeral filesystems
+    try:
+        from app.services.storage_service import _client as _sc
+        from app.core.config import settings as _cfg
+        data = _sc().storage.from_(_cfg.SUPABASE_STORAGE_BUCKET).download(MANIFEST_STORAGE_KEY)
+        manifest = json.loads(data)
+        CHROMADB_DIR.mkdir(parents=True, exist_ok=True)
+        with open(MANIFEST_FILE, "w") as _f:
+            json.dump(manifest, _f, indent=2, ensure_ascii=False)
+        logger.info("[manifest] Restored from Supabase Storage")
+        return manifest
+    except Exception:
+        return {}
 
 
 def save_manifest(manifest: dict) -> None:
+    CHROMADB_DIR.mkdir(parents=True, exist_ok=True)
     with open(MANIFEST_FILE, "w") as f:
         json.dump(manifest, f, indent=2, ensure_ascii=False)
+    # Persist to Supabase so manifest survives server restarts
+    try:
+        from app.services.storage_service import _client as _sc
+        from app.core.config import settings as _cfg
+        payload = json.dumps(manifest, indent=2, ensure_ascii=False).encode()
+        _sc().storage.from_(_cfg.SUPABASE_STORAGE_BUCKET).upload(
+            path=MANIFEST_STORAGE_KEY,
+            file=payload,
+            file_options={"content-type": "application/json", "upsert": "true", "x-upsert": "true"},
+        )
+    except Exception as e:
+        logger.warning(f"[manifest] Failed to persist to Supabase: {e}")
 
 
 def write_status(status: str, mode: str = "", message: str = "",

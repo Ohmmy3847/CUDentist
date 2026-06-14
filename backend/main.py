@@ -53,7 +53,10 @@ async def _line_scheduler(session_factory) -> None:
                     continue
                 try:
                     now = datetime.now(timezone.utc)
-                    window = timedelta(hours=settings.LINE_SEND_WINDOW_HOURS)
+                    # catch-up window: how far back we still attempt to send (server downtime)
+                    catchup = timedelta(hours=settings.LINE_SEND_WINDOW_HOURS)
+                    # early tolerance: send up to this many minutes BEFORE schedule (scheduler jitter)
+                    early_tolerance = timedelta(minutes=5)
                     result = await session.execute(
                         select(FormToken).where(
                             FormToken.line_sent == False,  # noqa: E712
@@ -70,13 +73,17 @@ async def _line_scheduler(session_factory) -> None:
                             )
                         except Exception:
                             continue
-                        if not (now - window <= sched <= now + window):
+                        # Send only when: schedule time has arrived (or within 5 min from now)
+                        # and not more than LINE_SEND_WINDOW_HOURS in the past (catch-up)
+                        if not (now - catchup <= sched <= now + early_tolerance):
                             continue
                         patient = await session.get(Patient, token.patient_hn)
                         if not patient or not patient.line_user_id:
                             continue
                         try:
-                            url = f"{settings.FRONTEND_URL}/form/{token.token}"
+                            # Use URL stored at token-creation time (Railway FRONTEND_URL)
+                            # so the correct URL is sent regardless of which process runs the scheduler
+                            url = token.form_url or f"{settings.FRONTEND_URL.rstrip('/')}/form/{token.token}"
                             plain_password = token.token[:6]
                             await push_form_link(
                                 patient.line_user_id,
@@ -102,9 +109,22 @@ async def _line_scheduler(session_factory) -> None:
             logger.error("Line scheduler error: %s", exc)
 
 
+def _run_migrations() -> None:
+    """Run Alembic migrations on startup so schema is always up to date."""
+    try:
+        from alembic.config import Config
+        from alembic import command
+        alembic_cfg = Config("alembic.ini")
+        command.upgrade(alembic_cfg, "head")
+        logger.info("✓ DB migrations applied")
+    except Exception as exc:
+        logger.warning("Migration failed (continuing anyway): %s", exc)
+
+
 def create_app() -> FastAPI:
     @asynccontextmanager
     async def lifespan(app: FastAPI):
+        _run_migrations()
         engine = create_engine(settings.DATABASE_URL)
         session_factory = create_session_factory(engine)
         app.state.db_engine = engine

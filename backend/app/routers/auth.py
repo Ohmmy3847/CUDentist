@@ -127,7 +127,7 @@ async def login(body: LoginRequest, db: AsyncSession = Depends(get_db)):
             token = create_access_token(user.user_id)
             return LoginResponse(access_token=token)
         otp = await _create_otp(db, user.user_id, "login")
-        await send_otp_email(user.email, f"{user.first_name} {user.last_name}", otp.code, "login")
+        await send_otp_email(user.email, f"{user.first_name} {user.last_name}", otp.code, "login", ref_code=otp.session_token[:6].upper())
         return LoginResponse(requires_2fa=True, otp_session=otp.session_token)
 
     token = create_access_token(user.user_id)
@@ -198,7 +198,7 @@ async def request_change_password(
 
     if current_user.email:
         otp = await _create_otp(db, current_user.user_id, "change_password", payload=new_hash)
-        await send_otp_email(current_user.email, f"{current_user.first_name} {current_user.last_name}", otp.code, "change_password")
+        await send_otp_email(current_user.email, f"{current_user.first_name} {current_user.last_name}", otp.code, "change_password", ref_code=otp.session_token[:6].upper())
         return {"requires_otp": True, "otp_session": otp.session_token}
 
     # No email — apply directly
@@ -239,7 +239,7 @@ async def request_change_email(
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="อีเมลนี้ถูกใช้งานโดยบัญชีอื่นแล้ว")
     otp = await _create_otp(db, current_user.user_id, "change_email", payload=body.new_email)
     full_name = f"{current_user.first_name} {current_user.last_name}"
-    await send_otp_email(body.new_email, full_name, otp.code, "change_email")
+    await send_otp_email(body.new_email, full_name, otp.code, "change_email", ref_code=otp.session_token[:6].upper())
     return {"otp_session": otp.session_token}
 
 

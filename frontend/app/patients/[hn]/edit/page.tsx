@@ -758,7 +758,7 @@ export default function EditPatientPage() {
             <button type="button" onClick={() => router.back()} className="btn-outline">ยกเลิก</button>
             <button type="submit" disabled={loading || editingLocked} className="btn-primary flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
               {loading && <Spinner className="w-4 h-4" />}
-              {loading ? 'กำลังประมวลผล AI...' : 'บันทึก'}
+              {loading ? 'กำลังบันทึก...' : 'บันทึก'}
             </button>
           </div>
         </form>
