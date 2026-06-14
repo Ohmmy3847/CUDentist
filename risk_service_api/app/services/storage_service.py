@@ -20,10 +20,22 @@ def _client() -> Client:
 
 
 def _safe_key(filename: str) -> str:
-    """Convert filename to a Supabase-safe storage key (ASCII only, no spaces)."""
+    """Convert filename to a unique Supabase-safe storage key (ASCII only, no spaces).
+
+    If the original name contains non-ASCII characters (e.g. Thai), a short MD5
+    hash of the full original name is appended so that two files with the same
+    ASCII prefix but different Thai content never collide.
+    """
     stem = Path(filename).stem
     suffix = Path(filename).suffix
-    safe_stem = re.sub(r"[^\w\-.]", "_", stem.encode("ascii", "ignore").decode())
+    ascii_stem = stem.encode("ascii", "ignore").decode()
+    safe_stem = re.sub(r"[^\w\-]", "_", ascii_stem).strip("_")
+
+    has_non_ascii = ascii_stem != stem
+    if has_non_ascii:
+        h = hashlib.md5(filename.encode()).hexdigest()[:8]
+        return f"{safe_stem}_{h}{suffix}" if safe_stem else f"{h}{suffix}"
+
     if not safe_stem:
         safe_stem = hashlib.md5(filename.encode()).hexdigest()[:16]
     return f"{safe_stem}{suffix}"
