@@ -124,6 +124,8 @@ async def process_risk_and_save(session_factory, assessment_id: int, risk_payloa
                 nurse = nurse_res.scalar_one_or_none()
                 if nurse and nurse.email:
                     patient_name = f"{patient.first_name} {patient.last_name}"
+                    qa_data = risk_result.get("qa_answer")
+                    qa_text = (qa_data.get("answer") or "").strip() if isinstance(qa_data, dict) else None
                     await send_patient_response_email(
                         to_email=nurse.email,
                         nurse_name=f"{nurse.first_name} {nurse.last_name}",
@@ -133,7 +135,7 @@ async def process_risk_and_save(session_factory, assessment_id: int, risk_payloa
                         frontend_url=settings.FRONTEND_URL,
                         needs_review=result.needs_review,
                         clinical_summary=summary.get("summary"),
-                        qa_answer=risk_result.get("qa_answer"),
+                        qa_answer=qa_text or None,
                     )
         except Exception as exc:
             print(f"Background risk processing failed for assessment {assessment_id}: {exc}")

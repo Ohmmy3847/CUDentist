@@ -11,7 +11,7 @@ from app.models.assessment import Assessment, AssessmentResult
 from app.models.user import User
 from app.schemas.assessment import AssessmentCreate, AssessmentListItem, AssessmentOut, AssessmentResultUpdate
 from app.services.assessment_service import call_risk_service
-from app.services.line_service import build_patient_result_message, push_text
+from app.services.line_service import build_patient_result_message, build_qa_message, push_text
 
 router = APIRouter(prefix="/assessments", tags=["assessments"])
 
@@ -199,6 +199,7 @@ async def update_assessment_result(
     if (prev_needs_review and not result.needs_review) and result.patient_notified_at is None:
         patient = await db.get(Patient, assessment.patient_hn)
         if patient and patient.line_user_id:
+            # Message 1: recommendation
             await push_text(
                 patient.line_user_id,
                 build_patient_result_message(
@@ -207,6 +208,15 @@ async def update_assessment_result(
                     result.clinical_summary,
                 ),
             )
+            # Message 2: QA (if patient asked a question)
+            if result.qa_answer:
+                question = assessment.additional_questions or ""
+                qa_text = (result.qa_answer.get("answer") or "").strip()
+                if qa_text:
+                    await push_text(
+                        patient.line_user_id,
+                        build_qa_message(assessment.language, question, qa_text),
+                    )
             result.patient_notified_at = datetime.now(timezone.utc)
             db.add(result)
             await db.commit()

@@ -81,19 +81,38 @@ async def fetch_line_profile(user_id: str) -> dict | None:
         return None
 
 
-def build_patient_result_message(language: str | None, overall_risk: str | None, clinical_summary: str | None) -> str:
+def build_qa_message(language: str | None, question: str, answer: str) -> str:
+    question = (question or "").strip()[:300]
+    answer = (answer or "").strip()[:600]
+    if (language or "th") == "en":
+        return f"— Answer to your question —\n\nQ: {question}\n\nA: {answer}"
+    return f"— คำตอบสำหรับคำถามของคุณ —\n\nคำถาม: {question}\n\nคำตอบ: {answer}"
+
+
+def build_patient_result_message(
+    language: str | None,
+    overall_risk: str | None,
+    clinical_summary: str | None,
+    qa_answer: str | None = None,
+) -> str:
     overall_risk = overall_risk or "-"
-    clinical_summary = (clinical_summary or "").strip()
-    clinical_summary = clinical_summary[:800]
+    clinical_summary = (clinical_summary or "").strip()[:800]
+    qa_answer = (qa_answer or "").strip()[:600]
 
     if (language or "th") == "en":
+        msg = f"Your assessment has been processed.\n\nRisk level: {overall_risk}"
         if clinical_summary:
-            return f"Your assessment has been processed.\n\nRisk level: {overall_risk}\n{clinical_summary}"
-        return f"Your assessment has been processed.\n\nRisk level: {overall_risk}"
+            msg += f"\n\n{clinical_summary}"
+        if qa_answer:
+            msg += f"\n\n— Answer to your question —\n{qa_answer}"
+        return msg
 
+    msg = f"ระบบประมวลผลแบบประเมินของคุณเรียบร้อยแล้วค่ะ\n\nระดับความเสี่ยง: {overall_risk}"
     if clinical_summary:
-        return f"ระบบประมวลผลแบบประเมินของคุณเรียบร้อยแล้วค่ะ\n\nระดับความเสี่ยง: {overall_risk}\n{clinical_summary}"
-    return f"ระบบประมวลผลแบบประเมินของคุณเรียบร้อยแล้วค่ะ\n\nระดับความเสี่ยง: {overall_risk}"
+        msg += f"\n\n{clinical_summary}"
+    if qa_answer:
+        msg += f"\n\n— คำตอบสำหรับคำถามของคุณ —\n{qa_answer}"
+    return msg
 
 
 def format_schedules_th(schedules: list) -> str:

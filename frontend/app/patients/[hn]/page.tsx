@@ -275,16 +275,13 @@ function QAPanel({ assessment, onUpdated }: { assessment: Assessment; onUpdated:
   const startEdit = () => { setDraft(displayAnswer); setEditing(true) }
   const cancelEdit = () => setEditing(false)
 
-  const save = async (markDone: boolean) => {
+  const save = async () => {
     setSaving(true)
     try {
-      const updated = await updateAssessmentResult(assessment.assessment_id, {
-        qa_answer_text: draft,
-        ...(markDone ? { needs_review: false } : {}),
-      })
+      const updated = await updateAssessmentResult(assessment.assessment_id, { qa_answer_text: draft })
       onUpdated(updated)
       setEditing(false)
-      success(markDone ? 'บันทึกและยืนยันเรียบร้อยแล้ว' : 'บันทึกคำตอบเรียบร้อยแล้ว')
+      success('บันทึกคำตอบเรียบร้อยแล้ว')
     } catch {
       error('บันทึกไม่สำเร็จ กรุณาลองใหม่')
     } finally {
@@ -347,11 +344,8 @@ function QAPanel({ assessment, onUpdated }: { assessment: Assessment; onUpdated:
           />
           <div className="flex gap-2 justify-end">
             <button onClick={cancelEdit} disabled={saving} className="btn btn-ghost text-sm px-3 py-1.5">ยกเลิก</button>
-            <button onClick={() => save(false)} disabled={saving} className="text-sm px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 text-gray-700 disabled:opacity-50">
-              {saving ? '...' : 'บันทึก'}
-            </button>
-            <button onClick={() => save(true)} disabled={saving} className="btn btn-primary text-sm px-3 py-1.5 disabled:opacity-50">
-              {saving ? 'กำลังบันทึก...' : 'บันทึกและยืนยัน'}
+            <button onClick={save} disabled={saving} className="btn btn-primary text-sm px-3 py-1.5 disabled:opacity-50">
+              {saving ? 'กำลังบันทึก...' : 'บันทึก'}
             </button>
           </div>
         </div>
