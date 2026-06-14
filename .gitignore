@@ -13,6 +13,7 @@ ENV/
 *.csv
 results/
 temp_*.csv
+risk_service_api/data/chroma_db/
 doc/
 api/data/
 
