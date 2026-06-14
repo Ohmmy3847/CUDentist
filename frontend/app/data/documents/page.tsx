@@ -22,6 +22,7 @@ import {
   getIngestStatus,
   getTextDocument,
   listRagDocuments,
+  renameRagDocument,
   triggerIngest,
   updateTextDocument,
   uploadRagDocument,
@@ -63,6 +64,7 @@ export default function DocumentsPage() {
   const [editorLoading, setEditorLoading] = useState(false)
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [deleting, setDeleting] = useState(false)
+  const [renaming, setRenaming] = useState<{ key: string; value: string } | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
 
   const loadDocs = useCallback(async () => {
@@ -151,6 +153,13 @@ export default function DocumentsPage() {
     } finally {
       setDeleting(false)
     }
+  }
+
+  const saveRename = async () => {
+    if (!renaming || !renaming.value.trim()) { setRenaming(null); return }
+    await renameRagDocument(renaming.key, renaming.value.trim())
+    setDocs(prev => prev.map(d => d.storage_key === renaming.key ? { ...d, filename: renaming.value.trim() } : d))
+    setRenaming(null)
   }
 
   const toggleOne = (key: string) => {
@@ -403,7 +412,24 @@ export default function DocumentsPage() {
                         <span className={`text-xs font-bold px-1.5 py-0.5 rounded shrink-0 ${d.extension === '.pdf' ? 'bg-red-100 text-red-600' : d.extension === '.md' ? 'bg-purple-100 text-purple-600' : 'bg-blue-100 text-blue-600'}`}>
                           {d.extension.replace('.', '').toUpperCase() || 'FILE'}
                         </span>
-                        <span className="text-gray-800 font-medium max-w-[160px] sm:max-w-[260px] truncate">{d.filename}</span>
+                        {renaming?.key === d.storage_key ? (
+                          <input
+                            autoFocus
+                            className="input py-0.5 px-2 text-sm h-7 max-w-[220px]"
+                            value={renaming.value}
+                            onChange={e => setRenaming(r => r ? { ...r, value: e.target.value } : r)}
+                            onBlur={saveRename}
+                            onKeyDown={e => { if (e.key === 'Enter') saveRename(); if (e.key === 'Escape') setRenaming(null) }}
+                          />
+                        ) : (
+                          <span
+                            className="text-gray-800 font-medium max-w-[160px] sm:max-w-[260px] truncate cursor-pointer hover:text-primary"
+                            title="ดับเบิลคลิกเพื่อเปลี่ยนชื่อ"
+                            onDoubleClick={() => setRenaming({ key: d.storage_key, value: d.filename })}
+                          >
+                            {d.filename}
+                          </span>
+                        )}
                       </div>
                     </td>
                     <td className="px-4 py-3 text-gray-500 hidden sm:table-cell">{fileSize(d.size)}</td>

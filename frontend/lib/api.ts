@@ -129,6 +129,12 @@ export const uploadRagDocument = (file: File) => {
 export const deleteRagDocument = (filename: string) =>
   client.delete(`/rag/documents/${encodeURIComponent(filename)}`)
 
+export const renameRagDocument = (storageKey: string, displayName: string) =>
+  client.patch<{ storage_key: string; display_name: string }>(
+    `/rag/documents/${encodeURIComponent(storageKey)}/rename`,
+    { display_name: displayName }
+  ).then(r => r.data)
+
 export const triggerIngest = (mode: 'reingest' | 'append') =>
   client.post('/rag/ingest', { mode }).then(r => r.data)
 

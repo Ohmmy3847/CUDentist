@@ -115,6 +115,25 @@ async def ask_rag(body: AskRequest):
     return result
 
 
+class RenameRequest(BaseModel):
+    display_name: str
+
+
+@router.patch("/{filename}/rename", summary="Update display name of a document in manifest")
+async def rename_document(filename: str, body: RenameRequest):
+    if "/" in filename or "\\" in filename or ".." in filename:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid filename")
+    name = body.display_name.strip()
+    if not name:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="display_name is required")
+    manifest = load_manifest()
+    entry = manifest.get(filename, {})
+    entry["original_name"] = name
+    manifest[filename] = entry
+    save_manifest(manifest)
+    return {"storage_key": filename, "display_name": name}
+
+
 @router.delete("/{filename}", status_code=status.HTTP_204_NO_CONTENT, summary="Delete a document and its ChromaDB chunks")
 async def delete_document(filename: str):
     # Prevent path traversal
