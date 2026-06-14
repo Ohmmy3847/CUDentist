@@ -29,12 +29,19 @@ def _send_sync(to_email: str, subject: str, body_html: str) -> None:
     msg["To"] = to_email
     msg.attach(MIMEText(body_html, "html", "utf-8"))
 
-    with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT, timeout=10) as smtp:
-        if settings.SMTP_TLS:
-            smtp.starttls()
-        if settings.SMTP_USER and settings.SMTP_PASSWORD:
-            smtp.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
-        smtp.sendmail(settings.SMTP_FROM, to_email, msg.as_string())
+    # Port 465 = SSL from the start (SMTP_SSL), port 587 = STARTTLS upgrade
+    if settings.SMTP_PORT == 465:
+        with smtplib.SMTP_SSL(settings.SMTP_HOST, settings.SMTP_PORT, timeout=10) as smtp:
+            if settings.SMTP_USER and settings.SMTP_PASSWORD:
+                smtp.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
+            smtp.sendmail(settings.SMTP_FROM, to_email, msg.as_string())
+    else:
+        with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT, timeout=10) as smtp:
+            if settings.SMTP_TLS:
+                smtp.starttls()
+            if settings.SMTP_USER and settings.SMTP_PASSWORD:
+                smtp.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
+            smtp.sendmail(settings.SMTP_FROM, to_email, msg.as_string())
 
 
 async def send_email(to_email: str, subject: str, body_html: str) -> None:
