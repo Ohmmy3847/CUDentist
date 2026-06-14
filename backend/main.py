@@ -110,7 +110,7 @@ async def _line_scheduler(session_factory) -> None:
 
 
 def _run_migrations() -> None:
-    """Run Alembic migrations on startup so schema is always up to date."""
+    """Run Alembic migrations — must run in a thread so asyncio.run() in env.py can create its own loop."""
     try:
         from alembic.config import Config
         from alembic import command
@@ -124,7 +124,8 @@ def _run_migrations() -> None:
 def create_app() -> FastAPI:
     @asynccontextmanager
     async def lifespan(app: FastAPI):
-        _run_migrations()
+        loop = asyncio.get_event_loop()
+        await loop.run_in_executor(None, _run_migrations)
         engine = create_engine(settings.DATABASE_URL)
         session_factory = create_session_factory(engine)
         app.state.db_engine = engine
