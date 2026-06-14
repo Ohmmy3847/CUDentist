@@ -45,7 +45,7 @@ function fmt(iso: string | null) {
 type EditorModal =
   | { open: false }
   | { open: true; mode: 'create'; filename: string; content: string }
-  | { open: true; mode: 'edit'; filename: string; content: string }
+  | { open: true; mode: 'edit'; filename: string; storageKey: string; content: string }
 
 export default function DocumentsPage() {
   const router = useRouter()
@@ -154,12 +154,12 @@ export default function DocumentsPage() {
 
   const openCreate = () => setEditor({ open: true, mode: 'create', filename: '', content: '' })
 
-  const openEdit = async (filename: string) => {
+  const openEdit = async (storageKey: string, displayName: string) => {
     setEditorLoading(true)
-    setEditor({ open: true, mode: 'edit', filename, content: '' })
+    setEditor({ open: true, mode: 'edit', filename: displayName, storageKey, content: '' })
     try {
-      const data = await getTextDocument(filename)
-      setEditor({ open: true, mode: 'edit', filename, content: data.content })
+      const data = await getTextDocument(storageKey)
+      setEditor({ open: true, mode: 'edit', filename: displayName, storageKey, content: data.content })
     } finally {
       setEditorLoading(false)
     }
@@ -172,7 +172,7 @@ export default function DocumentsPage() {
       if (editor.mode === 'create') {
         await createTextDocument(editor.filename, editor.content)
       } else {
-        await updateTextDocument(editor.filename, editor.content)
+        await updateTextDocument(editor.storageKey, editor.content)
       }
       setEditor({ open: false })
       await loadDocs()
@@ -356,7 +356,7 @@ export default function DocumentsPage() {
                       <div className="flex items-center gap-2">
                         {(d.extension === '.txt' || d.extension === '.md') && (
                           <button
-                            onClick={() => openEdit(d.filename)}
+                            onClick={() => openEdit(d.storage_key, d.filename)}
                             className="text-gray-400 hover:text-primary transition-colors"
                             title="แก้ไขเนื้อหา"
                           >

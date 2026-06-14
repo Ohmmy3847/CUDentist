@@ -652,7 +652,10 @@ async def ingest(mode: str = "reingest", *, reset: bool = False):
 
             deleted_names = {n for n in manifest if n not in current_hashes}
             changed_names = {n for n, h in current_hashes.items()
-                             if n in manifest and manifest[n].get("sha256") != h}
+                             if n in manifest and (
+                                 manifest[n].get("sha256") != h
+                                 or not manifest[n].get("last_ingested")
+                             )}
             new_names     = {n for n in current_hashes if n not in manifest}
 
             # Remove stale chunks from ChromaDB

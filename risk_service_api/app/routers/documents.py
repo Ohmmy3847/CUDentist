@@ -178,6 +178,17 @@ async def create_text_document(body: TextDocumentRequest):
     if dest.exists():
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="File already exists")
     dest.write_text(body.content, encoding="utf-8")
+    # Upload to Supabase Storage so the file persists across restarts and appears in list
+    try:
+        from app.services.storage_service import upload_file as storage_upload
+        key = storage_upload(name, dest.read_bytes(), "text/plain")
+        manifest = load_manifest()
+        entry = manifest.get(key, {})
+        entry["original_name"] = name
+        manifest[key] = entry
+        save_manifest(manifest)
+    except Exception:
+        pass
     return {"filename": dest.name, "size": dest.stat().st_size, "status": "created"}
 
 
@@ -185,11 +196,18 @@ async def create_text_document(body: TextDocumentRequest):
 async def get_text_document(filename: str):
     if "/" in filename or "\\" in filename or ".." in filename:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid filename")
+    if Path(filename).suffix.lower() not in (".txt", ".md"):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Only .txt and .md files are editable")
     target = DOCUMENT_DIR / filename
     if not target.exists():
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="File not found")
-    if target.suffix.lower() not in (".txt", ".md"):
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Only .txt and .md files are editable")
+        # File not local — try fetching directly from Supabase Storage by key
+        try:
+            from app.services.storage_service import download_file
+            data = download_file(filename)
+            DOCUMENT_DIR.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(data)
+        except Exception:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="File not found")
     return {"filename": filename, "content": target.read_text(encoding="utf-8")}
 
 
@@ -197,12 +215,25 @@ async def get_text_document(filename: str):
 async def update_text_document(filename: str, body: TextDocumentUpdateRequest):
     if "/" in filename or "\\" in filename or ".." in filename:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid filename")
-    target = DOCUMENT_DIR / filename
-    if not target.exists():
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="File not found")
-    if target.suffix.lower() not in (".txt", ".md"):
+    if Path(filename).suffix.lower() not in (".txt", ".md"):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Only .txt and .md files are editable")
+    DOCUMENT_DIR.mkdir(parents=True, exist_ok=True)
+    target = DOCUMENT_DIR / filename
     target.write_text(body.content, encoding="utf-8")
+    # Upload updated content to Supabase Storage and mark as needing re-ingest
+    try:
+        from app.services.storage_service import upload_file as storage_upload
+        storage_upload(filename, target.read_bytes(), "text/plain")
+    except Exception:
+        pass
+    try:
+        manifest = load_manifest()
+        if filename in manifest:
+            manifest[filename].pop("sha256", None)
+            manifest[filename].pop("last_ingested", None)
+            save_manifest(manifest)
+    except Exception:
+        pass
     return {"filename": filename, "size": target.stat().st_size, "status": "updated"}
 
 
