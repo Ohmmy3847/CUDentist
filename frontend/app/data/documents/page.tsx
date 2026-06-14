@@ -52,6 +52,7 @@ export default function DocumentsPage() {
   const [docs, setDocs] = useState<RagDocument[]>([])
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState<{ current: number; total: number; filename: string } | null>(null)
   const [dragOver, setDragOver] = useState(false)
   const [ingestStatus, setIngestStatus] = useState<IngestStatus | null>(null)
   const [ingesting, setIngesting] = useState(false)
@@ -108,14 +109,18 @@ export default function DocumentsPage() {
 
   const handleFiles = async (files: FileList | null) => {
     if (!files || files.length === 0) return
+    const fileArray = Array.from(files)
     setUploading(true)
     try {
-      for (const file of Array.from(files)) {
+      for (let i = 0; i < fileArray.length; i++) {
+        const file = fileArray[i]
+        setUploadProgress({ current: i + 1, total: fileArray.length, filename: file.name })
         await uploadRagDocument(file)
       }
       await loadDocs()
     } finally {
       setUploading(false)
+      setUploadProgress(null)
     }
   }
 
@@ -136,8 +141,11 @@ export default function DocumentsPage() {
       if (!confirm('สร้างฐานข้อมูล AI ใหม่ทั้งหมด?\n\nAI จะลืมเอกสารเดิมทั้งหมด และเริ่มต้นใหม่จากศูนย์')) return
     }
     setIngesting(true)
+    // Show running state immediately so polling kicks in without waiting for loadStatus()
+    setIngestStatus({ status: 'running', mode, message: 'กำลังเริ่มต้น…', files_processed: 0, files_total: 0, updated_at: new Date().toISOString(), error: '' })
     try {
       await triggerIngest(mode)
+    } catch {
       await loadStatus()
     } finally {
       setIngesting(false)
@@ -205,23 +213,33 @@ export default function DocumentsPage() {
 
       {/* Ingest status bar */}
       {ingestStatus && ingestStatus.status !== 'idle' && (
-        <div className={`flex items-center gap-3 rounded-lg px-4 py-3 mb-4 text-sm ${
+        <div className={`rounded-lg px-4 py-3 mb-4 text-sm ${
           ingestStatus.status === 'running'
             ? 'bg-yellow-50 border border-yellow-200 text-yellow-800'
             : ingestStatus.status === 'done'
             ? 'bg-green-50 border border-green-200 text-green-800'
             : 'bg-red-50 border border-red-200 text-red-800'
         }`}>
-          {ingestStatus.status === 'running' && <Loader2 className="w-4 h-4 animate-spin shrink-0" />}
-          {ingestStatus.status === 'done' && <CheckCircle2 className="w-4 h-4 shrink-0" />}
-          {ingestStatus.status === 'error' && <AlertCircle className="w-4 h-4 shrink-0" />}
-          <span className="flex-1">
-            {ingestStatus.status === 'error' ? ingestStatus.error || ingestStatus.message : ingestStatus.message}
-          </span>
-          {ingestStatus.status === 'running' && ingestStatus.files_total > 0 && (
-            <span className="shrink-0 font-medium">
-              {ingestStatus.files_processed}/{ingestStatus.files_total} files
+          <div className="flex items-center gap-3">
+            {ingestStatus.status === 'running' && <Loader2 className="w-4 h-4 animate-spin shrink-0" />}
+            {ingestStatus.status === 'done' && <CheckCircle2 className="w-4 h-4 shrink-0" />}
+            {ingestStatus.status === 'error' && <AlertCircle className="w-4 h-4 shrink-0" />}
+            <span className="flex-1">
+              {ingestStatus.status === 'error' ? ingestStatus.error || ingestStatus.message : ingestStatus.message}
             </span>
+            {ingestStatus.status === 'running' && ingestStatus.files_total > 0 && (
+              <span className="shrink-0 font-medium text-xs">
+                {ingestStatus.files_processed}/{ingestStatus.files_total} ไฟล์
+              </span>
+            )}
+          </div>
+          {ingestStatus.status === 'running' && ingestStatus.files_total > 0 && (
+            <div className="mt-2 bg-yellow-200 rounded-full h-1.5">
+              <div
+                className="bg-yellow-600 rounded-full h-1.5 transition-all duration-500"
+                style={{ width: `${Math.round((ingestStatus.files_processed / ingestStatus.files_total) * 100)}%` }}
+              />
+            </div>
           )}
         </div>
       )}
@@ -237,7 +255,25 @@ export default function DocumentsPage() {
           onClick={() => fileRef.current?.click()}
         >
           {uploading ? (
-            <><Spinner className="w-8 h-8" /><span className="text-sm text-gray-500">กำลังอัปโหลด...</span></>
+            <>
+              <Spinner className="w-8 h-8" />
+              <span className="text-sm text-gray-600 font-medium text-center">
+                {uploadProgress
+                  ? `กำลังอัปโหลด${uploadProgress.total > 1 ? ` (${uploadProgress.current}/${uploadProgress.total})` : ''}…`
+                  : 'กำลังอัปโหลด…'}
+              </span>
+              {uploadProgress && (
+                <span className="text-xs text-gray-400 max-w-[200px] truncate text-center">{uploadProgress.filename}</span>
+              )}
+              {uploadProgress && uploadProgress.total > 1 && (
+                <div className="w-full max-w-[180px] bg-gray-200 rounded-full h-1.5">
+                  <div
+                    className="bg-primary rounded-full h-1.5 transition-all duration-300"
+                    style={{ width: `${(uploadProgress.current / uploadProgress.total) * 100}%` }}
+                  />
+                </div>
+              )}
+            </>
           ) : (
             <>
               <div className="bg-primary/10 rounded-full p-4">
