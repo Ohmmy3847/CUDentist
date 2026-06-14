@@ -232,6 +232,15 @@ export default function DocumentsPage() {
 
       {/* Ingest action buttons */}
       <div className="flex flex-wrap items-center gap-3 mb-4">
+        {docs.length > 0 && (
+          <button
+            type="button"
+            onClick={allSelected ? () => setSelected(new Set()) : toggleAll}
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 transition-colors"
+          >
+            {allSelected ? 'ยกเลิกทั้งหมด' : `เลือกทั้งหมด (${docs.length})`}
+          </button>
+        )}
         {selected.size > 0 && (
           <button
             type="button"
